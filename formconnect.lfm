@@ -1,5 +1,5 @@
 object ConnectForm: TConnectForm
-  Left = 1237
+  Left = 920
   Height = 149
   Top = 355
   Width = 446
@@ -12,10 +12,10 @@ object ConnectForm: TConnectForm
   OnKeyDown = FormKeyDown
   OnShow = FormShow
   Position = poMainFormCenter
-  LCLVersion = '1.0.12.0'
+  LCLVersion = '1.2.6.0'
   object DBUserName: TLabeledEdit
     Left = 111
-    Height = 23
+    Height = 27
     Top = 64
     Width = 129
     EditLabel.AnchorSideTop.Control = DBUserName
@@ -23,10 +23,10 @@ object ConnectForm: TConnectForm
     EditLabel.AnchorSideRight.Control = DBUserName
     EditLabel.AnchorSideBottom.Control = DBUserName
     EditLabel.AnchorSideBottom.Side = asrBottom
-    EditLabel.Left = 77
-    EditLabel.Height = 16
-    EditLabel.Top = 67
-    EditLabel.Width = 31
+    EditLabel.Left = 71
+    EditLabel.Height = 17
+    EditLabel.Top = 69
+    EditLabel.Width = 37
     EditLabel.Caption = 'Login'
     EditLabel.ParentColor = False
     LabelPosition = lpLeft
@@ -34,7 +34,7 @@ object ConnectForm: TConnectForm
   end
   object DBPassword: TLabeledEdit
     Left = 312
-    Height = 23
+    Height = 27
     Top = 64
     Width = 121
     EchoMode = emPassword
@@ -43,10 +43,10 @@ object ConnectForm: TConnectForm
     EditLabel.AnchorSideRight.Control = DBPassword
     EditLabel.AnchorSideBottom.Control = DBPassword
     EditLabel.AnchorSideBottom.Side = asrBottom
-    EditLabel.Left = 258
-    EditLabel.Height = 16
-    EditLabel.Top = 67
-    EditLabel.Width = 51
+    EditLabel.Left = 243
+    EditLabel.Height = 17
+    EditLabel.Top = 69
+    EditLabel.Width = 66
     EditLabel.Caption = 'Password'
     EditLabel.ParentColor = False
     LabelPosition = lpLeft
@@ -55,7 +55,7 @@ object ConnectForm: TConnectForm
   end
   object DBPath: TLabeledEdit
     Left = 111
-    Height = 23
+    Height = 27
     Top = 16
     Width = 297
     EditLabel.AnchorSideTop.Control = DBPath
@@ -63,10 +63,10 @@ object ConnectForm: TConnectForm
     EditLabel.AnchorSideRight.Control = DBPath
     EditLabel.AnchorSideBottom.Control = DBPath
     EditLabel.AnchorSideBottom.Side = asrBottom
-    EditLabel.Left = 32
-    EditLabel.Height = 16
-    EditLabel.Top = 19
-    EditLabel.Width = 76
+    EditLabel.Left = 10
+    EditLabel.Height = 17
+    EditLabel.Top = 21
+    EditLabel.Width = 98
     EditLabel.Caption = 'Database path'
     EditLabel.ParentColor = False
     LabelPosition = lpLeft

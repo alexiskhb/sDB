@@ -28,6 +28,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormOnClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormOnDestroy(Sender: TObject);
+    procedure SetSQLQuery(formsender: TWinControl);
     constructor CreateNew(aTag: integer; FCaption: string);
     class procedure CreateTableForm(aTag: integer; FCaption: string);
     class procedure DestroyTableForm(aTag: integer);
@@ -98,7 +99,7 @@ begin
     Transaction := ConTran.DBTransaction;
     Database := ConTran.DBConnection;
     Active := false;
-    SQL.Text := Format('select * from %s', [DBTables[formsender.Tag].Name]);
+    SetSQLQuery(formsender);
   end;
 
   FDataSource := TDataSource.Create(formsender);
@@ -125,6 +126,7 @@ begin
         Columns.Add.FieldName := Fields[i].Name;
         Columns[i].Title.Caption := Fields[i].Caption;
         Columns[i].Width := Fields[i].Width;
+        Columns[i].Visible := Fields[i].Visible;
       end;
   end;
 
@@ -155,6 +157,16 @@ begin
     ShortCut := KeyToShortCut(87, [ssCtrl, ssShift]);
     OnClick := @CloseOtherTableForms;
   end;
+end;
+
+procedure TDBTableForm.SetSQLQuery(formsender: TWinControl);
+begin
+  with FSQLQuery.SQL do begin
+    Text := ' select ';
+    Text := Text + ' * ';
+    Text := Text + ' from ';
+    Text := Text + DBTables[formsender.Tag].Name;
+	end;
 end;
 
 procedure TDBTableForm.CloseTableForm(Sender: TObject);

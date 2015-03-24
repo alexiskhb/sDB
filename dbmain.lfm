@@ -1,19 +1,19 @@
 object MainForm: TMainForm
-  Left = 1395
+  Left = 886
   Height = 439
   Top = 299
   Width = 480
   Caption = 'ShDB'
-  ClientHeight = 419
+  ClientHeight = 439
   ClientWidth = 480
   Color = clCream
   Menu = MainMenu
   OnCreate = FormCreate
-  LCLVersion = '1.0.12.0'
+  LCLVersion = '1.2.6.0'
   object DBGrid: TDBGrid
     Left = 0
     Height = 231
-    Top = 188
+    Top = 208
     Width = 480
     Align = alBottom
     Color = clWindow
@@ -51,14 +51,14 @@ object MainForm: TMainForm
     Cursor = crVSplit
     Left = 0
     Height = 5
-    Top = 183
+    Top = 203
     Width = 480
     Align = alBottom
     ResizeAnchor = akBottom
   end
   object EntryField: TMemo
     Left = 0
-    Height = 143
+    Height = 163
     Top = 40
     Width = 480
     Align = alClient
@@ -104,7 +104,7 @@ object MainForm: TMainForm
     left = 8
     top = 160
   end
-  object DataSourceComponent: TDatasource
+  object DataSourceComponent: TDataSource
     DataSet = DBQuery
     left = 8
     top = 112
