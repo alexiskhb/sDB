@@ -94,6 +94,7 @@ begin
     Align := alTop;
   end;
 
+  FDBGrid := TDBGrid.Create(formsender);
   FSQLQuery := TSQLQuery.Create(formsender);
   with FSQLQuery do begin
     Transaction := ConTran.DBTransaction;
@@ -107,6 +108,19 @@ begin
     DataSet := FSQLQuery;
   end;
 
+  with FDBGrid do begin
+    Parent := formsender;
+    Align := alClient;
+    DataSource := FDataSource;
+    for i := 0 to High(DBTables[formsender.Tag].Fields) do
+      with DBTables[formsender.Tag] do begin
+        //Columns.Add.FieldName := Fields[i].Name;
+        //Columns[i].Title.Caption := Fields[i].Caption;
+        //Columns[i].Width := Fields[i].Width;
+        //Columns[i].Visible := Fields[i].Visible;
+      end;
+  end;
+
   FNavigator := TDBNavigator.Create(FControlPanel);
   with FNavigator do begin
     Parent := FControlPanel;
@@ -114,20 +128,6 @@ begin
     Left := 2;
     Top := 2;
     VisibleButtons := [nbFirst, nbNext, nbPrior, nbLast];
-  end;
-
-  FDBGrid := TDBGrid.Create(formsender);
-  with FDBGrid do begin
-    Parent := formsender;
-    Align := alClient;
-    DataSource := FDataSource;
-    for i := 0 to High(DBTables[formsender.Tag].Fields) do
-      with DBTables[formsender.Tag] do begin
-        Columns.Add.FieldName := Fields[i].Name;
-        Columns[i].Title.Caption := Fields[i].Caption;
-        Columns[i].Width := Fields[i].Width;
-        Columns[i].Visible := Fields[i].Visible;
-      end;
   end;
 
   CreateTableMenu(formsender);
@@ -160,14 +160,29 @@ begin
 end;
 
 procedure TDBTableForm.SetSQLQuery(formsender: TWinControl);
+var
+  i, j: integer;
 begin
   with FSQLQuery.SQL do begin
     Text := ' select ';
     Text := Text + ' * ';
     Text := Text + ' from ';
-    Text := Text + DBTables[formsender.Tag].Name;
-	end;
+    Text := Text + DBTables[formsender.Tag].Name + ' ';
+    with DBTables[formsender.Tag] do begin
+      for i := Low(Fields) to High(Fields) do
+        if Fields[i].TableRefEnum <> selfreft then begin
+          Text := Text + ' inner join ' + Fields[i].TableRef + ' on ';
+          Text := Text + Fields[i].TableRef + '.' + Fields[i].FieldRef  + ' = ';
+          Text := Text + DBTables[formsender.Tag].Name + '.' + Fields[i].Name;
+				end;
+    end;
+  end;
 end;
+
+//select * from
+//groups_courses
+//join groups on groups.id = groups_courses.group_id
+//join courses on courses.id = groups_courses.course_id
 
 procedure TDBTableForm.CloseTableForm(Sender: TObject);
 begin
