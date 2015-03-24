@@ -1,0 +1,29 @@
+object ConTran: TConTran
+  Left = 737
+  Height = 83
+  Top = 412
+  Width = 130
+  Caption = 'ConTran'
+  OnCreate = FormCreate
+  LCLVersion = '1.2.6.0'
+  object DBConnection: TIBConnection
+    Connected = False
+    LoginPrompt = False
+    DatabaseName = 'b8103.fdb'
+    KeepConnection = False
+    Password = '20052008'
+    Transaction = DBTransaction
+    UserName = 'sysdba'
+    CharSet = 'UTF8'
+    LogEvents = []
+    left = 16
+    top = 8
+  end
+  object DBTransaction: TSQLTransaction
+    Active = False
+    Action = caNone
+    Database = DBConnection
+    left = 56
+    top = 8
+  end
+end

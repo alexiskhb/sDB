@@ -1,0 +1,151 @@
+object MainForm: TMainForm
+  Left = 1395
+  Height = 439
+  Top = 299
+  Width = 480
+  Caption = 'ShDB'
+  ClientHeight = 419
+  ClientWidth = 480
+  Color = clCream
+  Menu = MainMenu
+  OnCreate = FormCreate
+  LCLVersion = '1.0.12.0'
+  object DBGrid: TDBGrid
+    Left = 0
+    Height = 231
+    Top = 188
+    Width = 480
+    Align = alBottom
+    Color = clWindow
+    Columns = <>
+    DataSource = DataSourceComponent
+    Options = [dgEditing, dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgAutoSizeColumns]
+    TabOrder = 0
+  end
+  object ControlPanel: TPanel
+    Left = 0
+    Height = 40
+    Top = 0
+    Width = 480
+    Align = alTop
+    ClientHeight = 40
+    ClientWidth = 480
+    ParentColor = False
+    TabOrder = 1
+    object ExecuteStatements: TBitBtn
+      Left = 4
+      Height = 32
+      Hint = 'Execute Statements'
+      Top = 4
+      Width = 124
+      Caption = 'Выполнить'
+      Font.Height = -19
+      OnClick = ExecuteStatementsClick
+      ParentFont = False
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 0
+    end
+  end
+  object EntryGridSplitter: TSplitter
+    Cursor = crVSplit
+    Left = 0
+    Height = 5
+    Top = 183
+    Width = 480
+    Align = alBottom
+    ResizeAnchor = akBottom
+  end
+  object EntryField: TMemo
+    Left = 0
+    Height = 143
+    Top = 40
+    Width = 480
+    Align = alClient
+    Font.Color = clMenuBar
+    Font.Height = -21
+    ParentFont = False
+    ScrollBars = ssAutoBoth
+    TabOrder = 3
+  end
+  object DBQuery: TSQLQuery
+    PacketRecords = 1
+    FieldDefs = <    
+      item
+        Name = 'ID'
+        DataType = ftInteger
+        Precision = -1
+        Size = 0
+      end    
+      item
+        Name = 'NAME'
+        DataType = ftString
+        Precision = -1
+        Size = 100
+      end    
+      item
+        Name = 'AGE'
+        DataType = ftInteger
+        Precision = -1
+        Size = 0
+      end    
+      item
+        Name = 'GROUP_ID'
+        DataType = ftInteger
+        Precision = -1
+        Size = 0
+      end>
+    Database = ConTran.DBConnection
+    Transaction = ConTran.DBTransaction
+    SQL.Strings = (
+      'select * from students'
+    )
+    Params = <>
+    left = 8
+    top = 160
+  end
+  object DataSourceComponent: TDatasource
+    DataSet = DBQuery
+    left = 8
+    top = 112
+  end
+  object MainMenu: TMainMenu
+    left = 8
+    top = 64
+    object MenuDatabase: TMenuItem
+      Caption = 'База данных'
+      object MenuCatalog: TMenuItem
+        Caption = 'Справочник'
+      end
+      object MenuConnect: TMenuItem
+        Caption = 'Подключить...'
+        ShortCut = 8259
+        OnClick = MenuConnectClick
+      end
+      object MenuDisconnect: TMenuItem
+        Caption = 'Отключить'
+        Enabled = False
+        OnClick = MenuDisconnectClick
+      end
+      object MenuQuit: TMenuItem
+        Caption = 'Выход'
+        OnClick = MenuQuitClick
+      end
+    end
+    object MenuStatements: TMenuItem
+      Caption = 'Запрос'
+      object MenuExecuteStatements: TMenuItem
+        Caption = 'Выполнить'
+        ShortCut = 115
+        OnClick = MenuExecuteStatementsClick
+      end
+    end
+    object MenuHelp: TMenuItem
+      Caption = 'Справка'
+      object MenuAbout: TMenuItem
+        Caption = 'О программе'
+        OnClick = MenuAboutClick
+      end
+    end
+  end
+end
