@@ -5,9 +5,9 @@ unit DBMain;
 interface
 
 uses
-  connection_transaction, Classes, SysUtils, sqldb, sqldblib, db, IBConnection, FileUtil,
-  SynHighlighterSQL, SynMemo, SynEdit, Forms, Controls, Graphics, Dialogs,
-  DBGrids, StdCtrls, ExtCtrls, Menus, Buttons, DbCtrls, FormConnect, types,
+  connection_transaction, Classes, SysUtils, sqldb, db, IBConnection, FileUtil,
+  SynHighlighterSQL, SynEdit, Forms, Controls, Graphics, Dialogs,
+  DBGrids, StdCtrls, ExtCtrls, Menus, Buttons, DbCtrls, FormConnect,
   metadata, listview, aboutsdb;
 
 type
