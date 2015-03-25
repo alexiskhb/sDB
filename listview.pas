@@ -29,6 +29,9 @@ type
     procedure FormOnClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormOnDestroy(Sender: TObject);
     procedure SetSQLQuery(formsender: TWinControl);
+    procedure AddColumnsToQuery(aTable: TDBTable);
+    procedure AddColumnsToGrid(aTable: TDBTable; var aDuplicates: TFieldNameIndexArray; var k: integer);
+    function AddFieldName(aFieldName: TFieldName; var aDuplicates: TFieldNameIndexArray): string;
     constructor CreateNew(aTag: integer; FCaption: string);
     class procedure CreateTableForm(aTag: integer; FCaption: string);
     class procedure DestroyTableForm(aTag: integer);
@@ -83,7 +86,8 @@ end;
 procedure TDBTableForm.FormCreate(Sender: TObject);
 var
   formsender: TWinControl;
-  i: integer;
+  i, j, k: integer;
+  duplicatenames: TFieldNameIndexArray;
 begin
   formsender := (Sender as TDBTableForm);
 
@@ -112,13 +116,8 @@ begin
     Parent := formsender;
     Align := alClient;
     DataSource := FDataSource;
-    for i := 0 to High(DBTables[formsender.Tag].Fields) do
-      with DBTables[formsender.Tag] do begin
-        //Columns.Add.FieldName := Fields[i].Name;
-        //Columns[i].Title.Caption := Fields[i].Caption;
-        //Columns[i].Width := Fields[i].Width;
-        //Columns[i].Visible := Fields[i].Visible;
-      end;
+    k := 0;
+    AddColumnsToGrid(DBTables[formsender.Tag], duplicatenames, k);
   end;
 
   FNavigator := TDBNavigator.Create(FControlPanel);
@@ -135,29 +134,62 @@ begin
   FSQLQuery.Active := true;
 end;
 
+procedure TDBTableForm.AddColumnsToGrid(aTable: TDBTable; var aDuplicates: TFieldNameIndexArray;
+  var k: integer);
+var
+  i: integer;
+begin
+  with FDBGrid do
+	  with aTable do begin
+	    for i := Low(Fields) to High(Fields) do begin
+	      if Fields[i].Visible then begin
+          Columns.Add.FieldName := AddFieldName(Fields[i].EnumName, aDuplicates);
+          Columns[k].Title.Caption := Fields[i].Caption;
+          Columns[k].Width := Fields[i].Width;
+          Columns[k].Visible := Fields[i].Visible;
+          inc(k);
+				end;
+	      if Fields[i].TableRefEnum <> selfreft then
+	        AddColumnsToGrid(DBTables[NumByName(Fields[i].TableRefEnum)], aDuplicates, k);
+		  end;
+	  end;
+end;
+
+function TDBTableForm.AddFieldName(aFieldName: TFieldName; var aDuplicates: TFieldNameIndexArray): string;
+begin
+  if aDuplicates[aFieldName] = 0 then
+    Result := EnumToString(aFieldName)
+	else
+    Result := EnumToString(aFieldName) + '_' + IntToStr(aDuplicates[aFieldName]);
+  inc(aDuplicates[aFieldName]);
+end;
+
+procedure TDBTableForm.AddColumnsToQuery(aTable: TDBTable);
+var
+  i: integer;
+begin
+  with FSQLQuery.SQL do
+	  with aTable do begin
+	    for i := Low(Fields) to High(Fields) do begin
+	      if Fields[i].Visible then begin
+	        Append(Name + '.' + Fields[i].Name);
+	        Append(',');
+	      end;
+	      if Fields[i].TableRefEnum <> selfreft then
+	        AddColumnsToQuery(DBTables[NumByName(Fields[i].TableRefEnum)]);
+		  end;
+	  end;
+end;
+
 procedure TDBTableForm.SetSQLQuery(formsender: TWinControl);
 var
   i, j: integer;
 begin
   with FSQLQuery.SQL do begin
     Append('select');
-    with DBTables[formsender.Tag] do begin
-      for i := Low(Fields) to High(Fields) do begin
-        if Fields[i].Visible then begin
-          Append(Name + '.' + Fields[i].Name);
-          Append(',');
-        end;
-        if Fields[i].TableRefEnum <> selfreft then
-          with DBTables[NumByName(Fields[i].TableRefEnum)] do
-            for j := Low(Fields) to High(Fields) do
-              if Fields[j].Visible then begin
-                Append(Name + '.' + Fields[j].Name);
-                Append(',');
-							end;
-			end;
-		end;
+    AddColumnsToQuery(DBTables[formsender.Tag]);
     Delete(Count - 1);
-    Append('from ');
+    Append('from');
     Append(DBTables[formsender.Tag].Name + ' ');
     with DBTables[formsender.Tag] do begin
       for i := Low(Fields) to High(Fields) do
@@ -167,7 +199,6 @@ begin
           Append(Name + '.' + Fields[i].Name);
 				end;
     end;
-    ShowMessage(Text);
   end;
 end;
 

@@ -15,6 +15,8 @@ type
   TFieldName = (id, name, group_id, course_id, classroom, weekday, period,
     teacher_id, pair_id, weekday_id, class_id, selfreff);
 
+  TFieldNameIndexArray = array [id..class_id] of integer;
+
   TDBField = class
   private
     FFieldType: TFieldType;
@@ -32,6 +34,7 @@ type
     function GetFieldRefName: string;
   public
     property Name: string read GetFieldName;
+    property EnumName: TFieldName read FName;
     property Caption: string read GetFieldCaption;
     property FieldType: TFieldType read GetFieldType;
     property Width: integer read GetFieldWidth;
@@ -58,7 +61,7 @@ type
   public
     property Fields: TDBFieldDynArray read FFields write FFields;
     property Name: string read GetTableName;
-    property NameEnum: TTableName read FName;
+    property EnumName: TTableName read FName;
     property Caption: string read GetTableCaption;
     procedure AddField(aName: TFieldName; aCaption: string; aWidth: integer;
       aType: TFieldType; aVisible: boolean); overload;
@@ -69,6 +72,9 @@ type
   end;
 
   TDBTableDynArray = array of TDBTable;
+
+function EnumToString(aTableName: TTableName): string; overload;
+function EnumToString(aFieldName: TFieldName): string; overload;
 
 var
   DBTables: TDBTableDynArray;
@@ -119,7 +125,7 @@ var
   i: integer;
 begin
   for i := Low(DBTables) to High(DBTables) do
-    if DBTables[i].NameEnum = aTableName then exit(i);
+    if DBTables[i].EnumName = aTableName then exit(i);
   Result := -1;
 end;
 
@@ -163,6 +169,16 @@ end;
 function TDBField.GetFieldRefName: string;
 begin
   Result := GetEnumName(TypeInfo(TFieldName), integer(FFieldRef));
+end;
+
+function EnumToString(aTableName: TTableName): string;
+begin
+  Result := GetEnumName(TypeInfo(TFieldName), integer(aTableName));
+end;
+
+function EnumToString(aFieldName: TFieldName): string;
+begin
+  Result := GetEnumName(TypeInfo(TFieldName), integer(aFieldName));
 end;
 
 initialization
