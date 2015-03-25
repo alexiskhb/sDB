@@ -197,7 +197,7 @@ begin
           Append('join ' + Fields[i].TableRefStr + ' on ');
           Append(Fields[i].TableRefStr + '.' + Fields[i].FieldRefStr  + ' = ');
           Append(Name + '.' + Fields[i].Name);
-				end;
+	end;
     end;
   end;
 end;
