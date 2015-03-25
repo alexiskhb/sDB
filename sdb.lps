@@ -58,10 +58,11 @@
         <Filename Value="listview.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="listview"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="3"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="149"/>
-        <CursorPos X="43" Y="159"/>
+        <TopLine Value="178"/>
+        <CursorPos X="7" Y="180"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
       </Unit4>
@@ -72,11 +73,10 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="connection_transaction"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="2"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
-        <CursorPos X="31" Y="15"/>
+        <CursorPos X="42" Y="29"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
