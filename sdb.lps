@@ -49,8 +49,8 @@
         <UnitName Value="metadata"/>
         <EditorIndex Value="1"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="111"/>
-        <CursorPos X="27" Y="34"/>
+        <TopLine Value="71"/>
+        <CursorPos X="20" Y="57"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
       </Unit3>
@@ -61,8 +61,8 @@
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="3"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="178"/>
-        <CursorPos X="7" Y="180"/>
+        <TopLine Value="166"/>
+        <CursorPos X="4" Y="186"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
       </Unit4>
@@ -243,7 +243,7 @@
     <General>
       <ActiveWindowIndexAtStart Value="0"/>
     </General>
-    <JumpHistory Count="30" HistoryIndex="29">
+    <JumpHistory Count="29" HistoryIndex="28">
       <Position1>
         <Filename Value="metadata.pas"/>
         <Caret Line="87" Column="55" TopLine="60"/>
@@ -360,10 +360,6 @@
         <Filename Value="listview.pas"/>
         <Caret Line="177" Column="50" TopLine="150"/>
       </Position29>
-      <Position30>
-        <Filename Value="listview.pas"/>
-        <Caret Line="39" Column="57" TopLine="152"/>
-      </Position30>
     </JumpHistory>
   </ProjectSession>
   <EditorMacros Count="0"/>

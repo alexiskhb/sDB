@@ -57,7 +57,6 @@ type
     FTag: integer;
     function GetTableName: string;
     function GetTableCaption: string;
-    constructor Create(aName: TTableName; aCaption: string);
   public
     property Fields: TDBFieldDynArray read FFields write FFields;
     property Name: string read GetTableName;
@@ -69,6 +68,7 @@ type
         aFieldName: TFieldName; aWidth: integer; aType: TFieldType; aVisible: boolean); overload;
     class procedure Add(aName: TTableName; aCaption: string);
     class function NumByName(aTableName: TTableName): integer;
+    constructor Create(aName: TTableName; aCaption: string);
   end;
 
   TDBTableDynArray = array of TDBTable;

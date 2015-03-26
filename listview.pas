@@ -86,8 +86,8 @@ end;
 procedure TDBTableForm.FormCreate(Sender: TObject);
 var
   formsender: TWinControl;
-  i, j, k: integer;
-  duplicatenames: TFieldNameIndexArray;
+  k: integer;
+  duplicatenames: TFieldNameIndexArray = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 begin
   formsender := (Sender as TDBTableForm);
 
@@ -183,7 +183,7 @@ end;
 
 procedure TDBTableForm.SetSQLQuery(formsender: TWinControl);
 var
-  i, j: integer;
+  i: integer;
 begin
   with FSQLQuery.SQL do begin
     Append('select');
