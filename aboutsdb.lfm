@@ -10,7 +10,7 @@ object AboutProg: TAboutProg
   Position = poMainFormCenter
   LCLVersion = '1.2.6.0'
   object sDBLabel: TLabel
-    Left = 88
+    Left = 80
     Height = 34
     Top = 24
     Width = 202
@@ -20,7 +20,7 @@ object AboutProg: TAboutProg
     ParentFont = False
   end
   object MadeByLabel: TLabel
-    Left = 104
+    Left = 88
     Height = 17
     Top = 96
     Width = 187

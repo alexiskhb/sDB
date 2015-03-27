@@ -27,17 +27,14 @@ type
     FTableRef: TTableName;
     FFieldRef: TFieldName;
     function GetFieldName: string;
-    function GetFieldCaption: string;
-    function GetFieldType: TFieldType;
-    function GetFieldWidth: integer;
     function GetTableRefName: string;
     function GetFieldRefName: string;
   public
     property Name: string read GetFieldName;
     property EnumName: TFieldName read FName;
-    property Caption: string read GetFieldCaption;
-    property FieldType: TFieldType read GetFieldType;
-    property Width: integer read GetFieldWidth;
+    property Caption: string read FCaption;
+    property FieldType: TFieldType read FFieldType;
+    property Width: integer read FWidth write FWidth;
     property Visible: boolean read FVisible write FVisible;
     property TableRefStr: string read GetTableRefName;
     property TableRefEnum: TTableName read FTableRef;
@@ -56,12 +53,11 @@ type
     FFields: TDBFieldDynArray;
     FTag: integer;
     function GetTableName: string;
-    function GetTableCaption: string;
   public
     property Fields: TDBFieldDynArray read FFields write FFields;
     property Name: string read GetTableName;
     property EnumName: TTableName read FName;
-    property Caption: string read GetTableCaption;
+    property Caption: string read FCaption;
     procedure AddField(aName: TFieldName; aCaption: string; aWidth: integer;
       aType: TFieldType; aVisible: boolean); overload;
     procedure AddField(aName: TFieldName; aCaption: string; aTableName: TTableName;
@@ -115,11 +111,6 @@ begin
   Result := GetEnumName(TypeInfo(TTableName), integer(FName));
 end;
 
-function TDBTable.GetTableCaption: string;
-begin
-  Result := FCaption;
-end;
-
 class function TDBTable.NumByName(aTableName: TTableName): integer;
 var
   i: integer;
@@ -144,21 +135,6 @@ end;
 function TDBField.GetFieldName: string;
 begin
   Result := GetEnumName(TypeInfo(TFieldName), integer(FName));
-end;
-
-function TDBField.GetFieldCaption: string;
-begin
-  Result := FCaption;
-end;
-
-function TDBField.GetFieldType: TFieldType;
-begin
-  Result := FFieldType;
-end;
-
-function TDBField.GetFieldWidth: integer;
-begin
-  Result := FWidth;
 end;
 
 function TDBField.GetTableRefName: string;
