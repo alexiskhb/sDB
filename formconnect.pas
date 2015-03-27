@@ -10,7 +10,7 @@ uses
 
 type
 
- { TConnectForm }
+  { TConnectForm }
 
   TConnectForm = class(TForm)
     BrowseDBPath: TButton;
@@ -22,7 +22,7 @@ type
     BrowseDBPathDialog: TOpenDialog;
     procedure BrowseDBPathClick(Sender: TObject);
     procedure CanselButtonClick(Sender: TObject);
-    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure FormKeyDown(Sender: TObject; var Key: word; Shift: TShiftState);
     procedure FormShow(Sender: TObject);
     procedure OkButtonClick(Sender: TObject);
   end;
@@ -56,8 +56,7 @@ begin
   ConnectForm.Hide;
 end;
 
-procedure TConnectForm.FormKeyDown(Sender: TObject; var Key: Word;
-		Shift: TShiftState);
+procedure TConnectForm.FormKeyDown(Sender: TObject; var Key: word; Shift: TShiftState);
 begin
   case Key of
     13: OkButtonClick(OkButton);
@@ -72,4 +71,5 @@ begin
 end;
 
 end.
+
 

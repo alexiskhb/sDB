@@ -71,7 +71,7 @@
       <Unit4>
         <Filename Value="listview.pas"/>
         <IsPartOfProject Value="True"/>
-        <ComponentName Value="MainForm"/>
+        <ComponentName Value="DBTableForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="listview"/>

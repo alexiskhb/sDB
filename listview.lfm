@@ -1,0 +1,85 @@
+object DBTableForm: TDBTableForm
+  Left = 586
+  Height = 413
+  Top = 245
+  Width = 362
+  Caption = 'DBTableForm'
+  ClientHeight = 413
+  ClientWidth = 362
+  Menu = TableMainMenu
+  OnClose = FormClose
+  OnDestroy = FormDestroy
+  OnShow = FormShow
+  Position = poScreenCenter
+  LCLVersion = '1.2.6.0'
+  object FDBGrid: TDBGrid
+    Left = 0
+    Height = 383
+    Top = 30
+    Width = 362
+    Align = alClient
+    Color = clWindow
+    Columns = <>
+    DataSource = FDataSource
+    TabOrder = 0
+  end
+  object FControlPanel: TPanel
+    Left = 0
+    Height = 30
+    Top = 0
+    Width = 362
+    Align = alTop
+    ClientHeight = 30
+    ClientWidth = 362
+    TabOrder = 1
+    object FNavigator: TDBNavigator
+      Left = 2
+      Height = 25
+      Top = 2
+      Width = 241
+      BevelOuter = bvNone
+      ChildSizing.EnlargeHorizontal = crsScaleChilds
+      ChildSizing.EnlargeVertical = crsScaleChilds
+      ChildSizing.ShrinkHorizontal = crsScaleChilds
+      ChildSizing.ShrinkVertical = crsScaleChilds
+      ChildSizing.Layout = cclLeftToRightThenTopToBottom
+      ChildSizing.ControlsPerLine = 100
+      ClientHeight = 25
+      ClientWidth = 241
+      DataSource = FDataSource
+      Options = []
+      TabOrder = 0
+      VisibleButtons = [nbFirst, nbPrior, nbNext, nbLast]
+    end
+  end
+  object FDataSource: TDataSource
+    DataSet = FSQLQuery
+    left = 19
+    top = 46
+  end
+  object FSQLQuery: TSQLQuery
+    FieldDefs = <>
+    Database = ConTran.DBConnection
+    Transaction = ConTran.DBTransaction
+    Params = <>
+    left = 36
+    top = 98
+  end
+  object TableMainMenu: TMainMenu
+    left = 16
+    top = 160
+    object TableMenu: TMenuItem
+      Caption = 'Таблицы'
+      object CloseTable: TMenuItem
+        Caption = 'Закрыть'
+        ShortCut = 16471
+        OnClick = CloseTableClick
+      end
+      object CloseOtherTables: TMenuItem
+        Caption = 'Закрыть все другие'
+        ShortCut = 24663
+        OnClick = CloseOtherTablesClick
+      end
+    end
+  end
+end

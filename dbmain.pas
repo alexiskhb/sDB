@@ -5,9 +5,9 @@ unit DBMain;
 interface
 
 uses
-  connection_transaction, Classes, SysUtils, sqldb, db, IBConnection, FileUtil,
+  connection_transaction, Classes, SysUtils, sqldb, DB, IBConnection, FileUtil,
   SynHighlighterSQL, SynEdit, Forms, Controls, Graphics, Dialogs,
-  DBGrids, StdCtrls, ExtCtrls, Menus, Buttons, DbCtrls, FormConnect,
+  DBGrids, StdCtrls, ExtCtrls, Menus, Buttons, DBCtrls, FormConnect,
   metadata, listview, aboutsdb;
 
 type
@@ -91,7 +91,7 @@ end;
 procedure TMainForm.MenuDisconnectClick(Sender: TObject);
 begin
   with ConTran.DBConnection do begin
-    Connected := false;
+    Connected := False;
     Password := '';
   end;
 end;
@@ -112,15 +112,15 @@ var
   i: integer;
 begin
   if ConnectForm.ShowModal = mrOk then
-  with ConTran.DBConnection do begin
-    for i := 0 to High(DBTables) do
-      TDBTableForm.DestroyTableForm(i);
-    Connected := false;
-    DatabaseName := ConnectForm.DBPath.Text;
-    UserName := ConnectForm.DBUserName.Text;
-    Password := ConnectForm.DBPassword.Text;
-    Connected := true;
-  end;
+    with ConTran.DBConnection do begin
+      for i := 0 to High(DBTables) do
+        TDBTableForm.DestroyTableForm(i);
+      Connected := False;
+      DatabaseName := ConnectForm.DBPath.Text;
+      UserName := ConnectForm.DBUserName.Text;
+      Password := ConnectForm.DBPassword.Text;
+      Connected := True;
+    end;
 end;
 
 procedure TMainForm.MenuExecuteStatementsClick(Sender: TObject);

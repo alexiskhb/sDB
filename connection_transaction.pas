@@ -10,7 +10,7 @@ uses
 
 type
 
-{ TConTran }
+  { TConTran }
 
   TConTran = class(TDataModule)
     DBConnection: TIBConnection;
@@ -29,7 +29,7 @@ implementation
 
 procedure TConTran.FormCreate(Sender: TObject);
 begin
-  DBConnection.Connected := true;
+  DBConnection.Connected := True;
 end;
 
 end.
