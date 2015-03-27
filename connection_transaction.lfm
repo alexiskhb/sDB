@@ -1,11 +1,12 @@
 object ConTran: TConTran
-  Left = 737
-  Height = 83
-  Top = 412
-  Width = 130
-  Caption = 'ConTran'
   OnCreate = FormCreate
-  LCLVersion = '1.2.6.0'
+  OldCreateOrder = False
+  left = 737
+  top = 412
+  Height = 95
+  HorizontalOffset = 605
+  VerticalOffset = 344
+  Width = 120
   object DBConnection: TIBConnection
     Connected = False
     LoginPrompt = False
@@ -14,7 +15,7 @@ object ConTran: TConTran
     Password = '20052008'
     Transaction = DBTransaction
     UserName = 'sysdba'
-    CharSet = 'UTF8'
+    CharSet = 'win1251'
     LogEvents = []
     left = 16
     top = 8

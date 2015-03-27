@@ -12,7 +12,7 @@ type
 
 { TConTran }
 
-  TConTran = class(TForm)
+  TConTran = class(TDataModule)
     DBConnection: TIBConnection;
     DBTransaction: TSQLTransaction;
     procedure FormCreate(Sender: TObject);
