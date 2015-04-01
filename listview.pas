@@ -18,6 +18,7 @@ type
     FControlPanel: TPanel;
     FDBGrid: TDBGrid;
     FSQLQuery: TSQLQuery;
+		Splitter: TSplitter;
     TableMenu: TMenuItem;
     CloseOtherTables: TMenuItem;
     TableMainMenu: TMainMenu;
@@ -29,10 +30,7 @@ type
 		procedure FormShow(Sender: TObject);
     procedure SetSQLQuery(formsender: TWinControl);
     procedure AddColumnsToQuery(aTable: TDBTable);
-    procedure AddColumnsToGrid(aTable: TDBTable; var aDuplicates: TFieldNameIndexArray;
-      var k: integer);
-    function AddFieldName(aFieldName: TFieldName;
-      var aDuplicates: TFieldNameIndexArray): string;
+    procedure AddColumnsToGrid(aTable: TDBTable);
     class procedure CreateTableForm(aTag: integer; aCaption: string);
     class procedure DestroyTableForm(aTag: integer);
     class procedure FormSetFocus(aTag: integer);
@@ -75,34 +73,22 @@ begin
     DBTableForms[aTag].SetFocus;
 end;
 
-procedure TDBTableForm.AddColumnsToGrid(aTable: TDBTable;
-  var aDuplicates: TFieldNameIndexArray; var k: integer);
+procedure TDBTableForm.AddColumnsToGrid(aTable: TDBTable);
 var
   i: integer;
 begin
   with FDBGrid do
     with aTable do
-      for i := Low(Fields) to High(Fields) do begin
+      for i := 0 to High(Fields) do begin
         if Fields[i].Visible then begin
-          Columns.Add.FieldName := AddFieldName(Fields[i].EnumName, aDuplicates);
-          Columns[k].Title.Caption := Fields[i].Caption;
-          Columns[k].Width := Fields[i].Width;
-          Columns[k].Visible := Fields[i].Visible;
-          Inc(k);
+          Columns.Add.FieldName := aTable.Name + Fields[i].Name ;
+          Columns[Columns.Count - 1].Title.Caption := Fields[i].Caption;
+          Columns[Columns.Count - 1].Width := Fields[i].Width;
+          Columns[Columns.Count - 1].Visible := Fields[i].Visible;
         end;
-        if Fields[i].TableRefEnum <> selfreft then
-          AddColumnsToGrid(DBTables[NumByName(Fields[i].TableRefEnum)], aDuplicates, k);
+        if Assigned(Fields[i].TableRef) then
+          AddColumnsToGrid(Fields[i].TableRef);
       end;
-end;
-
-function TDBTableForm.AddFieldName(aFieldName: TFieldName;
-  var aDuplicates: TFieldNameIndexArray): string;
-begin
-  if aDuplicates[aFieldName] = 0 then
-    Result := EnumToString(aFieldName)
-  else
-    Result := EnumToString(aFieldName) + '_' + IntToStr(aDuplicates[aFieldName]);
-  Inc(aDuplicates[aFieldName]);
 end;
 
 procedure TDBTableForm.AddColumnsToQuery(aTable: TDBTable);
@@ -111,13 +97,13 @@ var
 begin
   with FSQLQuery.SQL do
     with aTable do
-      for i := Low(Fields) to High(Fields) do begin
+      for i := 0 to High(Fields) do begin
         if Fields[i].Visible then begin
-          Append(Name + '.' + Fields[i].Name);
+          Append(Name + '.' + Fields[i].Name + ' as ' + Name + Fields[i].Name);
           Append(',');
         end;
-        if Fields[i].TableRefEnum <> selfreft then
-          AddColumnsToQuery(DBTables[NumByName(Fields[i].TableRefEnum)]);
+        if Assigned(Fields[i].TableRef) then
+          AddColumnsToQuery(Fields[i].TableRef);
       end;
 end;
 
@@ -133,9 +119,9 @@ begin
     Append(DBTables[formsender.Tag].Name + ' ');
     with DBTables[formsender.Tag] do
       for i := Low(Fields) to High(Fields) do
-        if Fields[i].TableRefEnum <> selfreft then begin
-          Append('join ' + Fields[i].TableRefStr + ' on ');
-          Append(Fields[i].TableRefStr + '.' + Fields[i].FieldRefStr + ' = ');
+        if Assigned(Fields[i].TableRef) then begin
+          Append('join ' + Fields[i].TableRef.Name + ' on ');
+          Append(Fields[i].TableRef.Name + '.' + Fields[i].FieldRef.Name + ' = ');
           Append(Name + '.' + Fields[i].Name);
         end;
   end;
@@ -150,7 +136,6 @@ procedure TDBTableForm.FormShow(Sender: TObject);
 var
   formsender: TWinControl;
   k: integer;
-  duplicatenames: TFieldNameIndexArray = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 begin
   formsender := (Sender as TDBTableForm);
 
@@ -167,7 +152,7 @@ begin
   with FDBGrid do begin
     DataSource := FDataSource;
     k := 0;
-    AddColumnsToGrid(DBTables[formsender.Tag], duplicatenames, k);
+    AddColumnsToGrid(DBTables[formsender.Tag]);
   end;
 
   with FNavigator do begin

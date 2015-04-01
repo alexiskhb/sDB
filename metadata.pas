@@ -9,194 +9,178 @@ uses
 
 type
 
-  TTableName = (teachers, groups, courses, groups_courses, classrooms, weekdays,
-    pairs, teachers_courses, lessons, selfreft);
+  TDBTable = class;
+  TDBField = class;
 
-  TFieldName = (id, name, group_id, course_id, classroom, weekday, period,
-    teacher_id, pair_id, weekday_id, class_id, selfreff);
-
-  TFieldNameIndexArray = array [id..class_id] of integer;
-
-  TDBField = class
+  TDBField = class(TObject)
   private
     FFieldType: TFieldType;
-    FName: TFieldName;
+    FName: string;
     FCaption: string;
     FWidth: integer;
     FVisible: boolean;
-    FTableRef: TTableName;
-    FFieldRef: TFieldName;
-    function GetFieldName: string;
-    function GetTableRefName: string;
-    function GetFieldRefName: string;
+    FTableRef: TDBTable;
+    FFieldRef: TDBField;
   public
-    property Name: string read GetFieldName;
-    property EnumName: TFieldName read FName;
+    property Name: string read FName;
     property Caption: string read FCaption;
     property FieldType: TFieldType read FFieldType;
     property Width: integer read FWidth write FWidth;
     property Visible: boolean read FVisible write FVisible;
-    property TableRefStr: string read GetTableRefName;
-    property TableRefEnum: TTableName read FTableRef;
-    property FieldRefStr: string read GetFieldRefName;
-    property FieldRefEnum: TFieldName read FFieldRef;
-    constructor Create(aName: TFieldName; aCaption: string; aTableRef: TTableName;
-        aFieldRef: TFieldName; aWidth: integer; aType: TFieldType; aVisible: boolean);
+    property TableRef: TDBTable read FTableRef;
+    property FieldRef: TDBField read FFieldRef;
+    constructor Create(aName, aCaption, aTableRef, aFieldRef: string;
+    aWidth: integer; aType: TFieldType; aVisible: boolean); overload;
+    constructor Create(aName, aCaption: string; aWidth: integer; aType:
+        TFieldType; aVisible: boolean); overload;
   end;
 
   TDBFieldDynArray = array of TDBField;
 
-  TDBTable = class
+  TDBTable = class(TObject)
   private
-    FName: TTableName;
+    FName: string;
     FCaption: string;
     FFields: TDBFieldDynArray;
+    FFieldsList: TStringList;
     FTag: integer;
-    function GetTableName: string;
   public
     property Fields: TDBFieldDynArray read FFields write FFields;
-    property Name: string read GetTableName;
-    property EnumName: TTableName read FName;
+    property Name: string read FName;
     property Caption: string read FCaption;
-    procedure AddField(aName: TFieldName; aCaption: string; aWidth: integer;
+    procedure AddField(aName, aCaption: string; aWidth: integer;
       aType: TFieldType; aVisible: boolean); overload;
-    procedure AddField(aName: TFieldName; aCaption: string; aTableName: TTableName;
-        aFieldName: TFieldName; aWidth: integer; aType: TFieldType; aVisible: boolean); overload;
-    class procedure Add(aName: TTableName; aCaption: string);
-    class function NumByName(aTableName: TTableName): integer;
-    constructor Create(aName: TTableName; aCaption: string);
+    procedure AddField(aName, aCaption, aTableRef, aFieldRef: string;
+      aWidth: integer; aType: TFieldType; aVisible: boolean); overload;
+    class procedure Add(aName, aCaption: string);
+    constructor Create(aName, aCaption: string);
   end;
 
   TDBTableDynArray = array of TDBTable;
 
-function EnumToString(aTableName: TTableName): string; overload;
-function EnumToString(aFieldName: TFieldName): string; overload;
-
 var
   DBTables: TDBTableDynArray;
+  DBTablesList: TStringList;
 
 implementation
 
-procedure TDBTable.AddField(aName: TFieldName; aCaption: string; aWidth: integer;
+procedure TDBTable.AddField(aName, aCaption: string; aWidth: integer;
   aType: TFieldType; aVisible: boolean);
 begin
   SetLength(FFields, Length(FFields) + 1);
-  FFields[High(FFields)] := TDBField.Create(aName, aCaption, selfreft, selfreff,
-    aWidth, aType, aVisible);
+  FFieldsList.AddObject(aName, TDBField.Create(aName, aCaption, aWidth, aType, aVisible));
+  FFields[High(FFields)] := (FFieldsList.Objects[FFieldsList.Count - 1] as TDBField);
 end;
 
-procedure TDBTable.AddField(aName: TFieldName; aCaption: string; aTableName: TTableName;
-    aFieldName: TFieldName; aWidth: integer; aType: TFieldType; aVisible: boolean);
+procedure TDBTable.AddField(aName, aCaption, aTableRef, aFieldRef: string;
+    aWidth: integer; aType: TFieldType; aVisible: boolean);
 begin
   SetLength(FFields, Length(FFields) + 1);
-  FFields[High(FFields)] := TDBField.Create(aName, aCaption, aTableName, aFieldName,
-    aWidth, aType, aVisible);
+  FFieldsList.AddObject(aName, TDBField.Create(aName, aCaption, aTableRef, aFieldRef,
+    aWidth, aType, aVisible));
+  FFields[High(FFields)] := (FFieldsList.Objects[FFieldsList.Count - 1] as TDBField);
 end;
 
-class procedure TDBTable.Add(aName: TTableName; aCaption: string);
+class procedure TDBTable.Add(aName, aCaption: string);
 begin
   SetLength(DBTables, Length(DBTables) + 1);
-  DBTables[High(DBTables)] := TDBTable.Create(aName, aCaption);
+  DBTablesList.AddObject(aName, TDBTable.Create(aName, aCaption));
+  DBTables[High(DBTables)] := (DBTablesList.Objects[DBTablesList.Count - 1] as TDBTable);
   DBTables[High(DBTables)].FTag := High(DBTables);
 end;
 
-constructor TDBTable.Create(aName: TTableName; aCaption: string);
+constructor TDBTable.Create(aName, aCaption: string);
 begin
   FName := aName;
   FCaption := aCaption;
+  FFieldsList := TStringList.Create;
 end;
 
-function TDBTable.GetTableName: string;
-begin
-  Result := GetEnumName(TypeInfo(TTableName), integer(FName));
-end;
-
-class function TDBTable.NumByName(aTableName: TTableName): integer;
-var
-  i: integer;
-begin
-  for i := Low(DBTables) to High(DBTables) do
-    if DBTables[i].EnumName = aTableName then exit(i);
-  Result := -1;
-end;
-
-constructor TDBField.Create(aName: TFieldName; aCaption: string; aTableRef: TTableName;
-    aFieldRef: TFieldName; aWidth: integer; aType: TFieldType; aVisible: boolean);
+constructor TDBField.Create(aName, aCaption, aTableRef, aFieldRef: string;
+    aWidth: integer; aType: TFieldType; aVisible: boolean);
 begin
   FName := aName;
   FCaption := aCaption;
   FWidth := aWidth;
   FFieldType := aType;
   FVisible := aVisible;
-  FTableRef := aTableRef;
-  FFieldRef := aFieldRef;
+  FTableRef := (DBTablesList.Objects[DBTablesList.IndexOf(aTableRef)] as TDBTable);
+  FFieldRef := (FTableRef.FFieldsList.Objects[FTableRef.FFieldsList.IndexOf(aFieldRef)] as TDBField);
 end;
 
-function TDBField.GetFieldName: string;
+constructor TDBField.Create(aName, aCaption: string;
+    aWidth: integer; aType: TFieldType; aVisible: boolean);
 begin
-  Result := GetEnumName(TypeInfo(TFieldName), integer(FName));
-end;
-
-function TDBField.GetTableRefName: string;
-begin
-  Result := GetEnumName(TypeInfo(TTableName), integer(FTableRef));
-end;
-
-function TDBField.GetFieldRefName: string;
-begin
-  Result := GetEnumName(TypeInfo(TFieldName), integer(FFieldRef));
-end;
-
-function EnumToString(aTableName: TTableName): string;
-begin
-  Result := GetEnumName(TypeInfo(TFieldName), integer(aTableName));
-end;
-
-function EnumToString(aFieldName: TFieldName): string;
-begin
-  Result := GetEnumName(TypeInfo(TFieldName), integer(aFieldName));
+  FName := aName;
+  FCaption := aCaption;
+  FWidth := aWidth;
+  FFieldType := aType;
+  FVisible := aVisible;
 end;
 
 initialization
 
-  TDBTable.Add(teachers, 'Преподаватели');
-  DBTables[0].AddField(id, 'ИД', 40, ftInteger, false);
-  DBTables[0].AddField(name, 'Имя', 300, ftString, true);
+  DBTablesList := TStringList.Create;
+  with DBTablesList do begin
+    Sorted := false;
+    Duplicates := dupError;
+  end;
 
-  TDBTable.Add(Groups, 'Группы');
-  DBTables[1].AddField(id, 'ИД', 40, ftInteger, false);
-  DBTables[1].AddField(name, 'Группа', 100, ftString, true);
+  TDBTable.Add('teachers', 'Преподаватели');
+  DBTables[0].AddField('id', 'ИД', 40, ftInteger, false);
+  DBTables[0].AddField('name', 'Имя', 300, ftString, true);
 
-  TDBTable.Add(courses, 'Дисциплины');
-  DBTables[2].AddField(id, 'ИД', 40, ftInteger, false);
-  DBTables[2].AddField(name, 'Дисциплина', 300, ftString, true);
+  TDBTable.Add('groups', 'Группы');
+  DBTables[1].AddField('id', 'ИД', 40, ftInteger, false);
+  DBTables[1].AddField('name', 'Группа', 100, ftString, true);
 
-  TDBTable.Add(Groups_Courses, 'Дисц. групп');
-  DBTables[3].AddField(group_id, 'Ид. группы', Groups, id, 80, ftInteger, false);
-  DBTables[3].AddField(course_id, 'Ид. предмета', courses, id, 80, ftInteger, false);
+  TDBTable.Add('courses', 'Дисциплины');
+  DBTables[2].AddField('id', 'ИД', 40, ftInteger, false);
+  DBTables[2].AddField('name', 'Дисциплина', 300, ftString, true);
 
-  TDBTable.Add(Classrooms, 'Аудитории');
-  DBTables[4].AddField(id, 'ИД', 40, ftInteger, false);
-  DBTables[4].AddField(classroom, 'Аудитория', 100, ftString, true);
+  TDBTable.Add('groups_courses', 'Дисц. групп');
+  DBTables[3].AddField('group_id', 'Ид. группы', 'Groups', 'id', 80, ftInteger, false);
+  DBTables[3].AddField('course_id', 'Ид. предмета', 'courses', 'id', 80, ftInteger, false);
 
-  TDBTable.Add(WeekDays, 'Дни недели');
-  DBTables[5].AddField(id, 'ИД', 40, ftInteger, false);
-  DBTables[5].AddField(weekday, 'День недели', 100, ftString, true);
+  TDBTable.Add('classrooms', 'Аудитории');
+  DBTables[4].AddField('id', 'ИД', 40, ftInteger, false);
+  DBTables[4].AddField('classroom', 'Аудитория', 100, ftString, true);
 
-  TDBTable.Add(Pairs, 'Период зан.');
-  DBTables[6].AddField(ID, 'Пара', 40, ftInteger, true);
-  DBTables[6].AddField(period, 'Время занятия', 300, ftString, true);
+  TDBTable.Add('weekdays', 'Дни недели');
+  DBTables[5].AddField('id', 'ИД', 40, ftInteger, false);
+  DBTables[5].AddField('weekday', 'День недели', 100, ftString, true);
 
-  TDBTable.Add(Teachers_Courses, 'Дисц. препод.');
-  DBTables[7].AddField(teacher_id, 'Ид. преподавателя', teachers, id, 80, ftInteger, false);
-  DBTables[7].AddField(course_id, 'Ид. предмета', courses, id, 80, ftInteger, false);
+  TDBTable.Add('pairs', 'Период зан.');
+  DBTables[6].AddField('ID', 'Пара', 40, ftInteger, true);
+  DBTables[6].AddField('period', 'Время занятия', 100, ftString, true);
 
-  TDBTable.Add(lessons, 'Расписание');
-  DBTables[8].AddField(pair_id, 'Пара', pairs, id, 40, ftInteger, false);
-  DBTables[8].AddField(weekday_id, 'День недели', weekdays, id, 70, ftInteger, false);
-  DBTables[8].AddField(group_id, 'Группа', groups, id, 50, ftInteger, false);
-  DBTables[8].AddField(course_id, 'Предмет', courses, id, 70, ftInteger, false);
-  DBTables[8].AddField(class_id, 'Аудитория', classrooms, id, 70, ftInteger, false);
-  DBTables[8].AddField(teacher_id, 'Преподаватель', teachers, id, 70, ftInteger, false);
+  TDBTable.Add('teachers_courses', 'Дисц. препод.');
+  DBTables[7].AddField('teacher_id', 'Ид. преподавателя', 'teachers', 'id', 80, ftInteger, false);
+  DBTables[7].AddField('course_id', 'Ид. предмета', 'courses', 'id', 80, ftInteger, false);
+
+  TDBTable.Add('lessons', 'Расписание');
+  DBTables[8].AddField('pair_id', 'Пара', 'pairs', 'id', 40, ftInteger, false);
+  DBTables[8].AddField('weekday_id', 'День недели', 'weekdays', 'id', 70, ftInteger, false);
+  DBTables[8].AddField('group_id', 'Группа', 'groups', 'id', 50, ftInteger, false);
+  DBTables[8].AddField('course_id', 'Предмет', 'courses', 'id', 70, ftInteger, false);
+  DBTables[8].AddField('class_id', 'Аудитория', 'classrooms', 'id', 70, ftInteger, false);
+  DBTables[8].AddField('teacher_id', 'Преподаватель', 'teachers', 'id', 70, ftInteger, false);
 
 end.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
