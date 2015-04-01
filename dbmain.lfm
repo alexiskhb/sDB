@@ -112,11 +112,11 @@ object MainForm: TMainForm
   object MainMenu: TMainMenu
     left = 8
     top = 64
+    object MenuReference: TMenuItem
+      Caption = 'Справочник'
+    end
     object MenuDatabase: TMenuItem
       Caption = 'База данных'
-      object MenuCatalog: TMenuItem
-        Caption = 'Справочник'
-      end
       object MenuConnect: TMenuItem
         Caption = 'Подключить...'
         ShortCut = 8259

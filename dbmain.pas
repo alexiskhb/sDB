@@ -26,9 +26,9 @@ type
     MenuDatabase: TMenuItem;
     MenuConnect: TMenuItem;
     MenuDisconnect: TMenuItem;
-    MenuCatalog: TMenuItem;
     MenuHelp: TMenuItem;
     MenuAbout: TMenuItem;
+		MenuReference: TMenuItem;
     MenuQuit: TMenuItem;
     MenuStatements: TMenuItem;
     EntryGridSplitter: TSplitter;
@@ -75,7 +75,7 @@ begin
       OnClick := @ShowDBTable;
     end;
   end;
-  MainMenu.Items[0].Items[0].Add(MenuItemsTables);
+  MainMenu.Items[0].Add(MenuItemsTables);
 end;
 
 procedure TMainForm.MenuAboutClick(Sender: TObject);
