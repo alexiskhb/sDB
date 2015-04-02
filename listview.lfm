@@ -2,10 +2,10 @@ object DBTableForm: TDBTableForm
   Left = 586
   Height = 413
   Top = 245
-  Width = 362
+  Width = 361
   Caption = 'DBTableForm'
   ClientHeight = 413
-  ClientWidth = 362
+  ClientWidth = 361
   Menu = TableMainMenu
   OnClose = FormClose
   OnDestroy = FormDestroy
@@ -14,9 +14,9 @@ object DBTableForm: TDBTableForm
   LCLVersion = '1.2.6.0'
   object FDBGrid: TDBGrid
     Left = 0
-    Height = 383
-    Top = 30
-    Width = 362
+    Height = 376
+    Top = 37
+    Width = 361
     Align = alClient
     Color = clWindow
     Columns = <>
@@ -27,10 +27,10 @@ object DBTableForm: TDBTableForm
     Left = 0
     Height = 30
     Top = 0
-    Width = 362
+    Width = 361
     Align = alTop
     ClientHeight = 30
-    ClientWidth = 362
+    ClientWidth = 361
     TabOrder = 1
     object FNavigator: TDBNavigator
       Left = 2
@@ -51,6 +51,33 @@ object DBTableForm: TDBTableForm
       TabOrder = 0
       VisibleButtons = [nbFirst, nbPrior, nbNext, nbLast]
     end
+    object AddFilter: TButton
+      Left = 320
+      Height = 25
+      Top = 2
+      Width = 24
+      Caption = '+'
+      OnClick = AddFilterClick
+      TabOrder = 1
+    end
+    object Filter: TSpeedButton
+      Left = 248
+      Height = 25
+      Top = 2
+      Width = 64
+      Caption = 'Фильтр'
+      Down = True
+      GroupIndex = 1
+    end
+  end
+  object Splitter: TSplitter
+    Cursor = crVSplit
+    Left = 0
+    Height = 7
+    Top = 30
+    Width = 361
+    Align = alTop
+    ResizeAnchor = akTop
   end
   object FDataSource: TDataSource
     DataSet = FSQLQuery
