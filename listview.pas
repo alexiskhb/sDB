@@ -27,6 +27,7 @@ type
     FOwner: TDBTableForm;
     FHeight: integer;
     FTop: integer;
+    FValue: variant;
     procedure SetFilterTop(Value: integer);
     procedure SetFilterHeight(Value: integer);
     procedure SetFilterTag(Value: integer);
@@ -38,6 +39,7 @@ type
     property Top: integer read FTop write SetFilterTop;
     property Tag: integer read FTag write SetFilterTag;
     property Height: integer read FHeight write SetFilterHeight;
+    property Value: variant;
     constructor Create(aIndex: integer; aForm: TDBTableForm);
     destructor Destroy;
 	end;
@@ -48,10 +50,11 @@ type
     AddFilter: TButton;
     FNavigator: TDBNavigator;
     FDataSource: TDataSource;
-    FControlPanel: TPanel;
     FDBGrid: TDBGrid;
     FSQLQuery: TSQLQuery;
     Filter: TSpeedButton;
+		FFilterPanel: TScrollBox;
+		FButtonPanel: TPanel;
 	  Splitter: TSplitter;
     TableMenu: TMenuItem;
     CloseOtherTables: TMenuItem;
@@ -66,7 +69,7 @@ type
     procedure SetSQLQuery(formsender: TWinControl);
     procedure AddColumnsToQuery(aTable: TDBTable);
     procedure AddColumnsToGrid(aTable: TDBTable);
-    procedure DestroyFilter(Sender: TObject);
+    procedure DestroyFilterClick(Sender: TObject);
     class procedure CreateTableForm(aTag: integer; aCaption: string);
     class procedure DestroyTableForm(aTag: integer);
     class procedure FormSetFocus(aTag: integer);
@@ -220,14 +223,19 @@ begin
       DestroyTableForm(i);
 end;
 
-procedure TDBTableForm.DestroyFilter(Sender: TObject);
+procedure TDBTableForm.DestroyFilterClick(Sender: TObject);
 var
-  vTag: integer;
+  vTag, i: integer;
 begin
   vTag := (Sender as TQueryFilter).Tag;
   LocateFiltersOnDelete(vTag);
   Filters[vTag].Destroy;
   Filters[vTag] := nil;
+  for i := High(Filters) downto 0 do
+    if (Filters[i] = nil) then
+      SetLength(Filters, Length(Filters) - 1)
+    else
+      break;
   //FreeAndNil(Filters[vTag]);
 end;
 
@@ -235,11 +243,13 @@ procedure TDBTableForm.LocateFiltersOnDelete(aTag: integer);
 var
   i: integer;
 begin
-  FControlPanel.Height := FControlPanel.Height - Filters[aTag].Height;
+  FFilterPanel.Height := FFilterPanel.Height - Filters[aTag].Height;
   for i := 0 to Length(Filters) - 1 do
     if Assigned(Filters[i]) and (i <> aTag) then
       if Filters[i].Top > Filters[aTag].Top then
         Filters[i].Top := Filters[i].Top - Filters[i].Height;
+  if ClientToScreen(Point(0, FFilterPanel.Height + FButtonPanel.Height)).Y < Mouse.CursorPos.Y then
+    FFilterPanel.Height := FFilterPanel.Height + Filters[aTag].Height;
 end;
 
 procedure TDBTableForm.LocateFiltersOnAdd(aTag: integer);
@@ -247,11 +257,15 @@ var
   i, k: integer;
 begin
   k := 0;
-  FControlPanel.Height := FControlPanel.Height + Filters[aTag].Height;
   for i := 0 to Length(Filters) - 1 do
     if Assigned(Filters[i]) and (i <> aTag) then
       inc(k);
-  Filters[aTag].Top := (k + 1) * Filters[aTag].Height;
+  Filters[aTag].Top := k * Filters[aTag].Height;
+  if (Filters[aTag].Top + Filters[aTag].Height >= FFilterPanel.Height) and
+    (Filters[aTag].Top <= FFilterPanel.Height) and
+      //(FFilterPanel.Height <= Height - (FButtonPanel.Height) - Filters[aTag].Height) then
+      (FFilterPanel.Height <= 4*(Height div 5)) then
+    FFilterPanel.Height := FFilterPanel.Height + Filters[aTag].Height;
 end;
 
 constructor TQueryFilter.Create(aIndex: integer; aForm: TDBTableForm);
@@ -259,9 +273,9 @@ begin
   FOwner := aForm;
   FTag := aIndex;
 
-  FDeleteFilter := TButton.Create(aForm.FControlPanel);
+  FDeleteFilter := TButton.Create(aForm.FFilterPanel);
   with FDeleteFilter do begin
-    Parent := aForm.FControlPanel;
+    Parent := aForm.FFilterPanel;
     Height := 26;
     Width := Height;
     FHeight := Height;
@@ -271,9 +285,9 @@ begin
     OnClick := @DeleteFilterClick;
   end;
 
-	FFieldChoise := TComboBox.Create(aForm.FControlPanel);
+	FFieldChoise := TComboBox.Create(aForm.FFilterPanel);
   with FFieldChoise do begin
-    Parent := aForm.FControlPanel;
+    Parent := aForm.FFilterPanel;
     Left := FDeleteFilter.Left + FDeleteFilter.Width + 1;
     AutoSize := false;
     Height := FDeleteFilter.Height;
@@ -311,14 +325,14 @@ begin
     if (Filters[i] = nil) then begin
       Filters[i] := TQueryFilter.Create(i, Self);
       LocateFiltersOnAdd(i);
-      Filters[i].OnDestroy := @DestroyFilter;
+      Filters[i].OnDestroy := @DestroyFilterClick;
       exit();
     end;
 
   SetLength(Filters, Length(Filters) + 1);
   Filters[High(Filters)] := TQueryFilter.Create(High(Filters), Self);
   LocateFiltersOnAdd(High(Filters));
-  Filters[High(Filters)].OnDestroy := @DestroyFilter;
+  Filters[High(Filters)].OnDestroy := @DestroyFilterClick;
 end;
 
 procedure TQueryFilter.FieldChoose(Sender: TObject);
@@ -343,8 +357,8 @@ begin
 	end;
   tempft := ((vSender.Items.Objects[vSender.ItemIndex]) as TDBField).FieldType;
 
-  FOperationChoise := TComboBox.Create(FOwner.FControlPanel);
-  FOperationChoise.Parent := FOwner.FControlPanel;
+  FOperationChoise := TComboBox.Create(FOwner.FFilterPanel);
+  FOperationChoise.Parent := FOwner.FFilterPanel;
   with FOperationChoise do begin
     AutoSize := false;
     Top := FDeleteFilter.Top;
@@ -356,12 +370,13 @@ begin
         AddItem(OperCaptions[ro], Self);
 	end;
 
-  FConstant := EditField[tempft].Create(FOwner.FControlPanel);
-  FConstant.Parent := FOwner.FControlPanel;
+  FConstant := EditField[tempft].Create(FOwner.FFilterPanel);
+  FConstant.Parent := FOwner.FFilterPanel;
   with FConstant do begin
     Top := FDeleteFilter.Top;
     Left := FOperationChoise.Left + FOperationChoise.Width + 1;
 	end;
+
 end;
 
 procedure TQueryFilter.SetFilterTop(Value: integer);

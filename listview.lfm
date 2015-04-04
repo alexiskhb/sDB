@@ -1,7 +1,7 @@
 object DBTableForm: TDBTableForm
-  Left = 586
+  Left = 729
   Height = 413
-  Top = 245
+  Top = 217
   Width = 361
   Caption = 'DBTableForm'
   ClientHeight = 413
@@ -14,8 +14,8 @@ object DBTableForm: TDBTableForm
   LCLVersion = '1.2.6.0'
   object FDBGrid: TDBGrid
     Left = 0
-    Height = 376
-    Top = 37
+    Height = 375
+    Top = 38
     Width = 361
     Align = alClient
     Color = clWindow
@@ -23,7 +23,28 @@ object DBTableForm: TDBTableForm
     DataSource = FDataSource
     TabOrder = 0
   end
-  object FControlPanel: TPanel
+  object Splitter: TSplitter
+    Cursor = crVSplit
+    Left = 0
+    Height = 7
+    Top = 31
+    Width = 361
+    Align = alTop
+    ResizeAnchor = akTop
+  end
+  object FFilterPanel: TScrollBox
+    Left = 0
+    Height = 1
+    Top = 30
+    Width = 361
+    HorzScrollBar.Page = 1
+    HorzScrollBar.Tracking = True
+    VertScrollBar.Page = 1
+    VertScrollBar.Tracking = True
+    Align = alTop
+    TabOrder = 2
+  end
+  object FButtonPanel: TPanel
     Left = 0
     Height = 30
     Top = 0
@@ -31,7 +52,7 @@ object DBTableForm: TDBTableForm
     Align = alTop
     ClientHeight = 30
     ClientWidth = 361
-    TabOrder = 1
+    TabOrder = 3
     object FNavigator: TDBNavigator
       Left = 2
       Height = 25
@@ -51,15 +72,6 @@ object DBTableForm: TDBTableForm
       TabOrder = 0
       VisibleButtons = [nbFirst, nbPrior, nbNext, nbLast]
     end
-    object AddFilter: TButton
-      Left = 320
-      Height = 25
-      Top = 2
-      Width = 24
-      Caption = '+'
-      OnClick = AddFilterClick
-      TabOrder = 1
-    end
     object Filter: TSpeedButton
       Left = 248
       Height = 25
@@ -69,15 +81,15 @@ object DBTableForm: TDBTableForm
       Down = True
       GroupIndex = 1
     end
-  end
-  object Splitter: TSplitter
-    Cursor = crVSplit
-    Left = 0
-    Height = 7
-    Top = 30
-    Width = 361
-    Align = alTop
-    ResizeAnchor = akTop
+    object AddFilter: TButton
+      Left = 320
+      Height = 25
+      Top = 2
+      Width = 24
+      Caption = '+'
+      OnClick = AddFilterClick
+      TabOrder = 1
+    end
   end
   object FDataSource: TDataSource
     DataSet = FSQLQuery
