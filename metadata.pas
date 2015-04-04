@@ -155,7 +155,7 @@ initialization
   DBTables[4].AddField('classroom', 'Аудитория', 100, ftString, true);
 
   TDBTable.Add('weekdays', 'Дни недели');
-  DBTables[5].AddField('id', 'ИД', 40, ftInteger, false);
+  DBTables[5].AddField('id', 'День', 40, ftInteger, false);
   DBTables[5].AddField('weekday', 'День недели', 100, ftString, true);
 
   TDBTable.Add('pairs', 'Период зан.');

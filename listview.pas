@@ -69,6 +69,8 @@ type
     procedure AddColumnsToGrid(aTable: TDBTable);
     procedure DestroyFilterClick(Sender: TObject);
     procedure FDBGridTitleClick(Column: TColumn);
+    procedure DBGridColumnMoved(Sender: TObject; FromIndex,
+		ToIndex: Integer);
     class procedure CreateTableForm(aTag: integer; aCaption: string);
     class procedure DestroyTableForm(aTag: integer);
     class procedure FormSetFocus(aTag: integer);
@@ -191,6 +193,12 @@ begin
   FSQLQuery.Open;
 end;
 
+procedure TDBTableForm.DBGridColumnMoved(Sender: TObject; FromIndex,
+		ToIndex: Integer);
+begin
+  FieldOfColumn.Move(FromIndex - 1, ToIndex - 1);
+end;
+
 procedure TDBTableForm.FormDestroy(Sender: TObject);
 begin
   DBTableForms[(Sender as TDBTableForm).Tag] := nil;
@@ -215,6 +223,7 @@ begin
     DataSource := FDataSource;
     AddColumnsToGrid(DBTables[Self.Tag]);
     OnTitleClick := @FDBGridTitleClick;
+    OnColumnMoved := @DBGridColumnMoved;
   end;
 
   with FNavigator do begin
