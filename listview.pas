@@ -31,9 +31,9 @@ type
     FTag: integer;
     FDestroying: TNotifyEvent;
     FChangingData: TNotifyEvent;
-    FConstant: TCustomEdit;
-    FFieldChoise: TComboBox;
-    FOperationChoise: TComboBox;
+    FConstantEditor: TCustomEdit;
+    FFieldsList: TComboBox;
+    FOperationsList: TComboBox;
     FDeleteFilter: TButton;
     FOwner: TDBTableForm;
     FHeight: integer;
@@ -102,8 +102,9 @@ type
     Filters: array of TQueryFilter;
     FieldOfColumn: TStringList;
     OrderDesc: boolean;
+    FiltersOrder: array of integer;
     procedure LocateFiltersOnDelete(ATag: integer);
-    procedure LocateFiltersOnAdd(ATag: integer);
+    procedure LocateFiltersOnAdd(ATag, APosition: integer);
   end;
 
   TDBTableFormDynArray = array of TDBTableForm;
@@ -283,17 +284,20 @@ begin
   FSQLQuery.SQL.Append('where 1 = 1');
 
   with FSQLQuery do
-    for i := 0 to High(Filters) do
-      if Assigned(Filters[i]) and Assigned(Filters[i].FConstant) then begin
-        SQL.Append('and ' + Filters[i].ChosenField.Owner.Name+'.'+Filters[i].ChosenField.Name);
-        SQL.Append(Filters[i].Operation + ' :' + 'P' + IntToStr(i));
-	    end;
+    for i := 0 to Length(FiltersOrder) - 1 do
+      if Assigned(Filters[FiltersOrder[i]]) and Assigned(Filters[FiltersOrder[i]].FConstantEditor)
+      and (Filters[FiltersOrder[i]].FConstantEditor.Visible) then begin
+        SQL.Append('and ' + Filters[FiltersOrder[i]].ChosenField.Owner.Name+'.'+Filters[FiltersOrder[i]].ChosenField.Name);
+        SQL.Append(Filters[FiltersOrder[i]].Operation + ' :' + 'P' + IntToStr(FiltersOrder[i]));
+      end else if Assigned(Filters[FiltersOrder[i]]) and Assigned(Filters[FiltersOrder[i]].FConstantEditor) then
+        SQL.Append('or 1 = 1');
 
   k := 0;
-  for i := 0 to High(Filters) do
-    if Assigned(Filters[i]) and Assigned(Filters[i].FConstant) then
+  for i := 0 to Length(FiltersOrder) - 1 do
+    if Assigned(Filters[FiltersOrder[i]]) and Assigned(Filters[FiltersOrder[i]].FConstantEditor) and
+    (Filters[FiltersOrder[i]].FConstantEditor.Visible) then
       with FSQLQuery do begin
-        Params[k].Value := Filters[i].Value;
+        Params[k].Value := Filters[FiltersOrder[i]].Value;
         inc(k);
       end;
 end;
@@ -325,8 +329,17 @@ end;
 procedure TDBTableForm.LocateFiltersOnDelete(ATag: integer);
 var
   i: integer;
+  found: boolean;
 begin
-  FFilterPanel.Height := FFilterPanel.Height - Filters[ATag].Height;
+  found := false;
+  for i := 0 to Length(FiltersOrder) - 2 do begin
+    if FiltersOrder[i] = ATag then
+      found := true;
+    if found then
+      FiltersOrder[i] := FiltersOrder[i + 1];
+	end;
+  SetLength(FiltersOrder, Length(FiltersOrder) - 1);
+	FFilterPanel.Height := FFilterPanel.Height - Filters[ATag].Height;
   for i := 0 to Length(Filters) - 1 do
     if Assigned(Filters[i]) and (i <> ATag) then
       if Filters[i].Top > Filters[ATag].Top then
@@ -335,10 +348,16 @@ begin
     FFilterPanel.Height := FFilterPanel.Height + Filters[ATag].Height;
 end;
 
-procedure TDBTableForm.LocateFiltersOnAdd(ATag: integer);
+procedure TDBTableForm.LocateFiltersOnAdd(ATag, APosition: integer);
 var
   i, k: integer;
 begin
+  if APosition = -1 then
+    APosition := Length(FiltersOrder) - 1;
+  SetLength(FiltersOrder, Length(FiltersOrder) + 1);
+  for i := Length(FiltersOrder) - 1 downto APosition + 2 do
+    FiltersOrder[i] := FiltersOrder[i - 1];
+  FiltersOrder[APosition + 1] := ATag;
   k := 0;
   for i := 0 to Length(Filters) - 1 do
     if Assigned(Filters[i]) and (i <> ATag) then
@@ -347,7 +366,7 @@ begin
   if (Filters[ATag].Top + Filters[ATag].Height >= FFilterPanel.Height) and
     (Filters[ATag].Top <= FFilterPanel.Height) and
       (FFilterPanel.Height <= 4*(Height div 5)) then
-    FFilterPanel.Height := FFilterPanel.Height + Filters[ATag].Height;
+        FFilterPanel.Height := FFilterPanel.Height + Filters[ATag].Height;
 end;
 
 constructor TQueryFilter.Create(AIndex: integer; AForm: TDBTableForm);
@@ -367,14 +386,15 @@ begin
     OnClick := @DeleteFilterClick;
   end;
 
-	FFieldChoise := TComboBox.Create(AForm.FFilterPanel);
-  with FFieldChoise do begin
+	FFieldsList := TComboBox.Create(AForm.FFilterPanel);
+  with FFieldsList do begin
     Parent := AForm.FFilterPanel;
     Left := FDeleteFilter.Left + FDeleteFilter.Width + 1;
     AutoSize := false;
     Height := FDeleteFilter.Height;
     Style := csDropDownList;
     AddFieldsForChoose(DBTables[AForm.Tag]);
+    AddItem('ИЛИ', nil);
     OnChange := @FieldChoose;
   end;
 end;
@@ -383,7 +403,7 @@ procedure TQueryFilter.AddFieldsForChoose(aTable: TDBTable);
 var
   i: integer;
 begin
-  with FFieldChoise do
+  with FFieldsList do
     with aTable do
       for i := 0 to High(Fields) do begin
         if Fields[i].Visible then begin
@@ -412,7 +432,7 @@ begin
   for i := 0 to Length(Filters) - 1 do
     if (Filters[i] = nil) then begin
       Filters[i] := TQueryFilter.Create(i, Self);
-      LocateFiltersOnAdd(i);
+      LocateFiltersOnAdd(i, -1);
       Filters[i].OnDestroy := @DestroyFilterClick;
       Filters[i].OnChangeData := @FilterDataChanged;
       exit;
@@ -420,7 +440,7 @@ begin
 
   SetLength(Filters, Length(Filters) + 1);
   Filters[High(Filters)] := TQueryFilter.Create(High(Filters), Self);
-  LocateFiltersOnAdd(High(Filters));
+  LocateFiltersOnAdd(High(Filters), -1);
   Filters[High(Filters)].OnDestroy := @DestroyFilterClick;
   Filters[High(Filters)].OnChangeData := @FilterDataChanged;
 end;
@@ -432,19 +452,22 @@ var
   ro: TRelationalOperation;
 begin
   VSender := (Sender as TComboBox);
-  if Assigned(FConstant) then begin
-    FreeAndNil(FConstant);
-    FreeAndNil(FOperationChoise);
+  if Assigned(FConstantEditor) then begin
+    FreeAndNil(FConstantEditor);
+    FreeAndNil(FOperationsList);
 	end;
-  tempft := ((VSender.Items.Objects[VSender.ItemIndex]) as TDBField).FieldType;
+  if Assigned(VSender.Items.Objects[VSender.ItemIndex]) then
+    tempft := ((VSender.Items.Objects[VSender.ItemIndex]) as TDBField).FieldType
+  else
+    tempft := ftUnknown;
 
-  FOperationChoise := TComboBox.Create(FOwner.FFilterPanel);
-  FOperationChoise.Parent := FOwner.FFilterPanel;
-  with FOperationChoise do begin
+  FOperationsList := TComboBox.Create(FOwner.FFilterPanel);
+  FOperationsList.Parent := FOwner.FFilterPanel;
+  with FOperationsList do begin
     AutoSize := false;
     Top := FDeleteFilter.Top;
-    Left := FFieldChoise.Left + FFieldChoise.Width + 1;
-    Height := FFieldChoise.Height;
+    Left := FFieldsList.Left + FFieldsList.Width + 1;
+    Height := FFieldsList.Height;
     Style := csDropDownList;
     for ro := Low(TRelationalOperation) to High(TRelationalOperation) do
       if ro in AvailableOperations[tempft] then
@@ -453,20 +476,25 @@ begin
     OnChange := @OperationChange;
 	end;
 
-  FConstant := TypeOfEditor[tempft].Create(FOwner.FFilterPanel);
-  FConstant.Parent := FOwner.FFilterPanel;
-  with FConstant do begin
+  FConstantEditor := TypeOfEditor[tempft].Create(FOwner.FFilterPanel);
+  FConstantEditor.Parent := FOwner.FFilterPanel;
+  with FConstantEditor do begin
     AutoSize := false;
-    Height := FFieldChoise.Height;
-    Width := FFieldChoise.Width;;
+    Height := FFieldsList.Height;
+    Width := FFieldsList.Width;;
     Top := FDeleteFilter.Top;
-    Left := FOperationChoise.Left + FOperationChoise.Width + 1;
+    Left := FOperationsList.Left + FOperationsList.Width + 1;
     if TypeOfEditor[tempft] = TSpinEdit then
-      with (FConstant as TSpinEdit) do begin
+      with (FConstantEditor as TSpinEdit) do begin
         MaxValue := High(Integer);
         MinValue := Low(Integer);
 	  	end;
     OnChange := @EditChange;
+	end;
+
+  if tempft = ftUnknown then begin
+    FConstantEditor.Visible := false;
+    FOperationsList.Visible := false;
 	end;
 
   FChangingData(Self);
@@ -485,10 +513,10 @@ end;
 procedure TQueryFilter.SetFilterTop(Value: integer);
 begin
   FDeleteFilter.Top := Value;
-  FFieldChoise.Top := Value;
-  if Assigned(FConstant) then begin
-    FConstant.Top := Value;
-    FOperationChoise.Top := Value;
+  FFieldsList.Top := Value;
+  if Assigned(FConstantEditor) then begin
+    FConstantEditor.Top := Value;
+    FOperationsList.Top := Value;
 	end;
   FTop := Value;
 end;
@@ -496,10 +524,10 @@ end;
 procedure TQueryFilter.SetFilterHeight(Value: integer);
 begin
   FDeleteFilter.Height := Value;
-  FFieldChoise.Height := Value;
-  if Assigned(FConstant) then begin
-    FConstant.Height := Value;
-    FOperationChoise.Height := Value;
+  FFieldsList.Height := Value;
+  if Assigned(FConstantEditor) then begin
+    FConstantEditor.Height := Value;
+    FOperationsList.Height := Value;
 	end;
 	FHeight := Value;
 end;
@@ -512,29 +540,32 @@ end;
 
 function TQueryFilter.GetField: TDBField;
 begin
-  Result := (FFieldChoise.Items.Objects[FFieldChoise.ItemIndex] as TDBField);
+  if Assigned(FFieldsList.Items.Objects[FFieldsList.ItemIndex] as TDBField) then
+    Result := (FFieldsList.Items.Objects[FFieldsList.ItemIndex] as TDBField)
+  else
+    Result := nil;
 end;
 
 function TQueryFilter.GetOperation: string;
 begin
-  Result := (FOperationChoise.Items.Objects[FOperationChoise.ItemIndex] as TRelOperation).Code;
+  Result := (FOperationsList.Items.Objects[FOperationsList.ItemIndex] as TRelOperation).Code;
 end;
 
 function TQueryFilter.GetValue: Variant;
 begin
-  if ((FFieldChoise.Items.Objects[FFieldChoise.ItemIndex]) as TDBField).FieldType = ftInteger then
-    Result := (FConstant as TSpinEdit).Value
+  if ((FFieldsList.Items.Objects[FFieldsList.ItemIndex]) as TDBField).FieldType = ftInteger then
+    Result := (FConstantEditor as TSpinEdit).Value
   else
-    Result := FConstant.Text;
+    Result := FConstantEditor.Text;
 end;
 
 destructor TQueryFilter.Destroy;
 begin
   FreeAndNil(FDeleteFilter);
-  FreeAndNil(FFieldChoise);
-  if Assigned(FConstant) then begin
-    FreeAndNil(FConstant);
-    FreeAndNil(FOperationChoise);
+  FreeAndNil(FFieldsList);
+  if Assigned(FConstantEditor) then begin
+    FreeAndNil(FConstantEditor);
+    FreeAndNil(FOperationsList);
 	end;
 end;
 
@@ -549,6 +580,7 @@ initialization
   SetLength(DBTableForms, Length(DBTables));
   TypeOfEditor[ftInteger] := TSpinEdit;
   TypeOfEditor[ftString] := TEdit;
+  TypeOfEditor[ftUnknown] := TEdit;
   AvailableOperations[ftInteger] := [roEqual, roInequal, roGreater, roNotGreater, roNotLess, roLess];
   AvailableOperations[ftString] := [roEqual, roInequal, roContaining, roStartsWith];
   Operations[roGreater] := TRelOperation.Create('>', ' > ');
