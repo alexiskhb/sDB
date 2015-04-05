@@ -1,7 +1,7 @@
 object DBTableForm: TDBTableForm
-  Left = 729
+  Left = 400
   Height = 413
-  Top = 217
+  Top = 273
   Width = 361
   Caption = 'DBTableForm'
   ClientHeight = 413
@@ -77,9 +77,10 @@ object DBTableForm: TDBTableForm
       Height = 25
       Top = 2
       Width = 64
+      AllowAllUp = True
       Caption = 'Фильтр'
-      Down = True
-      GroupIndex = 1
+      Enabled = False
+      OnClick = FilterClick
     end
     object AddFilter: TButton
       Left = 320

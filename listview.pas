@@ -49,15 +49,16 @@ type
     procedure DeleteFilterClick(Sender: TObject);
     procedure AddFieldsForChoose(aTable: TDBTable);
     procedure EditChange(Sender: TObject);
+    procedure OperationChange(Sender: TObject);
     property ChosenField: TDBField read GetField;
     property Tag: integer read FTag write SetFilterTag;
     property OnDestroy: TNotifyEvent read FDestroying write FDestroying;
     property OnChangeData: TNotifyEvent read FChangingData write FChangingData;
     property Top: integer read FTop write SetFilterTop;
     property Height: integer read FHeight write SetFilterHeight;
-    property Value: Variant read GetValue;
+    property Value: variant read GetValue;
     property Operation: string read GetOperation;
-    constructor Create(aIndex: integer; aForm: TDBTableForm);
+    constructor Create(AIndex: integer; AForm: TDBTableForm);
     destructor Destroy;
 	end;
 
@@ -113,7 +114,7 @@ implementation
 
 var
   DBTableForms: TDBTableFormDynArray;
-  TypeOfEditor: array [ftUnknown..ftWideMemo] of TCustomEditClass;
+  TypeOfEditor: array [Low(TFieldType)..High(TFieldType)] of TCustomEditClass;
   AvailableOperations: array [Low(TFieldType)..High(TFieldType)] of set of TRelationalOperation;
   Operations: array [Low(TRelationalOperation)..High(TRelationalOperation)] of TRelOperation;
 
@@ -268,10 +269,7 @@ end;
 
 procedure TDBTableForm.FilterClick(Sender: TObject);
 begin
-  with (Sender as TSpeedButton) do begin
-    //Down := true;
-    AllowAllUp := true;
-	end;
+  (Sender as TSpeedButton).Enabled := false;
   FSQLQuery.Close;
   SetSQLQuery;
   AddConditionsToQuery;
@@ -282,7 +280,6 @@ procedure TDBTableForm.AddConditionsToQuery;
 var
   i, k: integer;
 begin
-  i := 0;
   FSQLQuery.SQL.Append('where 1 = 1');
 
   with FSQLQuery do
@@ -299,7 +296,6 @@ begin
         Params[k].Value := Filters[i].Value;
         inc(k);
       end;
-
 end;
 
 procedure TDBTableForm.CloseOtherTablesClick(Sender: TObject);
@@ -354,31 +350,31 @@ begin
     FFilterPanel.Height := FFilterPanel.Height + Filters[ATag].Height;
 end;
 
-constructor TQueryFilter.Create(aIndex: integer; aForm: TDBTableForm);
+constructor TQueryFilter.Create(AIndex: integer; AForm: TDBTableForm);
 begin
-  FOwner := aForm;
-  FTag := aIndex;
+  FOwner := AForm;
+  FTag := AIndex;
 
-  FDeleteFilter := TButton.Create(aForm.FFilterPanel);
+  FDeleteFilter := TButton.Create(AForm.FFilterPanel);
   with FDeleteFilter do begin
-    Parent := aForm.FFilterPanel;
+    Parent := AForm.FFilterPanel;
     Height := 26;
     Width := Height;
     FHeight := Height;
     Caption := 'X';
     Left := 2;
-    Tag := aIndex;
+    Tag := AIndex;
     OnClick := @DeleteFilterClick;
   end;
 
-	FFieldChoise := TComboBox.Create(aForm.FFilterPanel);
+	FFieldChoise := TComboBox.Create(AForm.FFilterPanel);
   with FFieldChoise do begin
-    Parent := aForm.FFilterPanel;
+    Parent := AForm.FFilterPanel;
     Left := FDeleteFilter.Left + FDeleteFilter.Width + 1;
     AutoSize := false;
     Height := FDeleteFilter.Height;
     Style := csDropDownList;
-    AddFieldsForChoose(DBTables[aForm.Tag]);
+    AddFieldsForChoose(DBTables[AForm.Tag]);
     OnChange := @FieldChoose;
   end;
 end;
@@ -400,13 +396,13 @@ end;
 
 procedure TQueryFilter.DeleteFilterClick(Sender: TObject);
 begin
+  FChangingData(Self);
   FDestroying(Self);
 end;
 
 procedure TDBTableForm.FilterDataChanged(Sender: TObject);
 begin
-  Filter.AllowAllUp := true;
-  Filter.Down := false;
+  Filter.Enabled := true;
 end;
 
 procedure TDBTableForm.AddFilterClick(Sender: TObject);
@@ -426,6 +422,7 @@ begin
   Filters[High(Filters)] := TQueryFilter.Create(High(Filters), Self);
   LocateFiltersOnAdd(High(Filters));
   Filters[High(Filters)].OnDestroy := @DestroyFilterClick;
+  Filters[High(Filters)].OnChangeData := @FilterDataChanged;
 end;
 
 procedure TQueryFilter.FieldChoose(Sender: TObject);
@@ -453,6 +450,7 @@ begin
       if ro in AvailableOperations[tempft] then
         AddItem(Operations[ro].Caption, Operations[ro]);
     ItemIndex := 0;
+    OnChange := @OperationChange;
 	end;
 
   FConstant := TypeOfEditor[tempft].Create(FOwner.FFilterPanel);
@@ -470,11 +468,18 @@ begin
 	  	end;
     OnChange := @EditChange;
 	end;
+
+  FChangingData(Self);
 end;
 
 procedure TQueryFilter.EditChange(Sender: TObject);
 begin
-  //FChangingData(Self);
+  FChangingData(Self);
+end;
+
+procedure TQueryFilter.OperationChange(Sender: TObject);
+begin
+  FChangingData(Self);
 end;
 
 procedure TQueryFilter.SetFilterTop(Value: integer);
