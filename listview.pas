@@ -21,6 +21,8 @@ type
     FCaption: string;
     FCode: string;
   public
+    property Caption: string read FCaption;
+    property Code: string read FCode;
     constructor Create(aCaption, aCode: string);
 	end;
 
@@ -36,7 +38,6 @@ type
     FOwner: TDBTableForm;
     FHeight: integer;
     FTop: integer;
-    FValue: Variant;
     procedure SetFilterTop(Value: integer);
     procedure SetFilterHeight(Value: integer);
     procedure SetFilterTag(Value: integer);
@@ -55,7 +56,7 @@ type
     property Top: integer read FTop write SetFilterTop;
     property Height: integer read FHeight write SetFilterHeight;
     property Value: Variant read GetValue;
-    property Oper: string read GetOperation;
+    property Operation: string read GetOperation;
     constructor Create(aIndex: integer; aForm: TDBTableForm);
     destructor Destroy;
 	end;
@@ -112,13 +113,9 @@ implementation
 
 var
   DBTableForms: TDBTableFormDynArray;
-  EditField: array [ftUnknown..ftWideMemo] of TCustomEditClass;
+  TypeOfEditor: array [ftUnknown..ftWideMemo] of TCustomEditClass;
   AvailableOperations: array [Low(TFieldType)..High(TFieldType)] of set of TRelationalOperation;
-
-  OperCaptions: array [roGreater..roContaining] of string =
-    ('>', '<', '>=', '<=', '=', '<>', 'Начинается с', 'Содержит');
-  OperCode: array [roGreater..roContaining] of string =
-    (' > ', ' < ', ' >= ', ' <= ', ' = ', ' <> ', ' starts with ' , ' containing ');
+  Operations: array [Low(TRelationalOperation)..High(TRelationalOperation)] of TRelOperation;
 
 class function TDBTableForm.FormExists(ATag: integer): boolean;
 begin
@@ -210,6 +207,7 @@ begin
   vField := (FieldOfColumn.Objects[Column.Index] as TDBField);
   FSQLQuery.Close;
   SetSQLQuery;
+  AddConditionsToQuery;
   FSQLQuery.SQL.Append('order by ' + vField.Owner.Name + '.' + vField.Name);
   if OrderDesc then
     FSQLQuery.SQL.Append('desc');
@@ -282,30 +280,26 @@ end;
 
 procedure TDBTableForm.AddConditionsToQuery;
 var
-  i: integer;
+  i, k: integer;
 begin
-  i := 0;
-  for i := 0 to High(Filters) do
-    if Assigned(Filters[i].FConstant) then
-      with FSQLQuery do begin
-        Params.CreateParam(Filters[i].ChosenField.FieldType, 'P' + IntToStr(Params.Count), ptInputOutput);
-        Params[Params.Count - 1].Value := Filters[i].Value;
-      SQL.Append('and ' + Filters[Params.Count - 1].ChosenField.Owner.Name+'.'+Filters[Params.Count - 1].ChosenField.Name);
-      SQL.Append(Filters[Params.Count - 1].Oper);
-      SQL.Append(' :' + Params[Params.Count - 1].Name);
-			end;
-  showmessage(IntToStr(FSQLQuery.Params.Count - 1));
   i := 0;
   FSQLQuery.SQL.Append('where 1 = 1');
 
-    for i := 0 to FSQLQuery.Params.Count - 1 do with FSQLQuery do begin
-      SQL.Append('and ' + Filters[i].ChosenField.Owner.Name+'.'+Filters[i].ChosenField.Name);
-      SQL.Append(Filters[i].Oper);
-      SQL.Append(' :' + Params[i].Name);
-      showmessage('in cicl');
-		end;
+  with FSQLQuery do
+    for i := 0 to High(Filters) do
+      if Assigned(Filters[i]) and Assigned(Filters[i].FConstant) then begin
+        SQL.Append('and ' + Filters[i].ChosenField.Owner.Name+'.'+Filters[i].ChosenField.Name);
+        SQL.Append(Filters[i].Operation + ' :' + 'P' + IntToStr(i));
+	    end;
 
-	showmessage(FSQLQuery.SQL.Text);
+  k := 0;
+  for i := 0 to High(Filters) do
+    if Assigned(Filters[i]) and Assigned(Filters[i].FConstant) then
+      with FSQLQuery do begin
+        Params[k].Value := Filters[i].Value;
+        inc(k);
+      end;
+
 end;
 
 procedure TDBTableForm.CloseOtherTablesClick(Sender: TObject);
@@ -436,16 +430,16 @@ end;
 
 procedure TQueryFilter.FieldChoose(Sender: TObject);
 var
-  vSender: TComboBox;
+  VSender: TComboBox;
   tempft: TFieldType;
   ro: TRelationalOperation;
 begin
-  vSender := (Sender as TComboBox);
+  VSender := (Sender as TComboBox);
   if Assigned(FConstant) then begin
     FreeAndNil(FConstant);
     FreeAndNil(FOperationChoise);
 	end;
-  tempft := ((vSender.Items.Objects[vSender.ItemIndex]) as TDBField).FieldType;
+  tempft := ((VSender.Items.Objects[VSender.ItemIndex]) as TDBField).FieldType;
 
   FOperationChoise := TComboBox.Create(FOwner.FFilterPanel);
   FOperationChoise.Parent := FOwner.FFilterPanel;
@@ -457,10 +451,11 @@ begin
     Style := csDropDownList;
     for ro := Low(TRelationalOperation) to High(TRelationalOperation) do
       if ro in AvailableOperations[tempft] then
-        AddItem(OperCaptions[ro], Self);
+        AddItem(Operations[ro].Caption, Operations[ro]);
+    ItemIndex := 0;
 	end;
 
-  FConstant := EditField[tempft].Create(FOwner.FFilterPanel);
+  FConstant := TypeOfEditor[tempft].Create(FOwner.FFilterPanel);
   FConstant.Parent := FOwner.FFilterPanel;
   with FConstant do begin
     AutoSize := false;
@@ -468,7 +463,7 @@ begin
     Width := FFieldChoise.Width;;
     Top := FDeleteFilter.Top;
     Left := FOperationChoise.Left + FOperationChoise.Width + 1;
-    if EditField[tempft] = TSpinEdit then
+    if TypeOfEditor[tempft] = TSpinEdit then
       with (FConstant as TSpinEdit) do begin
         MaxValue := High(Integer);
         MinValue := Low(Integer);
@@ -516,12 +511,8 @@ begin
 end;
 
 function TQueryFilter.GetOperation: string;
-var
-  ro: TRelationalOperation;
 begin
-  for ro := Low(OperCaptions) to High(OperCaptions) do
-    if OperCaptions[ro] = FOperationChoise.Items.Names[FOperationChoise.ItemIndex] then
-      exit(OperCode[ro]);
+  Result := (FOperationChoise.Items.Objects[FOperationChoise.ItemIndex] as TRelOperation).Code;
 end;
 
 function TQueryFilter.GetValue: Variant;
@@ -551,10 +542,18 @@ end;
 initialization
 
   SetLength(DBTableForms, Length(DBTables));
-  EditField[ftInteger] := TSpinEdit;
-  EditField[ftString] := TEdit;
+  TypeOfEditor[ftInteger] := TSpinEdit;
+  TypeOfEditor[ftString] := TEdit;
   AvailableOperations[ftInteger] := [roEqual, roInequal, roGreater, roNotGreater, roNotLess, roLess];
   AvailableOperations[ftString] := [roEqual, roInequal, roContaining, roStartsWith];
+  Operations[roGreater] := TRelOperation.Create('>', ' > ');
+  Operations[roContaining] := TRelOperation.Create('Содержит', ' containing ');
+  Operations[roEqual] := TRelOperation.Create('=', ' = ');
+  Operations[roInequal] := TRelOperation.Create('<>', ' <> ');
+  Operations[roLess] := TRelOperation.Create('<', ' < ');
+  Operations[roNotGreater] := TRelOperation.Create('<=', ' <= ');
+  Operations[roNotLess] := TRelOperation.Create('>=', ' >= ');
+  Operations[roStartsWith] := TRelOperation.Create('Начинается с', ' starts with ');
 
 end.
 
