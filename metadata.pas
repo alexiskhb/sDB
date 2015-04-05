@@ -31,10 +31,10 @@ type
     property TableRef: TDBTable read FTableRef;
     property FieldRef: TDBField read FFieldRef;
     property Owner: TDBTable read FOwner;
-    constructor Create(aOwner: TDBTable; aName, aCaption, aTableRef, aFieldRef: string;
-    aWidth: integer; aType: TFieldType; aVisible: boolean); overload;
-    constructor Create(aOwner: TDBTable; aName, aCaption: string; aWidth: integer; aType:
-        TFieldType; aVisible: boolean); overload;
+    constructor Create(AOwner: TDBTable; AName, ACaption, ATableRef, AFieldRef: string;
+    AWidth: integer; AFieldType: TFieldType; AVisible: boolean); overload;
+    constructor Create(AOwner: TDBTable; AName, ACaption: string; AWidth: integer; AFieldType:
+        TFieldType; AVisible: boolean); overload;
   end;
 
   TDBFieldDynArray = array of TDBField;
@@ -50,12 +50,12 @@ type
     property Fields: TDBFieldDynArray read FFields write FFields;
     property Name: string read FName;
     property Caption: string read FCaption;
-    procedure AddField(aName, aCaption: string; aWidth: integer;
-      aType: TFieldType; aVisible: boolean); overload;
-    procedure AddField(aName, aCaption, aTableRef, aFieldRef: string;
-      aWidth: integer; aType: TFieldType; aVisible: boolean); overload;
-    class procedure Add(aName, aCaption: string);
-    constructor Create(aName, aCaption: string);
+    procedure AddField(AName, ACaption: string; AWidth: integer;
+      AFieldType: TFieldType; AVisible: boolean); overload;
+    procedure AddField(AName, ACaption, ATableRef, AFieldRef: string;
+      AWidth: integer; AFieldType: TFieldType; AVisible: boolean); overload;
+    class procedure Add(AName, ACaption: string);
+    constructor Create(AName, ACaption: string);
   end;
 
   TDBTableDynArray = array of TDBTable;
@@ -66,35 +66,35 @@ var
 
 implementation
 
-procedure TDBTable.AddField(aName, aCaption: string; aWidth: integer;
-  aType: TFieldType; aVisible: boolean);
+procedure TDBTable.AddField(AName, ACaption: string; AWidth: integer;
+  AFieldType: TFieldType; AVisible: boolean);
 begin
   SetLength(FFields, Length(FFields) + 1);
-  FFieldsList.AddObject(aName, TDBField.Create(Self, aName, aCaption, aWidth, aType, aVisible));
+  FFieldsList.AddObject(AName, TDBField.Create(Self, AName, ACaption, AWidth, AFieldType, AVisible));
   FFields[High(FFields)] := (FFieldsList.Objects[FFieldsList.Count - 1] as TDBField);
 end;
 
-procedure TDBTable.AddField(aName, aCaption, aTableRef, aFieldRef: string;
-    aWidth: integer; aType: TFieldType; aVisible: boolean);
+procedure TDBTable.AddField(AName, ACaption, ATableRef, AFieldRef: string;
+    AWidth: integer; AFieldType: TFieldType; AVisible: boolean);
 begin
   SetLength(FFields, Length(FFields) + 1);
-  FFieldsList.AddObject(aName, TDBField.Create(Self, aName, aCaption, aTableRef, aFieldRef,
-    aWidth, aType, aVisible));
+  FFieldsList.AddObject(AName, TDBField.Create(Self, AName, ACaption, ATableRef, AFieldRef,
+    AWidth, AFieldType, AVisible));
   FFields[High(FFields)] := (FFieldsList.Objects[FFieldsList.Count - 1] as TDBField);
 end;
 
-class procedure TDBTable.Add(aName, aCaption: string);
+class procedure TDBTable.Add(AName, ACaption: string);
 begin
   SetLength(DBTables, Length(DBTables) + 1);
-  DBTablesList.AddObject(aName, TDBTable.Create(aName, aCaption));
+  DBTablesList.AddObject(AName, TDBTable.Create(AName, ACaption));
   DBTables[High(DBTables)] := (DBTablesList.Objects[DBTablesList.Count - 1] as TDBTable);
   DBTables[High(DBTables)].FTag := High(DBTables);
 end;
 
-constructor TDBTable.Create(aName, aCaption: string);
+constructor TDBTable.Create(AName, ACaption: string);
 begin
-  FName := aName;
-  FCaption := aCaption;
+  FName := AName;
+  FCaption := ACaption;
   FFieldsList := TStringList.Create;
   with FFieldsList do begin
     Sorted := false;
@@ -102,28 +102,28 @@ begin
   end;
 end;
 
-constructor TDBField.Create(aOwner: TDBTable; aName, aCaption, aTableRef, aFieldRef: string;
-    aWidth: integer; aType: TFieldType; aVisible: boolean);
+constructor TDBField.Create(AOwner: TDBTable; AName, ACaption, ATableRef, AFieldRef: string;
+    AWidth: integer; AFieldType: TFieldType; AVisible: boolean);
 begin
-  FName := aName;
-  FCaption := aCaption;
-  FWidth := aWidth;
-  FFieldType := aType;
-  FVisible := aVisible;
-  FOwner := aOwner;
-  FTableRef := (DBTablesList.Objects[DBTablesList.IndexOf(aTableRef)] as TDBTable);
-  FFieldRef := (FTableRef.FFieldsList.Objects[FTableRef.FFieldsList.IndexOf(aFieldRef)] as TDBField);
+  FName := AName;
+  FCaption := ACaption;
+  FWidth := AWidth;
+  FFieldType := AFieldType;
+  FVisible := AVisible;
+  FOwner := AOwner;
+  FTableRef := (DBTablesList.Objects[DBTablesList.IndexOf(ATableRef)] as TDBTable);
+  FFieldRef := (FTableRef.FFieldsList.Objects[FTableRef.FFieldsList.IndexOf(AFieldRef)] as TDBField);
 end;
 
-constructor TDBField.Create(aOwner: TDBTable; aName, aCaption: string;
-    aWidth: integer; aType: TFieldType; aVisible: boolean);
+constructor TDBField.Create(AOwner: TDBTable; AName, ACaption: string;
+    AWidth: integer; AFieldType: TFieldType; AVisible: boolean);
 begin
-  FName := aName;
-  FCaption := aCaption;
-  FWidth := aWidth;
-  FFieldType := aType;
-  FVisible := aVisible;
-  FOwner := aOwner;
+  FName := AName;
+  FCaption := ACaption;
+  FWidth := AWidth;
+  FFieldType := AFieldType;
+  FVisible := AVisible;
+  FOwner := AOwner;
 end;
 
 initialization

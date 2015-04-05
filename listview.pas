@@ -16,10 +16,19 @@ type
   TDBTableForm = class;
   TCustomEditClass = class of TCustomEdit;
 
+  TRelOperation = class
+  private
+    FCaption: string;
+    FCode: string;
+  public
+    constructor Create(aCaption, aCode: string);
+	end;
+
   TQueryFilter = class
   private
     FTag: integer;
     FDestroying: TNotifyEvent;
+    FChangingData: TNotifyEvent;
     FConstant: TCustomEdit;
     FFieldChoise: TComboBox;
     FOperationChoise: TComboBox;
@@ -27,17 +36,26 @@ type
     FOwner: TDBTableForm;
     FHeight: integer;
     FTop: integer;
+    FValue: Variant;
     procedure SetFilterTop(Value: integer);
     procedure SetFilterHeight(Value: integer);
     procedure SetFilterTag(Value: integer);
+    function GetField: TDBField;
+    function GetValue: Variant;
+    function GetOperation: string;
   public
     procedure FieldChoose(Sender: TObject);
     procedure DeleteFilterClick(Sender: TObject);
     procedure AddFieldsForChoose(aTable: TDBTable);
+    procedure EditChange(Sender: TObject);
+    property ChosenField: TDBField read GetField;
     property Tag: integer read FTag write SetFilterTag;
     property OnDestroy: TNotifyEvent read FDestroying write FDestroying;
+    property OnChangeData: TNotifyEvent read FChangingData write FChangingData;
     property Top: integer read FTop write SetFilterTop;
     property Height: integer read FHeight write SetFilterHeight;
+    property Value: Variant read GetValue;
+    property Oper: string read GetOperation;
     constructor Create(aIndex: integer; aForm: TDBTableForm);
     destructor Destroy;
 	end;
@@ -61,26 +79,29 @@ type
 	  procedure AddFilterClick(Sender: TObject);
     procedure CloseOtherTablesClick(Sender: TObject);
     procedure CloseTableClick(Sender: TObject);
+		procedure FilterClick(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormDestroy(Sender: TObject);
 		procedure FormShow(Sender: TObject);
     procedure SetSQLQuery;
-    procedure AddColumnsToQuery(aTable: TDBTable);
-    procedure AddColumnsToGrid(aTable: TDBTable);
+    procedure AddConditionsToQuery;
+    procedure AddColumnsToQuery(ATable: TDBTable);
+    procedure AddColumnsToGrid(ATable: TDBTable);
     procedure DestroyFilterClick(Sender: TObject);
     procedure FDBGridTitleClick(Column: TColumn);
     procedure DBGridColumnMoved(Sender: TObject; FromIndex,
 		ToIndex: Integer);
-    class procedure CreateTableForm(aTag: integer; aCaption: string);
-    class procedure DestroyTableForm(aTag: integer);
-    class procedure FormSetFocus(aTag: integer);
-    class function FormExists(aTag: integer): boolean;
+    procedure FilterDataChanged(Sender: TObject);
+    class procedure CreateTableForm(ATag: integer; aCaption: string);
+    class procedure DestroyTableForm(ATag: integer);
+    class procedure FormSetFocus(ATag: integer);
+    class function FormExists(ATag: integer): boolean;
   private
     Filters: array of TQueryFilter;
     FieldOfColumn: TStringList;
     OrderDesc: boolean;
-    procedure LocateFiltersOnDelete(aTag: integer);
-    procedure LocateFiltersOnAdd(aTag: integer);
+    procedure LocateFiltersOnDelete(ATag: integer);
+    procedure LocateFiltersOnAdd(ATag: integer);
   end;
 
   TDBTableFormDynArray = array of TDBTableForm;
@@ -92,46 +113,49 @@ implementation
 var
   DBTableForms: TDBTableFormDynArray;
   EditField: array [ftUnknown..ftWideMemo] of TCustomEditClass;
-  Operations: array [ftUnknown..ftWideMemo] of set of TRelationalOperation;
+  AvailableOperations: array [Low(TFieldType)..High(TFieldType)] of set of TRelationalOperation;
+
   OperCaptions: array [roGreater..roContaining] of string =
     ('>', '<', '>=', '<=', '=', '<>', 'Начинается с', 'Содержит');
+  OperCode: array [roGreater..roContaining] of string =
+    (' > ', ' < ', ' >= ', ' <= ', ' = ', ' <> ', ' starts with ' , ' containing ');
 
-class function TDBTableForm.FormExists(aTag: integer): boolean;
+class function TDBTableForm.FormExists(ATag: integer): boolean;
 begin
-  Result := DBTableForms[aTag] <> nil;
+  Result := DBTableForms[ATag] <> nil;
 end;
 
-class procedure TDBTableForm.CreateTableForm(aTag: integer; aCaption: string);
+class procedure TDBTableForm.CreateTableForm(ATag: integer; aCaption: string);
 begin
-  Application.CreateForm(TDBTableForm, DBTableForms[aTag]);
-  with DBTableForms[aTag] do begin
+  Application.CreateForm(TDBTableForm, DBTableForms[ATag]);
+  with DBTableForms[ATag] do begin
     Caption := aCaption;
-    Tag := aTag;
+    Tag := ATag;
     Show;
   end;
 end;
 
-class procedure TDBTableForm.DestroyTableForm(aTag: integer);
+class procedure TDBTableForm.DestroyTableForm(ATag: integer);
 begin
-  if FormExists(aTag) then
-    DBTableForms[aTag].Close;
+  if FormExists(ATag) then
+    DBTableForms[ATag].Close;
 end;
 
-class procedure TDBTableForm.FormSetFocus(aTag: integer);
+class procedure TDBTableForm.FormSetFocus(ATag: integer);
 begin
-  if FormExists(aTag) then
-    DBTableForms[aTag].SetFocus;
+  if FormExists(ATag) then
+    DBTableForms[ATag].SetFocus;
 end;
 
-procedure TDBTableForm.AddColumnsToGrid(aTable: TDBTable);
+procedure TDBTableForm.AddColumnsToGrid(ATable: TDBTable);
 var
   i: integer;
 begin
   with FDBGrid do
-    with aTable do
+    with ATable do
       for i := 0 to High(Fields) do begin
         if Fields[i].Visible then begin
-          Columns.Add.FieldName := aTable.Name + Fields[i].Name;
+          Columns.Add.FieldName := ATable.Name + Fields[i].Name;
           Columns[Columns.Count - 1].Title.Caption := Fields[i].Caption;
           Columns[Columns.Count - 1].Width := Fields[i].Width;
           Columns[Columns.Count - 1].Visible := Fields[i].Visible;
@@ -142,12 +166,12 @@ begin
       end;
 end;
 
-procedure TDBTableForm.AddColumnsToQuery(aTable: TDBTable);
+procedure TDBTableForm.AddColumnsToQuery(ATable: TDBTable);
 var
   i: integer;
 begin
   with FSQLQuery.SQL do
-    with aTable do
+    with ATable do
       for i := 0 to High(Fields) do begin
         if Fields[i].Visible then begin
           Append(Name + '.' + Fields[i].Name + ' as ' + Name + Fields[i].Name);
@@ -244,6 +268,46 @@ begin
   Close;
 end;
 
+procedure TDBTableForm.FilterClick(Sender: TObject);
+begin
+  with (Sender as TSpeedButton) do begin
+    //Down := true;
+    AllowAllUp := true;
+	end;
+  FSQLQuery.Close;
+  SetSQLQuery;
+  AddConditionsToQuery;
+  FSQLQuery.Open;
+end;
+
+procedure TDBTableForm.AddConditionsToQuery;
+var
+  i: integer;
+begin
+  i := 0;
+  for i := 0 to High(Filters) do
+    if Assigned(Filters[i].FConstant) then
+      with FSQLQuery do begin
+        Params.CreateParam(Filters[i].ChosenField.FieldType, 'P' + IntToStr(Params.Count), ptInputOutput);
+        Params[Params.Count - 1].Value := Filters[i].Value;
+      SQL.Append('and ' + Filters[Params.Count - 1].ChosenField.Owner.Name+'.'+Filters[Params.Count - 1].ChosenField.Name);
+      SQL.Append(Filters[Params.Count - 1].Oper);
+      SQL.Append(' :' + Params[Params.Count - 1].Name);
+			end;
+  showmessage(IntToStr(FSQLQuery.Params.Count - 1));
+  i := 0;
+  FSQLQuery.SQL.Append('where 1 = 1');
+
+    for i := 0 to FSQLQuery.Params.Count - 1 do with FSQLQuery do begin
+      SQL.Append('and ' + Filters[i].ChosenField.Owner.Name+'.'+Filters[i].ChosenField.Name);
+      SQL.Append(Filters[i].Oper);
+      SQL.Append(' :' + Params[i].Name);
+      showmessage('in cicl');
+		end;
+
+	showmessage(FSQLQuery.SQL.Text);
+end;
+
 procedure TDBTableForm.CloseOtherTablesClick(Sender: TObject);
 var
   i: integer;
@@ -268,32 +332,32 @@ begin
       break;
 end;
 
-procedure TDBTableForm.LocateFiltersOnDelete(aTag: integer);
+procedure TDBTableForm.LocateFiltersOnDelete(ATag: integer);
 var
   i: integer;
 begin
-  FFilterPanel.Height := FFilterPanel.Height - Filters[aTag].Height;
+  FFilterPanel.Height := FFilterPanel.Height - Filters[ATag].Height;
   for i := 0 to Length(Filters) - 1 do
-    if Assigned(Filters[i]) and (i <> aTag) then
-      if Filters[i].Top > Filters[aTag].Top then
+    if Assigned(Filters[i]) and (i <> ATag) then
+      if Filters[i].Top > Filters[ATag].Top then
         Filters[i].Top := Filters[i].Top - Filters[i].Height;
   if ClientToScreen(Point(0, FFilterPanel.Height + FButtonPanel.Height)).Y < Mouse.CursorPos.Y then
-    FFilterPanel.Height := FFilterPanel.Height + Filters[aTag].Height;
+    FFilterPanel.Height := FFilterPanel.Height + Filters[ATag].Height;
 end;
 
-procedure TDBTableForm.LocateFiltersOnAdd(aTag: integer);
+procedure TDBTableForm.LocateFiltersOnAdd(ATag: integer);
 var
   i, k: integer;
 begin
   k := 0;
   for i := 0 to Length(Filters) - 1 do
-    if Assigned(Filters[i]) and (i <> aTag) then
+    if Assigned(Filters[i]) and (i <> ATag) then
       inc(k);
-  Filters[aTag].Top := k * Filters[aTag].Height;
-  if (Filters[aTag].Top + Filters[aTag].Height >= FFilterPanel.Height) and
-    (Filters[aTag].Top <= FFilterPanel.Height) and
+  Filters[ATag].Top := k * Filters[ATag].Height;
+  if (Filters[ATag].Top + Filters[ATag].Height >= FFilterPanel.Height) and
+    (Filters[ATag].Top <= FFilterPanel.Height) and
       (FFilterPanel.Height <= 4*(Height div 5)) then
-    FFilterPanel.Height := FFilterPanel.Height + Filters[aTag].Height;
+    FFilterPanel.Height := FFilterPanel.Height + Filters[ATag].Height;
 end;
 
 constructor TQueryFilter.Create(aIndex: integer; aForm: TDBTableForm);
@@ -345,6 +409,12 @@ begin
   FDestroying(Self);
 end;
 
+procedure TDBTableForm.FilterDataChanged(Sender: TObject);
+begin
+  Filter.AllowAllUp := true;
+  Filter.Down := false;
+end;
+
 procedure TDBTableForm.AddFilterClick(Sender: TObject);
 var
   i: integer;
@@ -354,7 +424,8 @@ begin
       Filters[i] := TQueryFilter.Create(i, Self);
       LocateFiltersOnAdd(i);
       Filters[i].OnDestroy := @DestroyFilterClick;
-      exit();
+      Filters[i].OnChangeData := @FilterDataChanged;
+      exit;
     end;
 
   SetLength(Filters, Length(Filters) + 1);
@@ -385,17 +456,30 @@ begin
     Height := FFieldChoise.Height;
     Style := csDropDownList;
     for ro := Low(TRelationalOperation) to High(TRelationalOperation) do
-      if ro in Operations[tempft] then
+      if ro in AvailableOperations[tempft] then
         AddItem(OperCaptions[ro], Self);
 	end;
 
   FConstant := EditField[tempft].Create(FOwner.FFilterPanel);
   FConstant.Parent := FOwner.FFilterPanel;
   with FConstant do begin
+    AutoSize := false;
+    Height := FFieldChoise.Height;
+    Width := FFieldChoise.Width;;
     Top := FDeleteFilter.Top;
     Left := FOperationChoise.Left + FOperationChoise.Width + 1;
+    if EditField[tempft] = TSpinEdit then
+      with (FConstant as TSpinEdit) do begin
+        MaxValue := High(Integer);
+        MinValue := Low(Integer);
+	  	end;
+    OnChange := @EditChange;
 	end;
+end;
 
+procedure TQueryFilter.EditChange(Sender: TObject);
+begin
+  //FChangingData(Self);
 end;
 
 procedure TQueryFilter.SetFilterTop(Value: integer);
@@ -426,6 +510,28 @@ begin
   FTag := value;
 end;
 
+function TQueryFilter.GetField: TDBField;
+begin
+  Result := (FFieldChoise.Items.Objects[FFieldChoise.ItemIndex] as TDBField);
+end;
+
+function TQueryFilter.GetOperation: string;
+var
+  ro: TRelationalOperation;
+begin
+  for ro := Low(OperCaptions) to High(OperCaptions) do
+    if OperCaptions[ro] = FOperationChoise.Items.Names[FOperationChoise.ItemIndex] then
+      exit(OperCode[ro]);
+end;
+
+function TQueryFilter.GetValue: Variant;
+begin
+  if ((FFieldChoise.Items.Objects[FFieldChoise.ItemIndex]) as TDBField).FieldType = ftInteger then
+    Result := (FConstant as TSpinEdit).Value
+  else
+    Result := FConstant.Text;
+end;
+
 destructor TQueryFilter.Destroy;
 begin
   FreeAndNil(FDeleteFilter);
@@ -436,15 +542,24 @@ begin
 	end;
 end;
 
+constructor TRelOperation.Create(ACaption, ACode: string);
+begin
+  FCaption := ACaption;
+  FCode := ACode;
+end;
+
 initialization
 
   SetLength(DBTableForms, Length(DBTables));
   EditField[ftInteger] := TSpinEdit;
   EditField[ftString] := TEdit;
-  Operations[ftInteger] := [roEqual, roInequal, roGreater, roNotGreater, roNotLess, roLess];
-  Operations[ftString] := [roEqual, roInequal, roContaining, roStartsWith];
+  AvailableOperations[ftInteger] := [roEqual, roInequal, roGreater, roNotGreater, roNotLess, roLess];
+  AvailableOperations[ftString] := [roEqual, roInequal, roContaining, roStartsWith];
 
 end.
+
+
+
 
 
 
