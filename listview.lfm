@@ -1,26 +1,26 @@
 object DBTableForm: TDBTableForm
   Left = 400
-  Height = 413
+  Height = 388
   Top = 273
-  Width = 361
+  Width = 551
   Caption = 'DBTableForm'
-  ClientHeight = 413
-  ClientWidth = 361
-  Menu = TableMainMenu
+  ClientHeight = 388
+  ClientWidth = 551
+  Menu = MainMenu
   OnClose = FormClose
   OnDestroy = FormDestroy
   OnShow = FormShow
   Position = poScreenCenter
   LCLVersion = '1.2.6.0'
-  object FDBGrid: TDBGrid
+  object DBGrid: TDBGrid
     Left = 0
-    Height = 375
+    Height = 350
     Top = 38
-    Width = 361
+    Width = 551
     Align = alClient
     Color = clWindow
     Columns = <>
-    DataSource = FDataSource
+    DataSource = DataSource
     TabOrder = 0
   end
   object Splitter: TSplitter
@@ -28,15 +28,15 @@ object DBTableForm: TDBTableForm
     Left = 0
     Height = 7
     Top = 31
-    Width = 361
+    Width = 551
     Align = alTop
     ResizeAnchor = akTop
   end
-  object FFilterPanel: TScrollBox
+  object sbxFilters: TScrollBox
     Left = 0
     Height = 1
     Top = 30
-    Width = 361
+    Width = 551
     HorzScrollBar.Page = 1
     HorzScrollBar.Tracking = True
     VertScrollBar.Page = 1
@@ -44,16 +44,16 @@ object DBTableForm: TDBTableForm
     Align = alTop
     TabOrder = 2
   end
-  object FButtonPanel: TPanel
+  object pnlControls: TPanel
     Left = 0
     Height = 30
     Top = 0
-    Width = 361
+    Width = 551
     Align = alTop
     ClientHeight = 30
-    ClientWidth = 361
+    ClientWidth = 551
     TabOrder = 3
-    object FNavigator: TDBNavigator
+    object DBNavigator: TDBNavigator
       Left = 2
       Height = 25
       Top = 2
@@ -67,12 +67,12 @@ object DBTableForm: TDBTableForm
       ChildSizing.ControlsPerLine = 100
       ClientHeight = 25
       ClientWidth = 241
-      DataSource = FDataSource
+      DataSource = DataSource
       Options = []
       TabOrder = 0
       VisibleButtons = [nbFirst, nbPrior, nbNext, nbLast]
     end
-    object Filter: TSpeedButton
+    object sbtnFilter: TSpeedButton
       Left = 248
       Height = 25
       Top = 2
@@ -80,24 +80,25 @@ object DBTableForm: TDBTableForm
       AllowAllUp = True
       Caption = 'Фильтр'
       Enabled = False
-      OnClick = FilterClick
+      OnClick = sbtnFilterClick
     end
-    object AddFilter: TButton
+    object btnAddFilter: TButton
+      Tag = -1
       Left = 320
       Height = 25
       Top = 2
       Width = 24
       Caption = '+'
-      OnClick = AddFilterClick
+      OnClick = btnAddFilterClick
       TabOrder = 1
     end
   end
-  object FDataSource: TDataSource
-    DataSet = FSQLQuery
+  object DataSource: TDataSource
+    DataSet = SQLQuery
     left = 19
     top = 46
   end
-  object FSQLQuery: TSQLQuery
+  object SQLQuery: TSQLQuery
     FieldDefs = <>
     Database = ConTran.DBConnection
     Transaction = ConTran.DBTransaction
@@ -105,20 +106,20 @@ object DBTableForm: TDBTableForm
     left = 36
     top = 98
   end
-  object TableMainMenu: TMainMenu
+  object MainMenu: TMainMenu
     left = 16
     top = 160
-    object TableMenu: TMenuItem
-      Caption = 'Таблицы'
-      object CloseTable: TMenuItem
+    object miTable: TMenuItem
+      Caption = 'Таблица'
+      object miCloseTable: TMenuItem
         Caption = 'Закрыть'
         ShortCut = 16471
-        OnClick = CloseTableClick
+        OnClick = miCloseTableClick
       end
-      object CloseOtherTables: TMenuItem
+      object miCloseOtherTables: TMenuItem
         Caption = 'Закрыть все другие'
         ShortCut = 24663
-        OnClick = CloseOtherTablesClick
+        OnClick = miCloseOtherTablesClick
       end
     end
   end

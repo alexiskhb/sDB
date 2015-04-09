@@ -136,7 +136,7 @@ initialization
 
   TDBTable.Add('teachers', 'Преподаватели');
   DBTables[0].AddField('id', 'ИД', 40, ftInteger, false);
-  DBTables[0].AddField('name', 'Имя', 300, ftString, true);
+  DBTables[0].AddField('name', 'Преподаватель', 300, ftString, true);
 
   TDBTable.Add('groups', 'Группы');
   DBTables[1].AddField('id', 'ИД', 40, ftInteger, false);
@@ -168,11 +168,11 @@ initialization
 
   TDBTable.Add('lessons', 'Расписание');
   DBTables[8].AddField('pair_id', 'Пара', 'pairs', 'id', 40, ftInteger, false);
-  DBTables[8].AddField('weekday_id', 'День недели', 'weekdays', 'id', 70, ftInteger, false);
-  DBTables[8].AddField('group_id', 'Группа', 'groups', 'id', 50, ftInteger, false);
-  DBTables[8].AddField('course_id', 'Предмет', 'courses', 'id', 70, ftInteger, false);
-  DBTables[8].AddField('class_id', 'Аудитория', 'classrooms', 'id', 70, ftInteger, false);
-  DBTables[8].AddField('teacher_id', 'Преподаватель', 'teachers', 'id', 70, ftInteger, false);
+  DBTables[8].AddField('weekday_id', 'Ид. дня недели', 'weekdays', 'id', 70, ftInteger, false);
+  DBTables[8].AddField('group_id', 'Ид. группы', 'groups', 'id', 50, ftInteger, false);
+  DBTables[8].AddField('course_id', 'Ид. предмета', 'courses', 'id', 70, ftInteger, false);
+  DBTables[8].AddField('class_id', 'Ид. аудитории', 'classrooms', 'id', 70, ftInteger, false);
+  DBTables[8].AddField('teacher_id', 'Ид. преподавателя', 'teachers', 'id', 70, ftInteger, false);
 
 end.
 
