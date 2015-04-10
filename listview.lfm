@@ -81,6 +81,7 @@ object DBTableForm: TDBTableForm
       Caption = 'Фильтр'
       Enabled = False
       OnClick = sbtnFilterClick
+      ParentFont = False
     end
     object btnAddFilter: TButton
       Tag = -1

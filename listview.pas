@@ -6,7 +6,7 @@ interface
 
 uses
   connection_transaction, Classes, lcltype, SysUtils, Forms, Menus, DBCtrls, DB, DBGrids,
-  ExtCtrls, sqldb, Dialogs, Controls, StdCtrls, metadata, Spin, Buttons;
+  ExtCtrls, sqldb, Dialogs, Controls, StdCtrls, metadata, Spin, Buttons, Messages;
 
 type
 
@@ -336,10 +336,12 @@ procedure TDBTableForm.DestroyFilterClick(Sender: TObject);
 var
   VTag, i: integer;
 begin
-  VTag := (Sender as TQueryFilter).Tag;
+  VTag := (Sender as TButton).Tag;
   LocateFiltersOnDelete(VTag);
   FFilters[VTag].Destroy;
+  sbxFilters.RemoveControl(Sender as TButton);
   FFilters[VTag] := nil;
+
   for i := High(FFilters) downto 0 do
     if (FFilters[i] = nil) then
       SetLength(FFilters, Length(FFilters) - 1)
@@ -443,7 +445,7 @@ end;
 procedure TQueryFilter.DeleteFilterClick(Sender: TObject);
 begin
   FChangingData(Self);
-  FDestroying(Self);
+  FDestroying(Sender);
 end;
 
 procedure TDBTableForm.FilterDataChanged(Sender: TObject);
@@ -624,7 +626,7 @@ end;
 
 destructor TQueryFilter.Destroy;
 begin
-  FreeAndNil(btnDeleteFilter);
+  //FreeAndNil(btnDeleteFilter);
   FreeAndNil(cbbFields);
   if Assigned(ConstantEditor) then begin
     FreeAndNil(ConstantEditor);
