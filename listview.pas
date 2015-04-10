@@ -56,7 +56,7 @@ type
     property Height: integer read FHeight write SetFilterHeight;
     property Value: variant read GetValue;
     property Operation: string read GetOperation;
-    procedure FieldChoose(Sender: TObject);
+    procedure ChosenFieldChange(Sender: TObject);
     procedure DeleteFilterClick(Sender: TObject);
     procedure AddFieldsForChoose(ATable: TDBTable);
     procedure EditChange(Sender: TObject);
@@ -209,17 +209,30 @@ end;
 procedure TDBTableForm.FDBGridTitleClick(Column: TColumn);
 var
   Field: TDBField;
+  i: integer;
 begin
   Field := (FieldOfColumn.Objects[Column.Index] as TDBField);
+
+  for i := 0 to DBGrid.Columns.Count - 1 do
+    with DBGrid.Columns[i].Title do
+      if (Pos('↓', Caption) <> 0) or (Pos('↑', Caption) <> 0) then begin
+        Caption := Copy(Caption, Length('↑ ') + 1, Length(Caption));
+        break;
+		  end;
+
   SQLQuery.Close;
   SetSQLQuery;
   AddConditionsToQuery;
   SQLQuery.SQL.Append('order by ' + Field.Owner.Name + '.' + Field.Name);
-  if OrderIsDesc then
-    SQLQuery.SQL.Append('  desc')
-  else
+  if OrderIsDesc then begin
+    SQLQuery.SQL.Append('  desc');
+    Column.Title.Caption := '↑ ' + Column.Title.Caption;
+	end
+	else begin
     SQLQuery.SQL.Append('  asc');
-  OrderIsDesc := not OrderIsDesc;
+    Column.Title.Caption := '↓ ' + Column.Title.Caption;
+	end;
+	OrderIsDesc := not OrderIsDesc;
   SQLQuery.Open;
 end;
 
@@ -291,23 +304,23 @@ begin
 
   with SQLQuery do
     for i := 0 to Length(FilterInPosition) - 1 do
-    with FFilters[FilterInPosition[i]] do
-      if Assigned(FFilters[FilterInPosition[i]]) and Assigned(ConstantEditor) then
-        if (ConstantEditor.Visible) then begin
-          SQL.Append('and ' + ChosenField.Owner.Name + '.' + ChosenField.Name);
-          SQL.Append(Operation + ' :' + ChosenField.Owner.Name + ChosenField.Name + IntToStr(i));
-        end else
-          SQL.Append('or 1 = 1');
+      with FFilters[FilterInPosition[i]] do
+        if Assigned(FFilters[FilterInPosition[i]]) and Assigned(ConstantEditor) then
+          if (ConstantEditor.Visible) then begin
+            SQL.Append('and ' + ChosenField.Owner.Name + '.' + ChosenField.Name);
+            SQL.Append(Operation + ' :' + ChosenField.Owner.Name + ChosenField.Name + IntToStr(i));
+          end else
+            SQL.Append('or 1 = 1');
 
   k := 0;
   for i := 0 to Length(FilterInPosition) - 1 do
-  with FFilters[FilterInPosition[i]] do
-    if Assigned(FFilters[FilterInPosition[i]]) and Assigned(ConstantEditor) and
-    (ConstantEditor.Visible) then
-      with SQLQuery do begin
-        Params[k].Value := Value;
-        inc(k);
-      end;
+    with FFilters[FilterInPosition[i]] do
+      if Assigned(FFilters[FilterInPosition[i]]) and Assigned(ConstantEditor) and
+      (ConstantEditor.Visible) then
+        with SQLQuery do begin
+          Params[k].Value := Value;
+          inc(k);
+        end;
 end;
 
 procedure TDBTableForm.miCloseOtherTablesClick(Sender: TObject);
@@ -408,7 +421,7 @@ begin
     Style := csDropDownList;
     AddFieldsForChoose(DBTables[AForm.Tag]);
     AddItem('ИЛИ', nil);
-    OnChange := @FieldChoose;
+    OnChange := @ChosenFieldChange;
   end;
 end;
 
@@ -454,10 +467,12 @@ begin
     if (FFilters[i] = nil) then begin
       FFilters[i] := TQueryFilter.Create(i, Self);
       LocateFiltersOnAdd(i, VPos);
-      FFilters[i].OnDestroy := @DestroyFilterClick;
-      FFilters[i].OnChangeData := @FilterDataChanged;
-      FFilters[i].OnFilterAdd := @btnAddFilterClick;
-      exit;
+      with FFilters[i] do begin
+        OnDestroy := @DestroyFilterClick;
+        OnChangeData := @FilterDataChanged;
+        OnFilterAdd := @btnAddFilterClick;
+			end;
+			exit;
     end;
 
   SetLength(FFilters, Length(FFilters) + 1);
@@ -468,7 +483,7 @@ begin
   FFilters[High(FFilters)].OnFilterAdd := @btnAddFilterClick;
 end;
 
-procedure TQueryFilter.FieldChoose(Sender: TObject);
+procedure TQueryFilter.ChosenFieldChange(Sender: TObject);
 var
   VSender: TComboBox;
   tempft: TFieldType;
