@@ -10,12 +10,12 @@ object ConTran: TConTran
   object DBConnection: TIBConnection
     Connected = False
     LoginPrompt = False
-    DatabaseName = 'b8103.fdb'
+    DatabaseName = 'b8103rus.fdb'
     KeepConnection = False
     Password = '20052008'
     Transaction = DBTransaction
     UserName = 'sysdba'
-    CharSet = 'win1251'
+    CharSet = 'UTF8'
     LogEvents = []
     left = 16
     top = 8
