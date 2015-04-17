@@ -562,6 +562,10 @@ begin
         MaxValue := High(Integer);
         MinValue := Low(Integer);
 	  	end;
+    if TypeOfEditor[tempft] = TEdit then
+      with (ConstantEditor as TEdit) do begin
+        MaxLength := ((VSender.Items.Objects[VSender.ItemIndex]) as TDBField).VarCharLimit;
+	  	end;
     OnChange := @EditChange;
 	end;
 

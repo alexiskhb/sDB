@@ -22,6 +22,7 @@ type
     FTableRef: TDBTable;
     FFieldRef: TDBField;
     FOwner: TDBTable;
+    FVarCharLimit: integer;
   public
     property Name: string read FName;
     property Caption: string read FCaption;
@@ -30,11 +31,12 @@ type
     property Visible: boolean read FVisible write FVisible;
     property TableRef: TDBTable read FTableRef;
     property FieldRef: TDBField read FFieldRef;
+    property VarCharLimit: integer read FVarCharLimit;
     property Owner: TDBTable read FOwner;
     constructor Create(AOwner: TDBTable; AName, ACaption, ATableRef, AFieldRef: string;
-    AWidth: integer; AFieldType: TFieldType; AVisible: boolean); overload;
+    AWidth: integer; AFieldType: TFieldType; AVisible: boolean; AVarCharLimit: integer); overload;
     constructor Create(AOwner: TDBTable; AName, ACaption: string; AWidth: integer; AFieldType:
-        TFieldType; AVisible: boolean); overload;
+        TFieldType; AVisible: boolean; AVarCharLimit: integer); overload;
   end;
 
   TDBFieldDynArray = array of TDBField;
@@ -51,9 +53,9 @@ type
     property Name: string read FName;
     property Caption: string read FCaption;
     procedure AddField(AName, ACaption: string; AWidth: integer;
-      AFieldType: TFieldType; AVisible: boolean); overload;
+      AFieldType: TFieldType; AVisible: boolean; AVarCharLimit: integer); overload;
     procedure AddField(AName, ACaption, ATableRef, AFieldRef: string;
-      AWidth: integer; AFieldType: TFieldType; AVisible: boolean); overload;
+      AWidth: integer; AFieldType: TFieldType; AVisible: boolean; AVarCharLimit: integer); overload;
     class procedure Add(AName, ACaption: string);
     constructor Create(AName, ACaption: string);
   end;
@@ -67,19 +69,19 @@ var
 implementation
 
 procedure TDBTable.AddField(AName, ACaption: string; AWidth: integer;
-  AFieldType: TFieldType; AVisible: boolean);
+  AFieldType: TFieldType; AVisible: boolean; AVarCharLimit: integer);
 begin
   SetLength(FFields, Length(FFields) + 1);
-  FFieldsList.AddObject(AName, TDBField.Create(Self, AName, ACaption, AWidth, AFieldType, AVisible));
+  FFieldsList.AddObject(AName, TDBField.Create(Self, AName, ACaption, AWidth, AFieldType, AVisible, AVarCharLimit));
   FFields[High(FFields)] := (FFieldsList.Objects[FFieldsList.Count - 1] as TDBField);
 end;
 
 procedure TDBTable.AddField(AName, ACaption, ATableRef, AFieldRef: string;
-    AWidth: integer; AFieldType: TFieldType; AVisible: boolean);
+    AWidth: integer; AFieldType: TFieldType; AVisible: boolean; AVarCharLimit: integer);
 begin
   SetLength(FFields, Length(FFields) + 1);
   FFieldsList.AddObject(AName, TDBField.Create(Self, AName, ACaption, ATableRef, AFieldRef,
-    AWidth, AFieldType, AVisible));
+    AWidth, AFieldType, AVisible, AVarCharLimit));
   FFields[High(FFields)] := (FFieldsList.Objects[FFieldsList.Count - 1] as TDBField);
 end;
 
@@ -103,7 +105,7 @@ begin
 end;
 
 constructor TDBField.Create(AOwner: TDBTable; AName, ACaption, ATableRef, AFieldRef: string;
-    AWidth: integer; AFieldType: TFieldType; AVisible: boolean);
+    AWidth: integer; AFieldType: TFieldType; AVisible: boolean; AVarCharLimit: integer);
 begin
   FName := AName;
   FCaption := ACaption;
@@ -111,12 +113,13 @@ begin
   FFieldType := AFieldType;
   FVisible := AVisible;
   FOwner := AOwner;
+  FVarCharLimit := AVarCharLimit;
   FTableRef := (DBTablesList.Objects[DBTablesList.IndexOf(ATableRef)] as TDBTable);
   FFieldRef := (FTableRef.FFieldsList.Objects[FTableRef.FFieldsList.IndexOf(AFieldRef)] as TDBField);
 end;
 
 constructor TDBField.Create(AOwner: TDBTable; AName, ACaption: string;
-    AWidth: integer; AFieldType: TFieldType; AVisible: boolean);
+    AWidth: integer; AFieldType: TFieldType; AVisible: boolean; AVarCharLimit: integer);
 begin
   FName := AName;
   FCaption := ACaption;
@@ -124,6 +127,7 @@ begin
   FFieldType := AFieldType;
   FVisible := AVisible;
   FOwner := AOwner;
+  FVarCharLimit := AVarCharLimit;
 end;
 
 initialization
@@ -135,44 +139,44 @@ initialization
   end;
 
   TDBTable.Add('teachers', 'Преподаватели');
-  DBTables[0].AddField('id', 'ИД', 40, ftInteger, false);
-  DBTables[0].AddField('name', 'Преподаватель', 300, ftString, true);
+  DBTables[0].AddField('id', 'ИД', 40, ftInteger, false, 0);
+  DBTables[0].AddField('name', 'Преподаватель', 300, ftString, true, 50);
 
   TDBTable.Add('groups', 'Группы');
-  DBTables[1].AddField('id', 'ИД', 40, ftInteger, false);
-  DBTables[1].AddField('name', 'Группа', 100, ftString, true);
+  DBTables[1].AddField('id', 'ИД', 40, ftInteger, false, 0);
+  DBTables[1].AddField('name', 'Группа', 100, ftString, true, 50);
 
   TDBTable.Add('courses', 'Дисциплины');
-  DBTables[2].AddField('id', 'ИД', 40, ftInteger, false);
-  DBTables[2].AddField('name', 'Дисциплина', 300, ftString, true);
+  DBTables[2].AddField('id', 'ИД', 40, ftInteger, false, 0);
+  DBTables[2].AddField('name', 'Дисциплина', 300, ftString, true, 50);
 
   TDBTable.Add('groups_courses', 'Дисц. групп');
-  DBTables[3].AddField('group_id', 'Ид. группы', 'Groups', 'id', 80, ftInteger, false);
-  DBTables[3].AddField('course_id', 'Ид. предмета', 'courses', 'id', 80, ftInteger, false);
+  DBTables[3].AddField('group_id', 'Ид. группы', 'Groups', 'id', 80, ftInteger, false, 0);
+  DBTables[3].AddField('course_id', 'Ид. предмета', 'courses', 'id', 80, ftInteger, false, 0);
 
   TDBTable.Add('classrooms', 'Аудитории');
-  DBTables[4].AddField('id', 'ИД', 40, ftInteger, false);
-  DBTables[4].AddField('classroom', 'Аудитория', 100, ftString, true);
+  DBTables[4].AddField('id', 'ИД', 40, ftInteger, false, 0);
+  DBTables[4].AddField('classroom', 'Аудитория', 100, ftString, true, 50);
 
   TDBTable.Add('weekdays', 'Дни недели');
-  DBTables[5].AddField('id', 'День', 40, ftInteger, false);
-  DBTables[5].AddField('weekday', 'День недели', 100, ftString, true);
+  DBTables[5].AddField('id', 'День', 40, ftInteger, false, 0);
+  DBTables[5].AddField('weekday', 'День недели', 100, ftString, true, 15);
 
   TDBTable.Add('pairs', 'Период зан.');
-  DBTables[6].AddField('ID', 'Пара', 40, ftInteger, true);
-  DBTables[6].AddField('period', 'Время занятия', 100, ftString, true);
+  DBTables[6].AddField('ID', 'Пара', 40, ftInteger, true, 0);
+  DBTables[6].AddField('period', 'Время занятия', 100, ftString, true, 50);
 
   TDBTable.Add('teachers_courses', 'Дисц. препод.');
-  DBTables[7].AddField('teacher_id', 'Ид. преподавателя', 'teachers', 'id', 80, ftInteger, false);
-  DBTables[7].AddField('course_id', 'Ид. предмета', 'courses', 'id', 80, ftInteger, false);
+  DBTables[7].AddField('teacher_id', 'Ид. преподавателя', 'teachers', 'id', 80, ftInteger, false, 0);
+  DBTables[7].AddField('course_id', 'Ид. предмета', 'courses', 'id', 80, ftInteger, false, 0);
 
   TDBTable.Add('lessons', 'Расписание');
-  DBTables[8].AddField('pair_id', 'Пара', 'pairs', 'id', 40, ftInteger, false);
-  DBTables[8].AddField('weekday_id', 'Ид. дня недели', 'weekdays', 'id', 70, ftInteger, false);
-  DBTables[8].AddField('group_id', 'Ид. группы', 'groups', 'id', 50, ftInteger, false);
-  DBTables[8].AddField('course_id', 'Ид. предмета', 'courses', 'id', 70, ftInteger, false);
-  DBTables[8].AddField('class_id', 'Ид. аудитории', 'classrooms', 'id', 70, ftInteger, false);
-  DBTables[8].AddField('teacher_id', 'Ид. преподавателя', 'teachers', 'id', 70, ftInteger, false);
+  DBTables[8].AddField('pair_id', 'Пара', 'pairs', 'id', 40, ftInteger, false, 0);
+  DBTables[8].AddField('weekday_id', 'Ид. дня недели', 'weekdays', 'id', 70, ftInteger, false, 0);
+  DBTables[8].AddField('group_id', 'Ид. группы', 'groups', 'id', 50, ftInteger, false, 0);
+  DBTables[8].AddField('course_id', 'Ид. предмета', 'courses', 'id', 70, ftInteger, false, 0);
+  DBTables[8].AddField('class_id', 'Ид. аудитории', 'classrooms', 'id', 70, ftInteger, false, 0);
+  DBTables[8].AddField('teacher_id', 'Ид. преподавателя', 'teachers', 'id', 70, ftInteger, false, 0);
 
 end.
 
