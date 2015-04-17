@@ -64,7 +64,7 @@ type
     procedure AddFilterClick(Sender: TObject);
     constructor Create(AIndex: integer; AForm: TDBTableForm);
     destructor Destroy;
-	end;
+ 	end;
 
   { TDBTableForm }
 
@@ -160,7 +160,7 @@ begin
         if Fields[i].Visible then begin
           Columns.Add.FieldName := ATable.Name + Fields[i].Name;
           Columns[Columns.Count - 1].Title.Caption := Fields[i].Caption;
-          Columns[Columns.Count - 1].Width := Fields[i].Width;
+          Columns[Columns.Count - 1].Width := Fields[i].Width + 10;
           Columns[Columns.Count - 1].Visible := Fields[i].Visible;
           FieldOfColumn.AddObject(Columns[Columns.Count - 1].FieldName, Fields[i]);
         end;
@@ -321,6 +321,7 @@ begin
           Params[k].Value := Value;
           inc(k);
         end;
+  //showmessage(SQLQuery.SQL.Text);
 end;
 
 procedure TDBTableForm.miCloseOtherTablesClick(Sender: TObject);
@@ -339,7 +340,7 @@ begin
   VTag := (Sender as TButton).Tag;
   LocateFiltersOnDelete(VTag);
   FFilters[VTag].Destroy;
-  sbxFilters.RemoveControl(Sender as TButton);
+  //sbxFilters.RemoveControl(Sender as TButton);
   FFilters[VTag] := nil;
 
   for i := High(FFilters) downto 0 do
@@ -626,13 +627,14 @@ end;
 
 destructor TQueryFilter.Destroy;
 begin
-  //FreeAndNil(btnDeleteFilter);
-  FreeAndNil(cbbFields);
+  btnDeleteFilter.Parent.RemoveControl(btnDeleteFilter);
+  cbbFields.Parent.RemoveControl(cbbFields);
   if Assigned(ConstantEditor) then begin
-    FreeAndNil(ConstantEditor);
-    FreeAndNil(cbbOperations);
-    FreeAndNil(btnAddFilter);
+    ConstantEditor.Parent.RemoveControl(ConstantEditor);
+    cbbOperations.Parent.RemoveControl(cbbOperations);
+    btnAddFilter.Parent.RemoveControl(btnAddFilter);
 	end;
+  inherited;
 end;
 
 constructor TRelOperation.Create(ACaption, ACode: string);
