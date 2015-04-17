@@ -72,9 +72,10 @@ type
     DBNavigator: TDBNavigator;
     DataSource: TDataSource;
     DBGrid: TDBGrid;
+		miReset: TMenuItem;
     SQLQuery: TSQLQuery;
     btnAddFilter: TButton;
-    sbtnFilter: TSpeedButton;
+    btnFilter: TSpeedButton;
 		sbxFilters: TScrollBox;
 		pnlControls: TPanel;
 	  Splitter: TSplitter;
@@ -85,12 +86,14 @@ type
 	  procedure btnAddFilterClick(Sender: TObject);
     procedure miCloseOtherTablesClick(Sender: TObject);
     procedure miCloseTableClick(Sender: TObject);
-		procedure sbtnFilterClick(Sender: TObject);
+		procedure miResetClick(Sender: TObject);
+		procedure btnFilterClick(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormDestroy(Sender: TObject);
 		procedure FormShow(Sender: TObject);
     procedure SetSQLQuery;
     procedure AddConditionsToQuery;
+    procedure ResetGridTitles;
     procedure AddColumnsToQuery(ATable: TDBTable);
     procedure AddColumnsToGrid(ATable: TDBTable);
     procedure DestroyFilterClick(Sender: TObject);
@@ -162,7 +165,7 @@ begin
           Columns[Columns.Count - 1].Title.Caption := Fields[i].Caption;
           Columns[Columns.Count - 1].Width := Fields[i].Width + 10;
           Columns[Columns.Count - 1].Visible := Fields[i].Visible;
-          FieldOfColumn.AddObject(Columns[Columns.Count - 1].FieldName, Fields[i]);
+          FieldOfColumn.AddObject(Columns[Columns.Count - 1].Title.Caption, Fields[i]);
         end;
         if Assigned(Fields[i].TableRef) then
           AddColumnsToGrid(Fields[i].TableRef);
@@ -287,12 +290,38 @@ begin
   Close;
 end;
 
-procedure TDBTableForm.sbtnFilterClick(Sender: TObject);
+procedure TDBTableForm.miResetClick(Sender: TObject);
+var
+  i: integer;
+begin
+  for i := 0 to High(FFilters) do
+    if Assigned(FFilters[i]) then
+      FFilters[i].Destroy;
+  SetLength(FFilters, 0);
+  SetLength(FilterInPosition, 0);
+  SQLQuery.Close;
+  SetSQLQuery;
+  ResetGridTitles;
+  SQLQuery.Open;
+  sbxFilters.Height := 0;
+  btnFilter.Enabled := false;
+end;
+
+procedure TDBTableForm.ResetGridTitles;
+var
+  i: integer;
+begin
+  for i := 0 to FieldOfColumn.Count - 1 do
+    DBGrid.Columns[i].Title.Caption := FieldOfColumn.Strings[i];
+end;
+
+procedure TDBTableForm.btnFilterClick(Sender: TObject);
 begin
   (Sender as TSpeedButton).Enabled := false;
   SQLQuery.Close;
   SetSQLQuery;
   AddConditionsToQuery;
+  ResetGridTitles;
   SQLQuery.Open;
 end;
 
@@ -451,7 +480,7 @@ end;
 
 procedure TDBTableForm.FilterDataChanged(Sender: TObject);
 begin
-  sbtnFilter.Enabled := true;
+  btnFilter.Enabled := true;
 end;
 
 procedure TDBTableForm.btnAddFilterClick(Sender: TObject);

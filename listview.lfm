@@ -72,7 +72,7 @@ object DBTableForm: TDBTableForm
       TabOrder = 0
       VisibleButtons = [nbFirst, nbPrior, nbNext, nbLast]
     end
-    object sbtnFilter: TSpeedButton
+    object btnFilter: TSpeedButton
       Left = 248
       Height = 25
       Top = 2
@@ -80,7 +80,7 @@ object DBTableForm: TDBTableForm
       AllowAllUp = True
       Caption = 'Фильтр'
       Enabled = False
-      OnClick = sbtnFilterClick
+      OnClick = btnFilterClick
       ParentFont = False
     end
     object btnAddFilter: TButton
@@ -112,6 +112,10 @@ object DBTableForm: TDBTableForm
     top = 160
     object miTable: TMenuItem
       Caption = 'Таблица'
+      object miReset: TMenuItem
+        Caption = 'Сброс'
+        OnClick = miResetClick
+      end
       object miCloseTable: TMenuItem
         Caption = 'Закрыть'
         ShortCut = 16471
