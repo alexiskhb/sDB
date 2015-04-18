@@ -1,4 +1,7 @@
 unit listview;
+//2 массива -> 1 массив
+//fresh - процедуры в 1
+//panel align top
 
 {$mode objfpc}{$H+}
 
@@ -57,7 +60,7 @@ type
     property Value: variant read GetValue;
     property Operation: string read GetOperation;
     procedure ChosenFieldChange(Sender: TObject);
-    procedure DeleteFilterClick(Sender: TObject);
+    procedure DeleteFilterClick(Sender: TObject; MouseButton: TMouseButton; ShiftState: TShiftState; X, Y: longint);
     procedure AddFieldsForChoose(ATable: TDBTable);
     procedure EditChange(Sender: TObject);
     procedure OperationChange(Sender: TObject);
@@ -101,6 +104,8 @@ type
     procedure DBGridColumnMoved(Sender: TObject; FromIndex,
 		ToIndex: Integer);
     procedure FilterDataChanged(Sender: TObject);
+    procedure LocateFiltersOnDelete(ATag: integer);
+    procedure LocateFiltersOnAdd(ATag, APosition: integer);
     class procedure CreateTableForm(ATag: integer; aCaption: string);
     class procedure DestroyTableForm(ATag: integer);
     class procedure FormSetFocus(ATag: integer);
@@ -110,8 +115,6 @@ type
     FieldOfColumn: TStringList;
     OrderIsDesc: boolean;
     FilterInPosition: array of integer;
-    procedure LocateFiltersOnDelete(ATag: integer);
-    procedure LocateFiltersOnAdd(ATag, APosition: integer);
   end;
 
   TDBTableFormDynArray = array of TDBTableForm;
@@ -398,10 +401,10 @@ begin
 	sbxFilters.Height := sbxFilters.Height - FFilters[ATag].Height;
 
   for i := 0 to High(FilterInPosition) do
-    FFilters[FilterInPosition[i]].Top := i * FFilters[FilterInPosition[i]].Height;
+    FFilters[FilterInPosition[i]].Top := i * (FFilters[FilterInPosition[i]].Height + 2);
 
   if ClientToScreen(Point(0, sbxFilters.Height + pnlControls.Height)).Y < Mouse.CursorPos.Y then
-    sbxFilters.Height := sbxFilters.Height + FFilters[ATag].Height;
+    sbxFilters.Height := sbxFilters.Height + FFilters[ATag].Height + 2;
 end;
 
 procedure TDBTableForm.LocateFiltersOnAdd(ATag, APosition: integer);
@@ -419,12 +422,12 @@ begin
   FilterInPosition[APosition + 1] := ATag;
 
   for i := 0 to High(FilterInPosition) do
-    FFilters[FilterInPosition[i]].Top := i * FFilters[FilterInPosition[i]].Height;
+    FFilters[FilterInPosition[i]].Top := i * (FFilters[FilterInPosition[i]].Height + 2);
 
-  if (FFilters[ATag].Top + FFilters[ATag].Height >= sbxFilters.Height) and
+  if (FFilters[ATag].Top + FFilters[ATag].Height + 2 >= sbxFilters.Height) and
     (FFilters[ATag].Top <= sbxFilters.Height) and
       (sbxFilters.Height <= 4*(Height div 5)) then
-        sbxFilters.Height := sbxFilters.Height + FFilters[ATag].Height;
+        sbxFilters.Height := sbxFilters.Height + FFilters[ATag].Height + 2;
 end;
 
 constructor TQueryFilter.Create(AIndex: integer; AForm: TDBTableForm);
@@ -441,7 +444,7 @@ begin
     Caption := 'X';
     Left := 2;
     Tag := AIndex;
-    OnClick := @DeleteFilterClick;
+    OnMouseUp := @DeleteFilterClick;
   end;
 
 	cbbFields := TComboBox.Create(AForm.sbxFilters);
@@ -449,7 +452,7 @@ begin
     Parent := AForm.sbxFilters;
     Left := btnDeleteFilter.Left + btnDeleteFilter.Width + 1;
     AutoSize := false;
-    Height := btnDeleteFilter.Height;
+    Height := btnDeleteFilter.Height + 2;
     Style := csDropDownList;
     AddFieldsForChoose(DBTables[AForm.Tag]);
     AddItem('ИЛИ', nil);
@@ -472,7 +475,7 @@ begin
       end;
 end;
 
-procedure TQueryFilter.DeleteFilterClick(Sender: TObject);
+procedure TQueryFilter.DeleteFilterClick(Sender: TObject; MouseButton: TMouseButton; ShiftState: TShiftState; X, Y: longint);
 begin
   FChangingData(Self);
   FDestroying(Sender);
@@ -660,12 +663,12 @@ end;
 
 destructor TQueryFilter.Destroy;
 begin
-  btnDeleteFilter.Parent.RemoveControl(btnDeleteFilter);
-  cbbFields.Parent.RemoveControl(cbbFields);
+  FreeAndNil(btnDeleteFilter);
+  FreeAndNil(cbbFields);
   if Assigned(ConstantEditor) then begin
-    ConstantEditor.Parent.RemoveControl(ConstantEditor);
-    cbbOperations.Parent.RemoveControl(cbbOperations);
-    btnAddFilter.Parent.RemoveControl(btnAddFilter);
+    FreeAndNil(ConstantEditor);
+    FreeAndNil(cbbOperations);
+    FreeAndNil(btnAddFilter);
 	end;
   inherited;
 end;
