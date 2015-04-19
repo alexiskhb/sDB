@@ -1,0 +1,8 @@
+object RecordCard: TRecordCard
+  Left = 686
+  Height = 327
+  Top = 236
+  Width = 284
+  Caption = 'RecordCard'
+  LCLVersion = '1.2.6.0'
+end

@@ -11,7 +11,8 @@ uses {$IFDEF UNIX} {$IFDEF UseCThreads}
   FormConnect,
   metadata,
   aboutsdb,
-  listview { you can add units after this };
+  listview,
+  record_cards { you can add units after this };
 
 {$R *.res}
 

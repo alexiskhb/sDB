@@ -68,9 +68,10 @@ object DBTableForm: TDBTableForm
       ClientHeight = 25
       ClientWidth = 241
       DataSource = DataSource
+      OnClick = DBNavigatorClick
       Options = []
       TabOrder = 0
-      VisibleButtons = [nbFirst, nbPrior, nbNext, nbLast]
+      VisibleButtons = [nbFirst, nbPrior, nbNext, nbLast, nbInsert, nbDelete, nbEdit]
     end
     object btnFilter: TSpeedButton
       Left = 248

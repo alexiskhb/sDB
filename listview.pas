@@ -9,7 +9,7 @@ interface
 
 uses
   connection_transaction, Classes, lcltype, SysUtils, Forms, Menus, DBCtrls, DB, DBGrids,
-  ExtCtrls, sqldb, Dialogs, Controls, StdCtrls, metadata, Spin, Buttons, Messages;
+  ExtCtrls, sqldb, Dialogs, Controls, StdCtrls, metadata, Spin, Buttons, Messages, record_cards;
 
 type
 
@@ -17,7 +17,6 @@ type
     roInequal, roStartsWith, roContaining);
 
   TDBTableForm = class;
-  TCustomEditClass = class of TCustomEdit;
 
   TRelOperation = class
   private
@@ -38,6 +37,11 @@ type
     FHeight: integer;
     FTop: integer;
     FAddingFilter: TNotifyEvent;
+    cbbFields: TComboBox;
+    cbbOperations: TComboBox;
+    btnDeleteFilter: TButton;
+    btnAddFilter: TButton;
+    ConstantEditor: TCustomEdit;
     procedure SetFilterTop(Value: integer);
     procedure SetFilterHeight(Value: integer);
     procedure SetFilterTag(Value: integer);
@@ -45,11 +49,6 @@ type
     function GetValue: Variant;
     function GetOperation: string;
   public
-    cbbFields: TComboBox;
-    cbbOperations: TComboBox;
-    btnDeleteFilter: TButton;
-    btnAddFilter: TButton;
-    ConstantEditor: TCustomEdit;
     property ChosenField: TDBField read GetField;
     property Tag: integer read FTag write SetFilterTag;
     property OnDestroy: TNotifyEvent read FDestroying write FDestroying;
@@ -59,6 +58,7 @@ type
     property Height: integer read FHeight write SetFilterHeight;
     property Value: variant read GetValue;
     property Operation: string read GetOperation;
+
     procedure ChosenFieldChange(Sender: TObject);
     procedure DeleteFilterClick(Sender: TObject; MouseButton: TMouseButton; ShiftState: TShiftState; X, Y: longint);
     procedure AddFieldsForChoose(ATable: TDBTable);
@@ -86,7 +86,9 @@ type
     miCloseOtherTables: TMenuItem;
     MainMenu: TMainMenu;
     miCloseTable: TMenuItem;
+    RecordCard: TRecordCard;
 	  procedure btnAddFilterClick(Sender: TObject);
+		procedure DBNavigatorClick(Sender: TObject; Button: TDBNavButtonType);
     procedure miCloseOtherTablesClick(Sender: TObject);
     procedure miCloseTableClick(Sender: TObject);
 		procedure miResetClick(Sender: TObject);
@@ -106,6 +108,7 @@ type
     procedure FilterDataChanged(Sender: TObject);
     procedure LocateFiltersOnDelete(ATag: integer);
     procedure LocateFiltersOnAdd(ATag, APosition: integer);
+    procedure DBGridDblClick(Sender: TObject);
     class procedure CreateTableForm(ATag: integer; aCaption: string);
     class procedure DestroyTableForm(ATag: integer);
     class procedure FormSetFocus(ATag: integer);
@@ -125,7 +128,6 @@ implementation
 
 var
   DBTableForms: TDBTableFormDynArray;
-  TypeOfEditor: array [Low(TFieldType)..High(TFieldType)] of TCustomEditClass;
   AvailableOperations: array [Low(TFieldType)..High(TFieldType)] of set of TRelationalOperation;
   Operations: array [Low(TRelationalOperation)..High(TRelationalOperation)] of TRelOperation;
 
@@ -248,6 +250,15 @@ begin
   FieldOfColumn.Move(FromIndex - 1, ToIndex - 1);
 end;
 
+procedure TDBTableForm.DBGridDblClick(Sender: TObject);
+begin
+  //showmessage(DBGrid.SelectedField.Value);
+  //showmessage(IntToStr(DataSource.DataSet.RecNo));
+  RecordCard := TRecordCard.Create(DBTables[Self.Tag], 'Редактирование записи');
+  RecordCard.Hide;
+  RecordCard.ShowModal;
+end;
+
 procedure TDBTableForm.FormDestroy(Sender: TObject);
 begin
   DBTableForms[(Sender as TDBTableForm).Tag] := nil;
@@ -271,13 +282,14 @@ begin
   with DBGrid do begin
     DataSource := DataSource;
     AddColumnsToGrid(DBTables[Self.Tag]);
+    Options := Options - [dgEditing];
     OnTitleClick := @FDBGridTitleClick;
     OnColumnMoved := @DBGridColumnMoved;
+    OnDblClick := @DBGridDblClick;
   end;
 
   with DBNavigator do begin
     DataSource := DataSource;
-    VisibleButtons := [nbFirst, nbNext, nbPrior, nbLast];
   end;
 
   SQLQuery.Open;
@@ -516,6 +528,16 @@ begin
   FFilters[High(FFilters)].OnDestroy := @DestroyFilterClick;
   FFilters[High(FFilters)].OnChangeData := @FilterDataChanged;
   FFilters[High(FFilters)].OnFilterAdd := @btnAddFilterClick;
+end;
+
+procedure TDBTableForm.DBNavigatorClick(Sender: TObject;
+		Button: TDBNavButtonType);
+begin
+  case Button of
+    nbEdit: DBGridDblClick(DBGrid);
+    else exit;
+	end;
+
 end;
 
 procedure TQueryFilter.ChosenFieldChange(Sender: TObject);
