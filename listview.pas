@@ -98,6 +98,8 @@ type
 		procedure FormShow(Sender: TObject);
     procedure SetSQLQuery;
     procedure AddConditionsToQuery;
+    procedure AddSort;
+    procedure RefreshTable;
     procedure ResetGridTitles;
     procedure AddColumnsToQuery(ATable: TDBTable);
     procedure AddColumnsToGrid(ATable: TDBTable);
@@ -215,32 +217,47 @@ begin
 end;
 
 procedure TDBTableForm.FDBGridTitleClick(Column: TColumn);
-var
-  Field: TDBField;
-  i: integer;
 begin
-  Field := (FieldOfColumn.Objects[Column.Index] as TDBField);
-
-  for i := 0 to DBGrid.Columns.Count - 1 do
-    with DBGrid.Columns[i].Title do
-      if (Pos('↓', Caption) <> 0) or (Pos('↑', Caption) <> 0) then begin
-        Caption := Copy(Caption, Length('↑ ') + 1, Length(Caption));
-        break;
-		  end;
-
+  ResetGridTitles;
   SQLQuery.Close;
   SetSQLQuery;
   AddConditionsToQuery;
-  SQLQuery.SQL.Append('order by ' + Field.Owner.Name + '.' + Field.Name);
-  if OrderIsDesc then begin
-    SQLQuery.SQL.Append('  desc');
-    Column.Title.Caption := '↑ ' + Column.Title.Caption;
-	end
-	else begin
-    SQLQuery.SQL.Append('  asc');
+  if OrderIsDesc then
+    Column.Title.Caption := '↑ ' + Column.Title.Caption
+	else
     Column.Title.Caption := '↓ ' + Column.Title.Caption;
-	end;
+  AddSort;
 	OrderIsDesc := not OrderIsDesc;
+  SQLQuery.Open;
+end;
+
+procedure TDBTableForm.AddSort;
+var
+  i: integer;
+  Field: TDBField;
+begin
+  for i := 0 to DBGrid.Columns.Count - 1 do
+    with DBGrid.Columns[i].Title do
+      if (Pos('↑', Caption) <> 0) then begin
+        Field := (FieldOfColumn.Objects[i] as TDBField);
+        SQLQuery.SQL.Append('order by ' + Field.Owner.Name + '.' + Field.Name);
+        SQLQuery.SQL.Append('  desc');
+        break;
+		  end else
+        if (Pos('↓', Caption) <> 0) then begin
+          Field := (FieldOfColumn.Objects[i] as TDBField);
+          SQLQuery.SQL.Append('order by ' + Field.Owner.Name + '.' + Field.Name);
+          SQLQuery.SQL.Append('  asc');
+          break;
+			  end;
+end;
+
+procedure TDBTableForm.RefreshTable;
+begin
+  SQLQuery.Close;
+  SetSQLQuery;
+  AddConditionsToQuery;
+  AddSort;
   SQLQuery.Open;
 end;
 
