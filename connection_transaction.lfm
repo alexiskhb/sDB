@@ -27,4 +27,18 @@ object ConTran: TConTran
     left = 56
     top = 8
   end
+  object CommonSQLQuery: TSQLQuery
+    FieldDefs = <>
+    Database = DBConnection
+    Transaction = DBTransaction
+    Params = <>
+    DataSource = CommonDS
+    left = 16
+    top = 64
+  end
+  object CommonDS: TDataSource
+    DataSet = DBTableForm.SQLQuery
+    left = 64
+    top = 64
+  end
 end

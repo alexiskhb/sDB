@@ -5,16 +5,18 @@ unit connection_transaction;
 interface
 
 uses
-  Classes, SysUtils, IBConnection, sqldb, FileUtil, Forms, Controls, Graphics,
-  Dialogs;
+  Classes, SysUtils, IBConnection, sqldb, db, FileUtil, Forms, Controls,
+	Graphics, Dialogs;
 
 type
 
   { TConTran }
 
   TConTran = class(TDataModule)
+	  CommonDS: TDataSource;
     DBConnection: TIBConnection;
     DBTransaction: TSQLTransaction;
+		CommonSQLQuery: TSQLQuery;
     procedure FormCreate(Sender: TObject);
   end;
 

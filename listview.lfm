@@ -1,7 +1,7 @@
 object DBTableForm: TDBTableForm
-  Left = 400
+  Left = 498
   Height = 388
-  Top = 273
+  Top = 279
   Width = 551
   Caption = 'DBTableForm'
   ClientHeight = 388
@@ -102,6 +102,7 @@ object DBTableForm: TDBTableForm
   end
   object SQLQuery: TSQLQuery
     FieldDefs = <>
+    AfterDelete = SQLQueryAfterDelete
     Database = ConTran.DBConnection
     Transaction = ConTran.DBTransaction
     Params = <>

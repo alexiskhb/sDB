@@ -5,7 +5,7 @@ unit metadata;
 interface
 
 uses
-  Classes, SysUtils, db, dialogs, typinfo;
+  Classes, SysUtils, db, dialogs, typinfo, connection_transaction;
 
 type
 

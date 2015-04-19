@@ -9,7 +9,8 @@ interface
 
 uses
   connection_transaction, Classes, lcltype, SysUtils, Forms, Menus, DBCtrls, DB, DBGrids,
-  ExtCtrls, sqldb, Dialogs, Controls, StdCtrls, metadata, Spin, Buttons, Messages, record_cards;
+  ExtCtrls, sqldb, Dialogs, Controls, StdCtrls, metadata, Spin, Buttons, Messages, record_cards,
+  edit_database;
 
 type
 
@@ -72,6 +73,14 @@ type
   { TDBTableForm }
 
   TDBTableForm = class(TForm)
+			procedure SQLQueryAfterDelete(DataSet: TDataSet);
+  private
+    FFilters: array of TQueryFilter;
+    FieldOfColumn: TStringList;
+    OrderIsDesc: boolean;
+    FilterInPosition: array of integer;
+    FTable: TDBTable;
+  published
     DBNavigator: TDBNavigator;
     DataSource: TDataSource;
     DBGrid: TDBGrid;
@@ -115,11 +124,6 @@ type
     class procedure DestroyTableForm(ATag: integer);
     class procedure FormSetFocus(ATag: integer);
     class function FormExists(ATag: integer): boolean;
-  private
-    FFilters: array of TQueryFilter;
-    FieldOfColumn: TStringList;
-    OrderIsDesc: boolean;
-    FilterInPosition: array of integer;
   end;
 
   TDBTableFormDynArray = array of TDBTableForm;
@@ -164,35 +168,31 @@ procedure TDBTableForm.AddColumnsToGrid(ATable: TDBTable);
 var
   i: integer;
 begin
-  with DBGrid do
-    with ATable do
-      for i := 0 to High(Fields) do begin
-        if Fields[i].Visible then begin
-          Columns.Add.FieldName := ATable.Name + Fields[i].Name;
-          Columns[Columns.Count - 1].Title.Caption := Fields[i].Caption;
-          Columns[Columns.Count - 1].Width := Fields[i].Width + 10;
-          Columns[Columns.Count - 1].Visible := Fields[i].Visible;
-          FieldOfColumn.AddObject(Columns[Columns.Count - 1].Title.Caption, Fields[i]);
-        end;
-        if Assigned(Fields[i].TableRef) then
-          AddColumnsToGrid(Fields[i].TableRef);
+  with DBGrid, ATable do
+    for i := 0 to High(Fields) do begin
+      if Fields[i].Visible then begin
+        Columns.Add.FieldName := ATable.Name + Fields[i].Name;
+        Columns[Columns.Count - 1].Title.Caption := Fields[i].Caption;
+        Columns[Columns.Count - 1].Width := Fields[i].Width + 10;
+        Columns[Columns.Count - 1].Visible := Fields[i].Visible;
+        FieldOfColumn.AddObject(Columns[Columns.Count - 1].Title.Caption, Fields[i]);
       end;
+      if Assigned(Fields[i].TableRef) then
+        AddColumnsToGrid(Fields[i].TableRef);
+    end;
 end;
 
 procedure TDBTableForm.AddColumnsToQuery(ATable: TDBTable);
 var
   i: integer;
 begin
-  with SQLQuery.SQL do
-    with ATable do
-      for i := 0 to High(Fields) do begin
-        if Fields[i].Visible then begin
-          Append(Name + '.' + Fields[i].Name + ' as ' + Name + Fields[i].Name);
-          Append(',');
-        end;
-        if Assigned(Fields[i].TableRef) then
-          AddColumnsToQuery(Fields[i].TableRef);
-      end;
+  with SQLQuery.SQL, ATable do
+    for i := 0 to High(Fields) do begin
+      Append(Name + '.' + Fields[i].Name + ' as ' + Name + Fields[i].Name);
+      Append(',');
+      if Assigned(Fields[i].TableRef) then
+        AddColumnsToQuery(Fields[i].TableRef);
+    end;
 end;
 
 procedure TDBTableForm.SetSQLQuery;
@@ -269,11 +269,11 @@ end;
 
 procedure TDBTableForm.DBGridDblClick(Sender: TObject);
 begin
-  //showmessage(DBGrid.SelectedField.Value);
-  //showmessage(IntToStr(DataSource.DataSet.RecNo));
-  RecordCard := TRecordCard.Create(DBTables[Self.Tag], 'Редактирование записи');
-  RecordCard.Hide;
-  RecordCard.ShowModal;
+
+  //RecordCard := TRecordCard.Create(DBTables[Self.Tag], 'Редактирование записи');
+  //RecordCard.Hide;
+  //RecordCard.ShowModal;
+  //ShowMessage(  SQLQuery.FieldByName('groupsid').Value);
 end;
 
 procedure TDBTableForm.FormDestroy(Sender: TObject);
@@ -290,11 +290,15 @@ begin
     SetSQLQuery;
   end;
 
-  with DataSource do
+  with DataSource do begin
     DataSet := SQLQuery;
+    DataSet.EnableControls;
+	end;
 
   FieldOfColumn := TStringList.Create;
   FieldOfColumn.Sorted := false;
+
+  FTable := DBTables[Self.Tag];
 
   with DBGrid do begin
     DataSource := DataSource;
@@ -307,6 +311,7 @@ begin
 
   with DBNavigator do begin
     DataSource := DataSource;
+
   end;
 
   SQLQuery.Open;
@@ -515,6 +520,11 @@ begin
   btnFilter.Enabled := true;
 end;
 
+procedure TDBTableForm.SQLQueryAfterDelete(DataSet: TDataSet);
+begin
+  RefreshTable;
+end;
+
 procedure TDBTableForm.btnAddFilterClick(Sender: TObject);
 var
   i, VPos: integer;
@@ -552,9 +562,9 @@ procedure TDBTableForm.DBNavigatorClick(Sender: TObject;
 begin
   case Button of
     nbEdit: DBGridDblClick(DBGrid);
-    else exit;
+    nbDelete: DeleteRecord(FTable, DBGrid);
+		else exit;
 	end;
-
 end;
 
 procedure TQueryFilter.ChosenFieldChange(Sender: TObject);

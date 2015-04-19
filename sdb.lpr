@@ -12,7 +12,7 @@ uses {$IFDEF UNIX} {$IFDEF UseCThreads}
   metadata,
   aboutsdb,
   listview,
-  record_cards { you can add units after this };
+  record_cards, edit_database { you can add units after this };
 
 {$R *.res}
 

@@ -89,6 +89,7 @@ INSERT INTO courses VALUES (312, 'Комплексный анализ');
 INSERT INTO courses VALUES (313, 'Численный методы');
 INSERT INTO courses VALUES (314, 'ОБЖ');
 INSERT INTO courses VALUES (315, 'Экономическая теория');
+INSERT INTO courses VALUES (316, 'Биология');
 
 INSERT INTO classrooms VALUES (401, 'D734а');
 INSERT INTO classrooms VALUES (402, 'D734б');
