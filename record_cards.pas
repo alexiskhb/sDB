@@ -17,7 +17,9 @@ type
     pnlCellEdit: TPanel;
     CellEditor: TCustomEdit;
     lbTitle: TLabel;
+    FValue: Variant;
   public
+    property Value: Variant read FValue;
     constructor Create(AField: TDBField; APos: integer; ACard: TForm); overload;
     constructor Create(ATableRef: TDBTable; AField: TDBField; APos: integer; ACard: TForm); overload;
 	end;
@@ -68,6 +70,24 @@ end;
 
 constructor TCellEdit.Create(ATableRef: TDBTable; AField: TDBField; APos: integer; ACard: TForm);
 begin
+  pnlCellEdit := TPanel.Create(ACard);
+  with pnlCellEdit do begin
+    Parent := ACard;
+    Height := 50;
+    Align := alTop;
+    Top := APos * Height;
+  end;
+
+  cbbValues := TComboBox.Create(pnlCellEdit);
+  with cbbValues do begin
+    Parent := pnlCellEdit;
+    Top := 10;
+    Left := 30;
+    Style := csDropDownList;
+    //Items := AField.Rows;
+
+
+	end;
 
 end;
 
