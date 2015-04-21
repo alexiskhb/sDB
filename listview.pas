@@ -73,14 +73,7 @@ type
   { TDBTableForm }
 
   TDBTableForm = class(TForm)
-			procedure SQLQueryAfterDelete(DataSet: TDataSet);
-  private
-    FFilters: array of TQueryFilter;
-    FieldOfColumn: TStringList;
-    OrderIsDesc: boolean;
-    FilterInPosition: array of integer;
-    FTable: TDBTable;
-  published
+	  btnDeleteRecord: TBitBtn;
     DBNavigator: TDBNavigator;
     DataSource: TDataSource;
     DBGrid: TDBGrid;
@@ -105,12 +98,10 @@ type
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormDestroy(Sender: TObject);
 		procedure FormShow(Sender: TObject);
-    procedure SetSQLQuery;
     procedure AddConditionsToQuery;
     procedure AddSort;
     procedure RefreshTable;
     procedure ResetGridTitles;
-    procedure AddColumnsToQuery(ATable: TDBTable);
     procedure AddColumnsToGrid(ATable: TDBTable);
     procedure DestroyFilterClick(Sender: TObject);
     procedure FDBGridTitleClick(Column: TColumn);
@@ -120,10 +111,19 @@ type
     procedure LocateFiltersOnDelete(ATag: integer);
     procedure LocateFiltersOnAdd(ATag, APosition: integer);
     procedure DBGridDblClick(Sender: TObject);
+    procedure btnDeleteRecordClick(Sender: TObject);
+    procedure SQLQueryAfterDelete(DataSet: TDataSet);
+		procedure SQLQueryBeforeDelete(DataSet: TDataSet);
     class procedure CreateTableForm(ATag: integer; aCaption: string);
     class procedure DestroyTableForm(ATag: integer);
     class procedure FormSetFocus(ATag: integer);
     class function FormExists(ATag: integer): boolean;
+  private
+    FFilters: array of TQueryFilter;
+    FieldOfColumn: TStringList;
+    OrderIsDesc: boolean;
+    FilterInPosition: array of integer;
+    FTable: TDBTable;
   end;
 
   TDBTableFormDynArray = array of TDBTableForm;
@@ -182,45 +182,11 @@ begin
     end;
 end;
 
-procedure TDBTableForm.AddColumnsToQuery(ATable: TDBTable);
-var
-  i: integer;
-begin
-  with SQLQuery.SQL, ATable do
-    for i := 0 to High(Fields) do begin
-      Append(Name + '.' + Fields[i].Name + ' as ' + Name + Fields[i].Name);
-      Append(',');
-      if Assigned(Fields[i].TableRef) then
-        AddColumnsToQuery(Fields[i].TableRef);
-    end;
-end;
-
-procedure TDBTableForm.SetSQLQuery;
-var
-  i: integer;
-begin
-  with SQLQuery.SQL do begin
-    Clear;
-    Append('select');
-    AddColumnsToQuery(DBTables[Self.Tag]);
-    Delete(Count - 1);
-    Append('from');
-    Append(DBTables[Self.Tag].Name + ' ');
-    with DBTables[Self.Tag] do
-      for i := Low(Fields) to High(Fields) do
-        if Assigned(Fields[i].TableRef) then begin
-          Append('join ' + Fields[i].TableRef.Name + ' on ');
-          Append('  ' + Fields[i].TableRef.Name + '.' + Fields[i].FieldRef.Name + ' = ');
-          Append('    ' + Name + '.' + Fields[i].Name);
-        end;
-  end;
-end;
-
 procedure TDBTableForm.FDBGridTitleClick(Column: TColumn);
 begin
   ResetGridTitles;
   SQLQuery.Close;
-  SetSQLQuery;
+  SetSQLQuery(DBTables[Self.Tag], SQLQuery);
   AddConditionsToQuery;
   if OrderIsDesc then
     Column.Title.Caption := '↑ ' + Column.Title.Caption
@@ -240,13 +206,13 @@ begin
     with DBGrid.Columns[i].Title do
       if (Pos('↑', Caption) <> 0) then begin
         Field := (FieldOfColumn.Objects[i] as TDBField);
-        SQLQuery.SQL.Append('order by ' + Field.Owner.Name + '.' + Field.Name);
+        SQLQuery.SQL.Append('order by ' + Field.TableOwner.Name + '.' + Field.Name);
         SQLQuery.SQL.Append('  desc');
         break;
 		  end else
         if (Pos('↓', Caption) <> 0) then begin
           Field := (FieldOfColumn.Objects[i] as TDBField);
-          SQLQuery.SQL.Append('order by ' + Field.Owner.Name + '.' + Field.Name);
+          SQLQuery.SQL.Append('order by ' + Field.TableOwner.Name + '.' + Field.Name);
           SQLQuery.SQL.Append('  asc');
           break;
 			  end;
@@ -255,10 +221,12 @@ end;
 procedure TDBTableForm.RefreshTable;
 begin
   SQLQuery.Close;
-  SetSQLQuery;
+  SetSQLQuery(DBTables[Self.Tag], SQLQuery);
   AddConditionsToQuery;
   AddSort;
   SQLQuery.Open;
+  SQLQuery.Last;
+  SQLQuery.First;
 end;
 
 procedure TDBTableForm.DBGridColumnMoved(Sender: TObject; FromIndex,
@@ -268,11 +236,19 @@ begin
 end;
 
 procedure TDBTableForm.DBGridDblClick(Sender: TObject);
+var
+  i: integer;
 begin
+  SQLQuery.First;
+  for i := 1 to SQLQuery.RecordCount do begin
+    //ShowMessage(SQLQuery.FieldByName('teachersname').Value);
+    SQLQuery.Next;
+	end;
+	//ShowMessage(IntTostr(SQLQuery.RecordCount));
 
-  //RecordCard := TRecordCard.Create(DBTables[Self.Tag], 'Редактирование записи');
-  //RecordCard.Hide;
-  //RecordCard.ShowModal;
+  RecordCard := TRecordCard.Create(DBTables[Self.Tag], 'Редактирование записи');
+  RecordCard.Hide;
+  RecordCard.ShowModal;
   //ShowMessage(  SQLQuery.FieldByName('groupsid').Value);
 end;
 
@@ -287,7 +263,7 @@ begin
     Transaction := ConTran.DBTransaction;
     Database := ConTran.DBConnection;
     SQLQuery.Close;
-    SetSQLQuery;
+    SetSQLQuery(DBTables[Self.Tag], SQLQuery);
   end;
 
   with DataSource do begin
@@ -311,10 +287,12 @@ begin
 
   with DBNavigator do begin
     DataSource := DataSource;
-
+    Controls[Ord(nbDelete)].Enabled := true;
   end;
 
   SQLQuery.Open;
+  SQLQuery.Last;
+  SQLQuery.First;
 end;
 
 procedure TDBTableForm.FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -337,7 +315,7 @@ begin
   SetLength(FFilters, 0);
   SetLength(FilterInPosition, 0);
   SQLQuery.Close;
-  SetSQLQuery;
+  SetSQLQuery(DBTables[Self.Tag], SQLQuery);
   ResetGridTitles;
   SQLQuery.Open;
   sbxFilters.Height := 0;
@@ -356,7 +334,7 @@ procedure TDBTableForm.btnFilterClick(Sender: TObject);
 begin
   (Sender as TSpeedButton).Enabled := false;
   SQLQuery.Close;
-  SetSQLQuery;
+  SetSQLQuery(DBTables[Self.Tag], SQLQuery);
   AddConditionsToQuery;
   ResetGridTitles;
   SQLQuery.Open;
@@ -373,8 +351,8 @@ begin
       with FFilters[FilterInPosition[i]] do
         if Assigned(FFilters[FilterInPosition[i]]) and Assigned(ConstantEditor) then
           if (ConstantEditor.Visible) then begin
-            SQL.Append('and ' + ChosenField.Owner.Name + '.' + ChosenField.Name);
-            SQL.Append(Operation + ' :' + ChosenField.Owner.Name + ChosenField.Name + IntToStr(i));
+            SQL.Append('and ' + ChosenField.TableOwner.Name + '.' + ChosenField.Name);
+            SQL.Append(Operation + ' :' + ChosenField.TableOwner.Name + ChosenField.Name + IntToStr(i));
           end else
             SQL.Append('or 1 = 1');
 
@@ -525,6 +503,17 @@ begin
   RefreshTable;
 end;
 
+procedure TDBTableForm.btnDeleteRecordClick(Sender: TObject);
+begin
+  DeleteRecord(FTable, DBGrid);
+  RefreshTable;
+end;
+
+procedure TDBTableForm.SQLQueryBeforeDelete(DataSet: TDataSet);
+begin
+  DeleteRecord(FTable, DBGrid);
+end;
+
 procedure TDBTableForm.btnAddFilterClick(Sender: TObject);
 var
   i, VPos: integer;
@@ -562,7 +551,6 @@ procedure TDBTableForm.DBNavigatorClick(Sender: TObject;
 begin
   case Button of
     nbEdit: DBGridDblClick(DBGrid);
-    nbDelete: DeleteRecord(FTable, DBGrid);
 		else exit;
 	end;
 end;

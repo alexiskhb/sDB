@@ -5,7 +5,7 @@ unit metadata;
 interface
 
 uses
-  Classes, SysUtils, db, dialogs, typinfo, connection_transaction;
+  Classes, SysUtils, db, dialogs, typinfo, connection_transaction, sqldb;
 
 type
 
@@ -23,6 +23,7 @@ type
     FFieldRef: TDBField;
     FOwner: TDBTable;
     FVarCharLimit: integer;
+    function GetRows: TStrings;
   public
     property Name: string read FName;
     property Caption: string read FCaption;
@@ -32,7 +33,8 @@ type
     property TableRef: TDBTable read FTableRef;
     property FieldRef: TDBField read FFieldRef;
     property VarCharLimit: integer read FVarCharLimit;
-    property Owner: TDBTable read FOwner;
+    property TableOwner: TDBTable read FOwner;
+    property Rows: TStrings read GetRows;
     constructor Create(AOwner: TDBTable; AName, ACaption, ATableRef, AFieldRef: string;
     AWidth: integer; AFieldType: TFieldType; AVisible: boolean; AVarCharLimit: integer); overload;
     constructor Create(AOwner: TDBTable; AName, ACaption: string; AWidth: integer; AFieldType:
@@ -66,7 +68,50 @@ var
   DBTables: TDBTableDynArray;
   DBTablesList: TStringList;
 
+  procedure SetSQLQuery(ATable: TDBTable; SQLQuery: TSQLQuery);
+  procedure AddColumnsToQuery(ATable: TDBTable; SQLQuery: TSQLQuery);
+
 implementation
+
+function TDBField.GetRows: TStrings;
+begin
+
+
+end;
+
+procedure SetSQLQuery(ATable: TDBTable; SQLQuery: TSQLQuery);
+var
+  i: integer;
+begin
+  with SQLQuery.SQL do begin
+    Clear;
+    Append('select');
+    AddColumnsToQuery(ATable, SQLQuery);
+    Delete(Count - 1);
+    Append('from');
+    Append(ATable.Name + ' ');
+    with ATable do
+      for i := Low(Fields) to High(Fields) do
+        if Assigned(Fields[i].TableRef) then begin
+          Append('join ' + Fields[i].TableRef.Name + ' on ');
+          Append('  ' + Fields[i].TableRef.Name + '.' + Fields[i].FieldRef.Name + ' = ');
+          Append('    ' + Name + '.' + Fields[i].Name);
+        end;
+  end;
+end;
+
+procedure AddColumnsToQuery(ATable: TDBTable; SQLQuery: TSQLQuery);
+var
+  i: integer;
+begin
+  with SQLQuery.SQL, ATable do
+    for i := 0 to High(Fields) do begin
+      Append(Name + '.' + Fields[i].Name + ' as ' + Name + Fields[i].Name);
+      Append(',');
+      if Assigned(Fields[i].TableRef) then
+        AddColumnsToQuery(Fields[i].TableRef, SQLQuery);
+    end;
+end;
 
 procedure TDBTable.AddField(AName, ACaption: string; AWidth: integer;
   AFieldType: TFieldType; AVisible: boolean; AVarCharLimit: integer);
@@ -139,11 +184,11 @@ initialization
   end;
 
   TDBTable.Add('teachers', 'Преподаватели');
-  DBTables[0].AddField('id', 'ИД', 40, ftInteger, false, 0);
+  DBTables[0].AddField('id', 'П. ИД', 40, ftInteger, false, 0);
   DBTables[0].AddField('name', 'Преподаватель', 300, ftString, true, 50);
 
   TDBTable.Add('groups', 'Группы');
-  DBTables[1].AddField('id', 'ИД', 40, ftInteger, false, 0);
+  DBTables[1].AddField('id', 'Г. ИД', 40, ftInteger, false, 0);
   DBTables[1].AddField('name', 'Группа', 100, ftString, true, 50);
 
   TDBTable.Add('courses', 'Дисциплины');
