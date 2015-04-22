@@ -1,8 +1,36 @@
 object RecordCard: TRecordCard
-  Left = 505
-  Height = 451
-  Top = 138
-  Width = 315
+  Left = 519
+  Height = 430
+  Top = 117
+  Width = 371
+  Anchors = [akTop, akRight]
   Caption = 'RecordCard'
+  ClientHeight = 430
+  ClientWidth = 371
   LCLVersion = '1.2.6.0'
+  object btnCansel: TBitBtn
+    Left = 40
+    Height = 30
+    Top = 376
+    Width = 115
+    Anchors = [akLeft, akBottom]
+    Cancel = True
+    DefaultCaption = True
+    Kind = bkCancel
+    ModalResult = 2
+    TabOrder = 0
+  end
+  object btnOk: TBitBtn
+    Left = 217
+    Height = 30
+    Top = 376
+    Width = 102
+    Anchors = [akLeft, akBottom]
+    Default = True
+    DefaultCaption = True
+    Kind = bkOK
+    ModalResult = 1
+    OnClick = btnOkClick
+    TabOrder = 1
+  end
 end

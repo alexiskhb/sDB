@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, metadata,
-  StdCtrls, db, ExtCtrls, DBGrids;
+  StdCtrls, db, ExtCtrls, DBGrids, Buttons;
 
 type
 
@@ -19,22 +19,28 @@ type
     CellEditor: TCustomEdit;
     lbTitle: TLabel;
     FValue: Variant;
+    FTag: integer;
     FReferringField: TDBField;
     FDisplayedField: TDBField;
-    procedure cbbValuesSelect(Sender: TObject);
+    procedure cbbValuesChange(Sender: TObject);
     procedure CellEditorChange(Sender: TObject);
     procedure SetValue(Value: Variant);
   public
+    property Tag: integer read FTag write FTag;
     property Value: Variant read FValue write SetValue;
     constructor Create(ADisplayedField: TDBField; APos: integer; ACard: TForm); overload;
     constructor Create(AReferringField, ADisplayedField: TDBField; APos: integer; ACard: TForm); overload;
 	end;
 
+	{ TRecordCard }
+
   TRecordCard = class(TForm)
+    btnCansel: TBitBtn;
+    btnOk: TBitBtn;
+		procedure btnOkClick(Sender: TObject);
   private
     FCellEdits: array of TCellEdit;
   public
-    Values: TVariantDynArray;
     NewValues: TVariantDynArray;
     constructor Create(ATable: TDBTable; AFields: TStringList);
   end;
@@ -52,6 +58,14 @@ implementation
 
 {$R *.lfm}
 
+procedure TRecordCard.btnOkClick(Sender: TObject);
+var
+  i: integer;
+begin
+  for i := 0 to High(FCellEdits) do
+    NewValues[i] := FCellEdits[i].Value;
+end;
+
 constructor TRecordCard.Create(ATable: TDBTable; AFields: TStringList);
 var
   i: integer;
@@ -61,12 +75,14 @@ begin
 
   for i := 0 to AFields.Count - 1 do begin
     SetLength(FCellEdits, Length(FCellEdits) + 1);
+    SetLength(NewValues, Length(NewValues) + 1);
     if ATable.Fields[i].FieldRef = nil then
       FCellEdits[High(FCellEdits)] := TCellEdit.Create(AFields.Objects[i] as TDBField, i, Self)
     else
       FCellEdits[High(FCellEdits)] := TCellEdit.Create(ATable.Fields[i].FieldRef, AFields.Objects[i] as TDBField, i, Self);
-	end;
-
+    FCellEdits[High(FCellEdits)].Tag := i;
+    NewValues[i] := FCellEdits[High(FCellEdits)].Value;
+  end;
 end;
 
 constructor TEditRecordCard.Create(ATable: TDBTable; AFields: TStringList; AGrid: TDBGrid);
@@ -75,10 +91,13 @@ var
 begin
   inherited Create(ATable, AFields);
   Caption := 'Изменить запись';
-  for i := 0 to AFields.Count - 1 do
+  SetLength(OldValues, Length(FCellEdits));
+  for i := 0 to AFields.Count - 1 do begin
     FCellEdits[i].Value :=
     AGrid.DataSource.DataSet.FieldByName
     ((AFields.Objects[i] as TDBField).TableOwner.Name + (AFields.Objects[i] as TDBField).Name).Value;
+    OldValues[i] := FCellEdits[i].Value;
+	end;
 end;
 
 constructor TCellEdit.Create(ADisplayedField: TDBField; APos: integer; ACard: TForm);
@@ -115,6 +134,7 @@ begin
     Height := 30;
     Width := pnlCellEdit.Width;
     MaxLength := ADisplayedField.VarCharLimit;
+    Anchors := [akLeft, akRight];
 	end;
 end;
 
@@ -145,7 +165,7 @@ begin
   cbbValues := TComboBox.Create(pnlCellEdit);
   with cbbValues do begin
     Parent := pnlCellEdit;
-    OnSelect := @cbbValuesSelect;
+    OnChange := @cbbValuesChange;
     AutoSize := false;
     Top := 10;
     Left := lbTitle.Left + lbTitle.Width;
@@ -154,17 +174,20 @@ begin
     Style := csDropDownList;
     ADisplayedField.RowsTo(Items);
     ItemIndex := 0;
-    FValue := Items[0];
+    //FValue := Items[0];
+    cbbValuesChange(cbbValues);
+    Anchors := [akLeft, akRight];
 	end;
 
 end;
 
-procedure TCellEdit.cbbValuesSelect(Sender: TObject);
+procedure TCellEdit.cbbValuesChange(Sender: TObject);
 begin
   FValue :=
     AppropriateValue(FDisplayedField,
                      (Sender as TCombobox).Items[(Sender as TCombobox).ItemIndex],
-                     FReferringField)
+                     FReferringField);
+  //showmessage('dsd');
 end;
 
 procedure TCellEdit.CellEditorChange(Sender: TObject);
@@ -174,10 +197,14 @@ end;
 
 procedure TCellEdit.SetValue(Value: Variant);
 begin
-  if CellEditor <> nil then
-    CellEditor.Text := Value
-  else if cbbValues <> nil then
+  if CellEditor <> nil then begin
+    CellEditor.Text := Value;
+    FValue := Value;
+	end
+	else if cbbValues <> nil then begin
     cbbValues.ItemIndex := cbbValues.Items.IndexOf(Value);
+    cbbValuesChange(cbbValues);
+	end;
 end;
 
 end.

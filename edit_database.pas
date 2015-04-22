@@ -33,8 +33,8 @@ begin
     ConTran.CommonSQLQuery.Params[i].Value :=
       SQLQuery.Fields.FieldByName(ATable.Name + ATable.Fields[i].Name).Value;
 	end;
-  ConTran.CommonSQLQuery.ExecSQL;
 
+  ConTran.CommonSQLQuery.ExecSQL;
   ConTran.DBTransaction.Commit;
 end;
 
@@ -47,7 +47,6 @@ procedure InsertRecord(ATable: TDBTable; AValues: TVariantDynArray);
 var
   i: integer;
 begin
-
   ConTran.CommonSQLQuery.Close;
   with ConTran.CommonSQLQuery.SQL do begin
     Clear;
@@ -64,9 +63,7 @@ begin
     ConTran.CommonSQLQuery.Params[i].Value := AValues[i];
 
   ConTran.CommonSQLQuery.ExecSQL;
-
   ConTran.DBTransaction.Commit;
-
 end;
 
 end.

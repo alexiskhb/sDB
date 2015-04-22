@@ -548,6 +548,7 @@ begin
   RecordCard.Hide;
   if RecordCard.ShowModal = mrOK then
     InsertRecord(FTable, RecordCard.NewValues);
+  RefreshTable;
 end;
 
 procedure TDBTableForm.DBNavigatorClick(Sender: TObject;
