@@ -96,12 +96,13 @@ begin
   with ConTran.CommonSQLQuery do begin
     Close;
     SetSQLQuery(AGivenField.TableOwner, ConTran.CommonSQLQuery);
-    SQL.Append('where ' + AGivenField.TableOwner.Name+AGivenField.Name + ' = :givenvalue');
+    SQL.Append('where ' + AGivenField.TableOwner.Name + '.' + AGivenField.Name + ' = :givenvalue');
     ParamByName('givenvalue').Value := AGivenValue;
+    //ShowMessage(SQL.Text);
     Open;
     Last;
     First;
-    Result := FieldByName(ARequestedField.TableOwner.Name+ARequestedField.Name).Value;
+    Result := FieldByName(ARequestedField.TableOwner.Name + ARequestedField.Name).Value;
 	end;
 end;
 

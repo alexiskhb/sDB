@@ -2,7 +2,7 @@ object RecordCard: TRecordCard
   Left = 505
   Height = 451
   Top = 138
-  Width = 284
+  Width = 315
   Caption = 'RecordCard'
   LCLVersion = '1.2.6.0'
 end

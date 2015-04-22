@@ -238,7 +238,7 @@ procedure TDBTableForm.DBGridDblClick(Sender: TObject);
 var
   i: integer;
 begin
-  RecordCard := TRecordCard.Create(FTable, 'Изменить запись', InitialFieldsOrder);
+  RecordCard := TEditRecordCard.Create(FTable, InitialFieldsOrder, DBGrid);
   RecordCard.Hide;
   RecordCard.ShowModal;
   //ShowMessage(  SQLQuery.FieldByName('groupsid').Value);
@@ -543,8 +543,8 @@ end;
 
 procedure TDBTableForm.btnInsertRecordClick(Sender: TObject);
 begin
-  ShowMessage(InitialFieldsOrder.Text);
-  RecordCard := TRecordCard.Create(DBTables[Self.Tag], 'Добавить запись', InitialFieldsOrder);
+  //ShowMessage(InitialFieldsOrder.Text);
+  RecordCard := TRecordCard.Create(DBTables[Self.Tag], InitialFieldsOrder);
   RecordCard.Hide;
   if RecordCard.ShowModal = mrOK then
     InsertRecord(FTable, RecordCard.NewValues);
