@@ -73,6 +73,7 @@ type
   { TDBTableForm }
 
   TDBTableForm = class(TForm)
+	  btnInsertRecord: TBitBtn;
 	  btnDeleteRecord: TBitBtn;
     DBNavigator: TDBNavigator;
     DataSource: TDataSource;
@@ -90,6 +91,7 @@ type
     miCloseTable: TMenuItem;
     RecordCard: TRecordCard;
 	  procedure btnAddFilterClick(Sender: TObject);
+		procedure btnInsertRecordClick(Sender: TObject);
 		procedure DBNavigatorClick(Sender: TObject; Button: TDBNavButtonType);
     procedure miCloseOtherTablesClick(Sender: TObject);
     procedure miCloseTableClick(Sender: TObject);
@@ -120,7 +122,7 @@ type
     class function FormExists(ATag: integer): boolean;
   private
     FFilters: array of TQueryFilter;
-    FieldOfColumn: TStringList;
+    InitialFieldsOrder: TStringList;
     OrderIsDesc: boolean;
     FilterInPosition: array of integer;
     FTable: TDBTable;
@@ -175,7 +177,7 @@ begin
         Columns[Columns.Count - 1].Title.Caption := Fields[i].Caption;
         Columns[Columns.Count - 1].Width := Fields[i].Width + 10;
         Columns[Columns.Count - 1].Visible := Fields[i].Visible;
-        FieldOfColumn.AddObject(Columns[Columns.Count - 1].Title.Caption, Fields[i]);
+        InitialFieldsOrder.AddObject(Columns[Columns.Count - 1].FieldName, Fields[i]);
       end;
       if Assigned(Fields[i].TableRef) then
         AddColumnsToGrid(Fields[i].TableRef);
@@ -200,19 +202,16 @@ end;
 procedure TDBTableForm.AddSort;
 var
   i: integer;
-  Field: TDBField;
 begin
   for i := 0 to DBGrid.Columns.Count - 1 do
     with DBGrid.Columns[i].Title do
       if (Pos('↑', Caption) <> 0) then begin
-        Field := (FieldOfColumn.Objects[i] as TDBField);
-        SQLQuery.SQL.Append('order by ' + Field.TableOwner.Name + '.' + Field.Name);
+        SQLQuery.SQL.Append('order by ' + DBGrid.Columns[i].DisplayName);
         SQLQuery.SQL.Append('  desc');
         break;
 		  end else
         if (Pos('↓', Caption) <> 0) then begin
-          Field := (FieldOfColumn.Objects[i] as TDBField);
-          SQLQuery.SQL.Append('order by ' + Field.TableOwner.Name + '.' + Field.Name);
+          SQLQuery.SQL.Append('order by ' + DBGrid.Columns[i].DisplayName);
           SQLQuery.SQL.Append('  asc');
           break;
 			  end;
@@ -232,21 +231,14 @@ end;
 procedure TDBTableForm.DBGridColumnMoved(Sender: TObject; FromIndex,
 		ToIndex: Integer);
 begin
-  FieldOfColumn.Move(FromIndex - 1, ToIndex - 1);
+  //InitialFieldsOrder.Move(FromIndex - 1, ToIndex - 1);
 end;
 
 procedure TDBTableForm.DBGridDblClick(Sender: TObject);
 var
   i: integer;
 begin
-  SQLQuery.First;
-  for i := 1 to SQLQuery.RecordCount do begin
-    //ShowMessage(SQLQuery.FieldByName('teachersname').Value);
-    SQLQuery.Next;
-	end;
-	//ShowMessage(IntTostr(SQLQuery.RecordCount));
-
-  RecordCard := TRecordCard.Create(DBTables[Self.Tag], 'Редактирование записи');
+  RecordCard := TRecordCard.Create(FTable, 'Изменить запись', InitialFieldsOrder);
   RecordCard.Hide;
   RecordCard.ShowModal;
   //ShowMessage(  SQLQuery.FieldByName('groupsid').Value);
@@ -259,11 +251,13 @@ end;
 
 procedure TDBTableForm.FormShow(Sender: TObject);
 begin
+  FTable := DBTables[Self.Tag];
+
   with SQLQuery do begin
     Transaction := ConTran.DBTransaction;
     Database := ConTran.DBConnection;
     SQLQuery.Close;
-    SetSQLQuery(DBTables[Self.Tag], SQLQuery);
+    SetSQLQuery(FTable, SQLQuery);
   end;
 
   with DataSource do begin
@@ -271,14 +265,12 @@ begin
     DataSet.EnableControls;
 	end;
 
-  FieldOfColumn := TStringList.Create;
-  FieldOfColumn.Sorted := false;
-
-  FTable := DBTables[Self.Tag];
+  InitialFieldsOrder := TStringList.Create;
+  InitialFieldsOrder.Sorted := false;
 
   with DBGrid do begin
     DataSource := DataSource;
-    AddColumnsToGrid(DBTables[Self.Tag]);
+    AddColumnsToGrid(FTable);
     Options := Options - [dgEditing];
     OnTitleClick := @FDBGridTitleClick;
     OnColumnMoved := @DBGridColumnMoved;
@@ -326,8 +318,11 @@ procedure TDBTableForm.ResetGridTitles;
 var
   i: integer;
 begin
-  for i := 0 to FieldOfColumn.Count - 1 do
-    DBGrid.Columns[i].Title.Caption := FieldOfColumn.Strings[i];
+  for i := 0 to DBGrid.Columns.Count - 1 do
+    with DBGrid.Columns[i].Title do
+      if (Pos('↑', Caption) <> 0) or (Pos('↓', Caption) <> 0) then
+        Caption := Copy(Caption, Length('↑ ') + 1, Length(Caption));
+
 end;
 
 procedure TDBTableForm.btnFilterClick(Sender: TObject);
@@ -544,6 +539,15 @@ begin
   FFilters[High(FFilters)].OnDestroy := @DestroyFilterClick;
   FFilters[High(FFilters)].OnChangeData := @FilterDataChanged;
   FFilters[High(FFilters)].OnFilterAdd := @btnAddFilterClick;
+end;
+
+procedure TDBTableForm.btnInsertRecordClick(Sender: TObject);
+begin
+  ShowMessage(InitialFieldsOrder.Text);
+  RecordCard := TRecordCard.Create(DBTables[Self.Tag], 'Добавить запись', InitialFieldsOrder);
+  RecordCard.Hide;
+  if RecordCard.ShowModal = mrOK then
+    InsertRecord(FTable, RecordCard.NewValues);
 end;
 
 procedure TDBTableForm.DBNavigatorClick(Sender: TObject;

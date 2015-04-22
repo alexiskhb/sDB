@@ -138,6 +138,15 @@ object DBTableForm: TDBTableForm
       OnClick = btnDeleteRecordClick
       TabOrder = 2
     end
+    object btnInsertRecord: TBitBtn
+      Left = 280
+      Height = 25
+      Top = 2
+      Width = 25
+      Caption = '+'
+      OnClick = btnInsertRecordClick
+      TabOrder = 3
+    end
   end
   object DataSource: TDataSource
     DataSet = SQLQuery

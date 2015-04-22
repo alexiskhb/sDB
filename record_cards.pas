@@ -28,7 +28,9 @@ type
   private
     FCellEdits: array of TCellEdit;
   public
-    constructor Create(ATable: TDBTable; ACaption: string);
+    Values: TVariantDynArray;
+    NewValues: TVariantDynArray;
+    constructor Create(ATable: TDBTable; ACaption: string; AFields: TStringList);
   end;
 
 var
@@ -38,20 +40,16 @@ implementation
 
 {$R *.lfm}
 
-constructor TRecordCard.Create(ATable: TDBTable; ACaption: string);
+constructor TRecordCard.Create(ATable: TDBTable; ACaption: string; AFields: TStringList);
 var
   i: integer;
 begin
   inherited Create(Application);
   Caption := ACaption;
 
-  for i := 0 to High(ATable.Fields) do begin
+  for i := 0 to AFields.Count - 1 do begin
     SetLength(FCellEdits, Length(FCellEdits) + 1);
-    if (ATable.Fields[i].TableRef = nil) then begin
-      FCellEdits[High(FCellEdits)] := TCellEdit.Create(ATable.Fields[i], i, Self);
-    end else begin
-      FCellEdits[High(FCellEdits)] := TCellEdit.Create(ATable.Fields[i].TableRef, ATable.Fields[i], i, Self);
-		end;
+    FCellEdits[High(FCellEdits)] := TCellEdit.Create(ATable, AFields.Objects[i] as TDBField, i, Self);
 	end;
 
 end;
@@ -78,15 +76,26 @@ begin
     Top := APos * Height;
   end;
 
+  lbTitle := TLabel.Create(pnlCellEdit);
+  with lbTitle do begin
+    Parent := pnlCellEdit;
+    AutoSize := false;
+    Top := 10;
+    Left := 8;
+    Width := 100;
+    Caption := AField.Caption;
+	end;
+
   cbbValues := TComboBox.Create(pnlCellEdit);
   with cbbValues do begin
     Parent := pnlCellEdit;
+    AutoSize := false;
     Top := 10;
-    Left := 30;
+    Left := lbTitle.Left + lbTitle.Width;
+    Height := 30;
+    Width := pnlCellEdit.Width;
     Style := csDropDownList;
-    //Items := AField.Rows;
-
-
+    AField.RowsTo(Items);
 	end;
 
 end;

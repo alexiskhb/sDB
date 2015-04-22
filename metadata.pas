@@ -23,7 +23,6 @@ type
     FFieldRef: TDBField;
     FOwner: TDBTable;
     FVarCharLimit: integer;
-    function GetRows: TStrings;
   public
     property Name: string read FName;
     property Caption: string read FCaption;
@@ -34,7 +33,7 @@ type
     property FieldRef: TDBField read FFieldRef;
     property VarCharLimit: integer read FVarCharLimit;
     property TableOwner: TDBTable read FOwner;
-    property Rows: TStrings read GetRows;
+    procedure RowsTo(AStrings: TStrings);
     constructor Create(AOwner: TDBTable; AName, ACaption, ATableRef, AFieldRef: string;
     AWidth: integer; AFieldType: TFieldType; AVisible: boolean; AVarCharLimit: integer); overload;
     constructor Create(AOwner: TDBTable; AName, ACaption: string; AWidth: integer; AFieldType:
@@ -42,6 +41,7 @@ type
   end;
 
   TDBFieldDynArray = array of TDBField;
+  TVariantDynArray = array of Variant;
 
   TDBTable = class
   private
@@ -70,13 +70,39 @@ var
 
   procedure SetSQLQuery(ATable: TDBTable; SQLQuery: TSQLQuery);
   procedure AddColumnsToQuery(ATable: TDBTable; SQLQuery: TSQLQuery);
+  function AppropriateValue(AGivenField: TDBField; AGivenValue: Variant; ARequestedField: TDBField): Variant;
 
 implementation
 
-function TDBField.GetRows: TStrings;
+procedure TDBField.RowsTo(AStrings: TStrings);
+var
+  i: integer;
 begin
+  with ConTran.CommonSQLQuery do begin
+    Close;
+    SetSQLQuery(Self.TableOwner, ConTran.CommonSQLQuery);
+    Open;
+    Last;
+    First;
+    for i := 1 to RecordCount do begin
+      AStrings.Append(FieldByName(Self.TableOwner.Name + Self.Name).Value);
+      Next;
+	  end;
+	end;
+end;
 
-
+function AppropriateValue(AGivenField: TDBField; AGivenValue: Variant; ARequestedField: TDBField): Variant;
+begin
+  with ConTran.CommonSQLQuery do begin
+    Close;
+    SetSQLQuery(AGivenField.TableOwner, ConTran.CommonSQLQuery);
+    SQL.Append('where ' + AGivenField.TableOwner.Name+AGivenField.Name + ' = :givenvalue');
+    ParamByName('givenvalue').Value := AGivenValue;
+    Open;
+    Last;
+    First;
+    Result := FieldByName(ARequestedField.TableOwner.Name+ARequestedField.Name).Value;
+	end;
 end;
 
 procedure SetSQLQuery(ATable: TDBTable; SQLQuery: TSQLQuery);
@@ -208,7 +234,7 @@ initialization
   DBTables[5].AddField('weekday', 'День недели', 100, ftString, true, 15);
 
   TDBTable.Add('pairs', 'Период зан.');
-  DBTables[6].AddField('ID', 'Пара', 40, ftInteger, true, 0);
+  DBTables[6].AddField('ID', 'Пара', 40, ftInteger, false, 0);
   DBTables[6].AddField('period', 'Время занятия', 100, ftString, true, 50);
 
   TDBTable.Add('teachers_courses', 'Дисц. препод.');
