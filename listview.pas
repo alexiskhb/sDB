@@ -119,6 +119,7 @@ type
     class procedure CreateTableForm(ATag: integer; aCaption: string);
     class procedure DestroyTableForm(ATag: integer);
     class procedure FormSetFocus(ATag: integer);
+    class procedure RefreshTables;
     class function FormExists(ATag: integer): boolean;
   private
     FFilters: array of TQueryFilter;
@@ -164,6 +165,15 @@ class procedure TDBTableForm.FormSetFocus(ATag: integer);
 begin
   if FormExists(ATag) then
     DBTableForms[ATag].SetFocus;
+end;
+
+class procedure TDBTableForm.RefreshTables;
+var
+  i: integer;
+begin
+  for i := 0 to High(DBTableForms) do
+    if Assigned(DBTableForms[i]) then
+      DBTableForms[i].RefreshTable;
 end;
 
 procedure TDBTableForm.AddColumnsToGrid(ATable: TDBTable);
@@ -243,7 +253,7 @@ begin
   if RecordCard.ShowModal = mrOK then
     UpdateRecord(FTable, (RecordCard as TEditRecordCard).OldValues, RecordCard.NewValues);
   FreeAndNil(RecordCard);
-  RefreshTable;
+  RefreshTables;
 end;
 
 procedure TDBTableForm.FormDestroy(Sender: TObject);
@@ -498,13 +508,13 @@ end;
 
 procedure TDBTableForm.SQLQueryAfterDelete(DataSet: TDataSet);
 begin
-  RefreshTable;
+  RefreshTables;
 end;
 
 procedure TDBTableForm.btnDeleteRecordClick(Sender: TObject);
 begin
   DeleteRecord(FTable, DBGrid);
-  RefreshTable;
+  RefreshTables;
 end;
 
 procedure TDBTableForm.SQLQueryBeforeDelete(DataSet: TDataSet);
@@ -550,7 +560,7 @@ begin
   RecordCard.Hide;
   if RecordCard.ShowModal = mrOK then
     InsertRecord(FTable, RecordCard.NewValues);
-  RefreshTable;
+  RefreshTables;
   FreeAndNil(RecordCard);
 end;
 

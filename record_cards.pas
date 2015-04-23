@@ -96,6 +96,9 @@ begin
     NewValues[i] := FCellEdits[High(FCellEdits)].Value;
     inc(k);
   end;
+
+  Height := FCellEdits[0].pnlCellEdit.Height * (1 + Length(FCellEdits)) + 30;
+  BorderStyle := bsSingle;
 end;
 
 constructor TEditRecordCard.Create(ATable: TDBTable; AFields: TStringList; AGrid: TDBGrid);
