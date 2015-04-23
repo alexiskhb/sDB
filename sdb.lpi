@@ -132,7 +132,7 @@
     </Other>
   </CompilerOptions>
   <Debugging>
-    <Exceptions Count="6">
+    <Exceptions Count="8">
       <Item1>
         <Name Value="EAbort"/>
       </Item1>
@@ -151,6 +151,12 @@
       <Item6>
         <Name Value="EResNotFound"/>
       </Item6>
+      <Item7>
+        <Name Value="EVariantError"/>
+      </Item7>
+      <Item8>
+        <Name Value="EStringListError"/>
+      </Item8>
     </Exceptions>
   </Debugging>
 </CONFIG>

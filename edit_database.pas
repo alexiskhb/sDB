@@ -8,7 +8,7 @@ uses
   Classes, SysUtils, connection_transaction, metadata, DBGrids, sqldb, Dialogs;
 
 procedure DeleteRecord(ATable: TDBTable; AGrid: TDBGrid);
-procedure UpdateRecord(ATable: TDBTable; AGrid: TDBGrid);
+procedure UpdateRecord(ATable: TDBTable; OldValues, NewValues: TVariantDynArray);
 procedure InsertRecord(ATable: TDBTable; AValues: TVariantDynArray);
 
 implementation
@@ -38,9 +38,38 @@ begin
   ConTran.DBTransaction.Commit;
 end;
 
-procedure UpdateRecord(ATable: TDBTable; AGrid: TDBGrid);
+procedure UpdateRecord(ATable: TDBTable; OldValues, NewValues: TVariantDynArray);
+var
+  i: integer;
 begin
+  ConTran.CommonSQLQuery.Close;
+  with ConTran.CommonSQLQuery.SQL do begin
+    Clear;
+    Append('update ' + ATable.Name);
+    Append('set ');
 
+    for i := 0 to High(NewValues) do begin
+      Append(ATable.Fields[i].Name + ' = :new_value' + IntToStr(i));
+      Append(',');
+		end;
+    Delete(Count - 1);
+
+    Append('where 1 = 1 ');
+    for i := 0 to High(OldValues) do
+      Append('and ' + ATable.Fields[i].Name + ' = :old_value' + IntToStr(i));
+
+    Append(';');
+	end;
+
+  with ConTran.CommonSQLQuery do begin
+    for i := 0 to High(NewValues) do
+      ParamByName('new_value' + IntToStr(i)).Value := NewValues[i];
+    for i := 0 to High(OldValues) do
+      ParamByName('old_value' + IntToStr(i)).Value := OldValues[i];
+	end;
+
+  ConTran.CommonSQLQuery.ExecSQL;
+  ConTran.DBTransaction.Commit;
 end;
 
 procedure InsertRecord(ATable: TDBTable; AValues: TVariantDynArray);

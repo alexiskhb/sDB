@@ -240,8 +240,10 @@ var
 begin
   RecordCard := TEditRecordCard.Create(FTable, InitialFieldsOrder, DBGrid);
   RecordCard.Hide;
-  RecordCard.ShowModal;
-  //ShowMessage(  SQLQuery.FieldByName('groupsid').Value);
+  if RecordCard.ShowModal = mrOK then
+    UpdateRecord(FTable, (RecordCard as TEditRecordCard).OldValues, RecordCard.NewValues);
+  FreeAndNil(RecordCard);
+  RefreshTable;
 end;
 
 procedure TDBTableForm.FormDestroy(Sender: TObject);
@@ -280,6 +282,7 @@ begin
   with DBNavigator do begin
     DataSource := DataSource;
     Controls[Ord(nbDelete)].Enabled := true;
+
   end;
 
   SQLQuery.Open;
@@ -543,12 +546,12 @@ end;
 
 procedure TDBTableForm.btnInsertRecordClick(Sender: TObject);
 begin
-  //ShowMessage(InitialFieldsOrder.Text);
   RecordCard := TRecordCard.Create(DBTables[Self.Tag], InitialFieldsOrder);
   RecordCard.Hide;
   if RecordCard.ShowModal = mrOK then
     InsertRecord(FTable, RecordCard.NewValues);
   RefreshTable;
+  FreeAndNil(RecordCard);
 end;
 
 procedure TDBTableForm.DBNavigatorClick(Sender: TObject;

@@ -60,43 +60,65 @@ implementation
 
 procedure TRecordCard.btnOkClick(Sender: TObject);
 var
-  i: integer;
+  i, k: integer;
 begin
-  for i := 0 to High(FCellEdits) do
-    NewValues[i] := FCellEdits[i].Value;
+  k := 0;
+  for i := 0 to High(NewValues) do
+    if Assigned(FCellEdits[k]) and (FCellEdits[k].Tag = i) then begin
+      NewValues[i] := FCellEdits[k].Value;
+      inc(k);
+		end;
 end;
 
 constructor TRecordCard.Create(ATable: TDBTable; AFields: TStringList);
 var
-  i: integer;
+  i, k: integer;
 begin
   inherited Create(Application);
   Caption := 'Добавить запись';
-
-  for i := 0 to AFields.Count - 1 do begin
-    SetLength(FCellEdits, Length(FCellEdits) + 1);
+  Position := poScreenCenter;
+  k := 0;
+  for i := 0 to High(ATable.Fields) do begin
     SetLength(NewValues, Length(NewValues) + 1);
+
+    if (not ATable.Fields[i].Visible) and (ATable.Fields[i].FieldRef = nil) then begin
+      NewValues[i] := MaxValue(ATable.Fields[i]) + 1;
+      continue;
+		end;
+
+    SetLength(FCellEdits, Length(FCellEdits) + 1);
     if ATable.Fields[i].FieldRef = nil then
-      FCellEdits[High(FCellEdits)] := TCellEdit.Create(AFields.Objects[i] as TDBField, i, Self)
+      FCellEdits[High(FCellEdits)] := TCellEdit.Create(AFields.Objects[k] as TDBField, i, Self)
     else
-      FCellEdits[High(FCellEdits)] := TCellEdit.Create(ATable.Fields[i].FieldRef, AFields.Objects[i] as TDBField, i, Self);
+      FCellEdits[High(FCellEdits)] := TCellEdit.Create(ATable.Fields[i].FieldRef, AFields.Objects[k] as TDBField, i, Self);
+
     FCellEdits[High(FCellEdits)].Tag := i;
     NewValues[i] := FCellEdits[High(FCellEdits)].Value;
+    inc(k);
   end;
 end;
 
 constructor TEditRecordCard.Create(ATable: TDBTable; AFields: TStringList; AGrid: TDBGrid);
 var
-  i: integer;
+  i, k: integer;
 begin
   inherited Create(ATable, AFields);
   Caption := 'Изменить запись';
-  SetLength(OldValues, Length(FCellEdits));
-  for i := 0 to AFields.Count - 1 do begin
+  SetLength(OldValues, Length(NewValues));
+
+  for i := 0 to High(ATable.Fields) do begin
+      OldValues[i] :=
+      AGrid.DataSource.DataSet.FieldByName
+      (ATable.Fields[i].TableOwner.Name + ATable.Fields[i].Name).Value;
+  end;
+
+  for i := 0 to High(NewValues) do
+    NewValues[i] := OldValues[i];
+
+  for i := 0 to High(FCellEdits) do begin
     FCellEdits[i].Value :=
     AGrid.DataSource.DataSet.FieldByName
     ((AFields.Objects[i] as TDBField).TableOwner.Name + (AFields.Objects[i] as TDBField).Name).Value;
-    OldValues[i] := FCellEdits[i].Value;
 	end;
 end;
 
@@ -174,11 +196,9 @@ begin
     Style := csDropDownList;
     ADisplayedField.RowsTo(Items);
     ItemIndex := 0;
-    //FValue := Items[0];
-    cbbValuesChange(cbbValues);
     Anchors := [akLeft, akRight];
 	end;
-
+  cbbValuesChange(cbbValues);
 end;
 
 procedure TCellEdit.cbbValuesChange(Sender: TObject);
@@ -187,7 +207,6 @@ begin
     AppropriateValue(FDisplayedField,
                      (Sender as TCombobox).Items[(Sender as TCombobox).ItemIndex],
                      FReferringField);
-  //showmessage('dsd');
 end;
 
 procedure TCellEdit.CellEditorChange(Sender: TObject);

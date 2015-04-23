@@ -18,7 +18,7 @@ type
     FName: string;
     FCaption: string;
     FWidth: integer;
-    FVisible: boolean;
+    FPrimaryKey: boolean;
     FTableRef: TDBTable;
     FFieldRef: TDBField;
     FOwner: TDBTable;
@@ -28,16 +28,16 @@ type
     property Caption: string read FCaption;
     property FieldType: TFieldType read FFieldType;
     property Width: integer read FWidth write FWidth;
-    property Visible: boolean read FVisible write FVisible;
+    property Visible: boolean read FPrimaryKey write FPrimaryKey;
     property TableRef: TDBTable read FTableRef;
     property FieldRef: TDBField read FFieldRef;
     property VarCharLimit: integer read FVarCharLimit;
     property TableOwner: TDBTable read FOwner;
     procedure RowsTo(AStrings: TStrings);
     constructor Create(AOwner: TDBTable; AName, ACaption, ATableRef, AFieldRef: string;
-    AWidth: integer; AFieldType: TFieldType; AVisible: boolean; AVarCharLimit: integer); overload;
+    AWidth: integer; AFieldType: TFieldType; APrimaryKey: boolean; AVarCharLimit: integer); overload;
     constructor Create(AOwner: TDBTable; AName, ACaption: string; AWidth: integer; AFieldType:
-        TFieldType; AVisible: boolean; AVarCharLimit: integer); overload;
+        TFieldType; APrimaryKey: boolean; AVarCharLimit: integer); overload;
   end;
 
   TDBFieldDynArray = array of TDBField;
@@ -71,6 +71,7 @@ var
   procedure SetSQLQuery(ATable: TDBTable; SQLQuery: TSQLQuery);
   procedure AddColumnsToQuery(ATable: TDBTable; SQLQuery: TSQLQuery);
   function AppropriateValue(AGivenField: TDBField; AGivenValue: Variant; ARequestedField: TDBField): Variant;
+  function MaxValue(AGivenField: TDBField): integer;
 
 implementation
 
@@ -98,11 +99,22 @@ begin
     SetSQLQuery(AGivenField.TableOwner, ConTran.CommonSQLQuery);
     SQL.Append('where ' + AGivenField.TableOwner.Name + '.' + AGivenField.Name + ' = :givenvalue');
     ParamByName('givenvalue').Value := AGivenValue;
-    //ShowMessage(SQL.Text);
     Open;
     Last;
     First;
     Result := FieldByName(ARequestedField.TableOwner.Name + ARequestedField.Name).Value;
+	end;
+end;
+
+function MaxValue(AGivenField: TDBField): integer;
+begin
+  with ConTran.CommonSQLQuery do begin
+    Close;
+    SQL.Clear;
+    SQL.Append('select max(' + AGivenField.TableOwner.Name + '.' + AGivenField.Name + ') as maxvalue');
+    SQL.Append('from ' + AGivenField.TableOwner.Name);
+    Open;
+    Result := FieldByName('maxvalue').Value;
 	end;
 end;
 
@@ -177,13 +189,13 @@ begin
 end;
 
 constructor TDBField.Create(AOwner: TDBTable; AName, ACaption, ATableRef, AFieldRef: string;
-    AWidth: integer; AFieldType: TFieldType; AVisible: boolean; AVarCharLimit: integer);
+    AWidth: integer; AFieldType: TFieldType; APrimaryKey: boolean; AVarCharLimit: integer);
 begin
   FName := AName;
   FCaption := ACaption;
   FWidth := AWidth;
   FFieldType := AFieldType;
-  FVisible := AVisible;
+  FPrimaryKey := APrimaryKey;
   FOwner := AOwner;
   FVarCharLimit := AVarCharLimit;
   FTableRef := (DBTablesList.Objects[DBTablesList.IndexOf(ATableRef)] as TDBTable);
@@ -191,13 +203,13 @@ begin
 end;
 
 constructor TDBField.Create(AOwner: TDBTable; AName, ACaption: string;
-    AWidth: integer; AFieldType: TFieldType; AVisible: boolean; AVarCharLimit: integer);
+    AWidth: integer; AFieldType: TFieldType; APrimaryKey: boolean; AVarCharLimit: integer);
 begin
   FName := AName;
   FCaption := ACaption;
   FWidth := AWidth;
   FFieldType := AFieldType;
-  FVisible := AVisible;
+  FPrimaryKey := APrimaryKey;
   FOwner := AOwner;
   FVarCharLimit := AVarCharLimit;
 end;
