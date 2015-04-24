@@ -28,24 +28,9 @@ object MainForm: TMainForm
     Top = 0
     Width = 480
     Align = alTop
-    ClientHeight = 40
-    ClientWidth = 480
     ParentColor = False
     TabOrder = 1
-    object ExecuteStatements: TBitBtn
-      Left = 4
-      Height = 32
-      Hint = 'Execute Statements'
-      Top = 4
-      Width = 124
-      Caption = 'Выполнить'
-      Font.Height = -19
-      OnClick = ExecuteStatementsClick
-      ParentFont = False
-      ParentShowHint = False
-      ShowHint = True
-      TabOrder = 0
-    end
+    Visible = False
   end
   object EntryGridSplitter: TSplitter
     Cursor = crVSplit
@@ -134,10 +119,15 @@ object MainForm: TMainForm
     end
     object MenuStatements: TMenuItem
       Caption = 'Запрос'
-      object MenuExecuteStatements: TMenuItem
-        Caption = 'Выполнить'
+      object MenuOpenSQL: TMenuItem
+        Caption = 'Открыть'
         ShortCut = 115
-        OnClick = MenuExecuteStatementsClick
+        OnClick = MenuOpenSQLClick
+      end
+      object MenuExecSQL: TMenuItem
+        Caption = 'Выполнить'
+        ShortCut = 116
+        OnClick = MenuExecSQLClick
       end
     end
     object MenuHelp: TMenuItem

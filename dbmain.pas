@@ -15,19 +15,19 @@ type
   { TMainForm }
 
   TMainForm = class(TForm)
-    ExecuteStatements: TBitBtn;
     DataSourceComponent: TDataSource;
     DBGrid: TDBGrid;
     ControlPanel: TPanel;
     DBQuery: TSQLQuery;
     MainMenu: TMainMenu;
     EntryField: TMemo;
-    MenuExecuteStatements: TMenuItem;
+    MenuOpenSQL: TMenuItem;
     MenuDatabase: TMenuItem;
     MenuConnect: TMenuItem;
     MenuDisconnect: TMenuItem;
     MenuHelp: TMenuItem;
     MenuAbout: TMenuItem;
+		MenuExecSQL: TMenuItem;
 		MenuReference: TMenuItem;
     MenuQuit: TMenuItem;
     MenuStatements: TMenuItem;
@@ -37,7 +37,8 @@ type
     procedure MenuAboutClick(Sender: TObject);
     procedure MenuConnectClick(Sender: TObject);
     procedure MenuDisconnectClick(Sender: TObject);
-    procedure MenuExecuteStatementsClick(Sender: TObject);
+		procedure MenuExecSQLClick(Sender: TObject);
+    procedure MenuOpenSQLClick(Sender: TObject);
     procedure ExecuteEntryFieldStatements;
     procedure MenuQuitClick(Sender: TObject);
     procedure TryToConnectDB;
@@ -96,6 +97,13 @@ begin
   end;
 end;
 
+procedure TMainForm.MenuExecSQLClick(Sender: TObject);
+begin
+  DBQuery.Close;
+  DBQuery.SQL.Text := EntryField.Lines.Text;
+  DBQuery.ExecSQL;
+end;
+
 procedure TMainForm.ShowDBTable(Sender: TObject);
 var
   MI: TMenuItem;
@@ -123,7 +131,7 @@ begin
     end;
 end;
 
-procedure TMainForm.MenuExecuteStatementsClick(Sender: TObject);
+procedure TMainForm.MenuOpenSQLClick(Sender: TObject);
 begin
   ExecuteEntryFieldStatements;
 end;
