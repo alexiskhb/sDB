@@ -110,7 +110,9 @@ begin
     ConTran.CommonSQLQuery.ExecSQL;
 	except
     on EDatabaseError: Exception do
-      MessageDlg('Невозможно добавить запись.', mtError, [mbOk], 0);
+      MessageDlg('Невозможно добавить запись.' + #13 + #10
+                 + 'Такая запись уже существует' + #13 + #10
+                 + 'либо данные введены некорректно.', mtError, [mbOk], 0);
 	end;
 
   ConTran.DBTransaction.Commit;

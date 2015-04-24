@@ -73,6 +73,7 @@ type
   { TDBTableForm }
 
   TDBTableForm = class(TForm)
+			btnEditRecord: TBitBtn;
 	  btnInsertRecord: TBitBtn;
 	  btnDeleteRecord: TBitBtn;
     DBNavigator: TDBNavigator;
@@ -91,6 +92,7 @@ type
     miCloseTable: TMenuItem;
     RecordCard: TRecordCard;
 	  procedure btnAddFilterClick(Sender: TObject);
+		procedure btnEditRecordClick(Sender: TObject);
 		procedure btnInsertRecordClick(Sender: TObject);
 		procedure DBNavigatorClick(Sender: TObject; Button: TDBNavButtonType);
     procedure miCloseOtherTablesClick(Sender: TObject);
@@ -291,7 +293,6 @@ begin
 
   with DBNavigator do begin
     DataSource := DataSource;
-    Controls[Ord(nbDelete)].Enabled := true;
   end;
 
   SQLQuery.ReadOnly := false;
@@ -555,6 +556,11 @@ begin
   FFilters[High(FFilters)].OnDestroy := @DestroyFilterClick;
   FFilters[High(FFilters)].OnChangeData := @FilterDataChanged;
   FFilters[High(FFilters)].OnFilterAdd := @btnAddFilterClick;
+end;
+
+procedure TDBTableForm.btnEditRecordClick(Sender: TObject);
+begin
+  DBGridDblClick(Sender);
 end;
 
 procedure TDBTableForm.btnInsertRecordClick(Sender: TObject);
