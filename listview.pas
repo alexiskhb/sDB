@@ -1,7 +1,4 @@
 unit listview;
-//2 массива -> 1 массив
-//fresh - процедуры в 1
-//panel align top
 
 {$mode objfpc}{$H+}
 
@@ -14,8 +11,8 @@ uses
 
 type
 
-  TRelationalOperation = (roGreater, roLess, roNotLess, roNotGreater, roEqual,
-    roInequal, roStartsWith, roContaining);
+  TRelationalOperation = (roContaining, roStartsWith, roGreater, roLess, roNotLess, roNotGreater, roEqual,
+    roInequal);
 
   TDBTableForm = class;
 
@@ -73,7 +70,7 @@ type
   { TDBTableForm }
 
   TDBTableForm = class(TForm)
-			btnEditRecord: TBitBtn;
+	  btnEditRecord: TBitBtn;
 	  btnInsertRecord: TBitBtn;
 	  btnDeleteRecord: TBitBtn;
     DBNavigator: TDBNavigator;
@@ -112,8 +109,6 @@ type
     procedure DBGridColumnMoved(Sender: TObject; FromIndex,
 		ToIndex: Integer);
     procedure FilterDataChanged(Sender: TObject);
-    procedure LocateFiltersOnDelete(ATag: integer);
-    procedure LocateFiltersOnAdd(ATag, APosition: integer);
     procedure DBGridDblClick(Sender: TObject);
     procedure btnDeleteRecordClick(Sender: TObject);
     procedure SQLQueryAfterDelete(DataSet: TDataSet);
@@ -127,11 +122,13 @@ type
     FFilters: array of TQueryFilter;
     InitialFieldsOrder: TStringList;
     OrderIsDesc: boolean;
-    FilterInPosition: array of integer;
     FTable: TDBTable;
   end;
 
   TDBTableFormDynArray = array of TDBTableForm;
+
+const
+  FilterHeight = 26;
 
 implementation
 
@@ -321,7 +318,6 @@ begin
     if Assigned(FFilters[i]) then
       FFilters[i].Destroy;
   SetLength(FFilters, 0);
-  SetLength(FilterInPosition, 0);
   SQLQuery.Close;
   SetSQLQuery(DBTables[Self.Tag], SQLQuery);
   ResetGridTitles;
@@ -347,7 +343,7 @@ begin
   SQLQuery.Close;
   SetSQLQuery(DBTables[Self.Tag], SQLQuery);
   AddConditionsToQuery;
-  ResetGridTitles;
+  AddSort;
   SQLQuery.Open;
 end;
 
@@ -358,9 +354,9 @@ begin
   SQLQuery.SQL.Append('where 1 = 1');
 
   with SQLQuery do
-    for i := 0 to Length(FilterInPosition) - 1 do
-      with FFilters[FilterInPosition[i]] do
-        if Assigned(FFilters[FilterInPosition[i]]) and Assigned(ConstantEditor) then
+    for i := 0 to Length(FFilters) - 1 do
+      with FFilters[i] do
+        if Assigned(FFilters[i]) and Assigned(ConstantEditor) then
           if (ConstantEditor.Visible) then begin
             SQL.Append('and ' + ChosenField.TableOwner.Name + '.' + ChosenField.Name);
             SQL.Append(Operation + ' :' + ChosenField.TableOwner.Name + ChosenField.Name + IntToStr(i));
@@ -368,9 +364,9 @@ begin
             SQL.Append('or 1 = 1');
 
   k := 0;
-  for i := 0 to Length(FilterInPosition) - 1 do
-    with FFilters[FilterInPosition[i]] do
-      if Assigned(FFilters[FilterInPosition[i]]) and Assigned(ConstantEditor) and
+  for i := 0 to Length(FFilters) - 1 do
+    with FFilters[i] do
+      if Assigned(FFilters[i]) and Assigned(ConstantEditor) and
       (ConstantEditor.Visible) then
         with SQLQuery do begin
           Params[k].Value := Value;
@@ -390,67 +386,26 @@ end;
 
 procedure TDBTableForm.DestroyFilterClick(Sender: TObject);
 var
-  VTag, i: integer;
+  VPos, i: integer;
 begin
-  VTag := (Sender as TButton).Tag;
-  LocateFiltersOnDelete(VTag);
-  FFilters[VTag].Destroy;
-  //sbxFilters.RemoveControl(Sender as TButton);
-  FFilters[VTag] := nil;
+  VPos := (Sender as TButton).Tag;
 
-  for i := High(FFilters) downto 0 do
-    if (FFilters[i] = nil) then
-      SetLength(FFilters, Length(FFilters) - 1)
-    else
-      break;
-end;
+  //ShowMessage(IntToStr(VPos));
 
-procedure TDBTableForm.LocateFiltersOnDelete(ATag: integer);
-var
-  i: integer;
-  found: boolean;
-begin
-  found := false;
+  FFilters[VPos].Destroy;
 
-  for i := 0 to Length(FilterInPosition) - 2 do begin
-    if FilterInPosition[i] = ATag then
-      found := true;
-    if found then
-      FilterInPosition[i] := FilterInPosition[i + 1];
+  for i := VPos to Length(FFilters) - 2 do
+    FFilters[i] := FFilters[i + 1];
+
+  SetLength(FFilters, Length(FFilters) - 1);
+
+  for i := 0 to Length(FFilters) - 1 do begin
+    FFilters[i].Tag := i;
+    FFilters[i].Top := i * (FFilters[i].Height + 2);
 	end;
 
-  SetLength(FilterInPosition, Length(FilterInPosition) - 1);
-
-	sbxFilters.Height := sbxFilters.Height - FFilters[ATag].Height;
-
-  for i := 0 to High(FilterInPosition) do
-    FFilters[FilterInPosition[i]].Top := i * (FFilters[FilterInPosition[i]].Height + 2);
-
-  if ClientToScreen(Point(0, sbxFilters.Height + pnlControls.Height)).Y < Mouse.CursorPos.Y then
-    sbxFilters.Height := sbxFilters.Height + FFilters[ATag].Height + 2;
-end;
-
-procedure TDBTableForm.LocateFiltersOnAdd(ATag, APosition: integer);
-var
-  i: integer;
-begin
-  if APosition = -1 then
-    APosition := Length(FilterInPosition) - 1;
-
-  SetLength(FilterInPosition, Length(FilterInPosition) + 1);
-
-  for i := Length(FilterInPosition) - 1 downto APosition + 2 do
-    FilterInPosition[i] := FilterInPosition[i - 1];
-
-  FilterInPosition[APosition + 1] := ATag;
-
-  for i := 0 to High(FilterInPosition) do
-    FFilters[FilterInPosition[i]].Top := i * (FFilters[FilterInPosition[i]].Height + 2);
-
-  if (FFilters[ATag].Top + FFilters[ATag].Height + 2 >= sbxFilters.Height) and
-    (FFilters[ATag].Top <= sbxFilters.Height) and
-      (sbxFilters.Height <= 4*(Height div 5)) then
-        sbxFilters.Height := sbxFilters.Height + FFilters[ATag].Height + 2;
+  sbxFilters.Constraints.MaxHeight := 3 * Height div 4;
+  sbxFilters.Height := Length(FFilters) * (FilterHeight + 2);
 end;
 
 constructor TQueryFilter.Create(AIndex: integer; AForm: TDBTableForm);
@@ -461,7 +416,7 @@ begin
   btnDeleteFilter := TButton.Create(AForm.sbxFilters);
   with btnDeleteFilter do begin
     Parent := AForm.sbxFilters;
-    Height := 26;
+    Height := FilterHeight;
     Width := Height;
     FHeight := Height;
     Caption := 'X';
@@ -480,6 +435,19 @@ begin
     AddFieldsForChoose(DBTables[AForm.Tag]);
     AddItem('ИЛИ', nil);
     OnChange := @ChosenFieldChange;
+  end;
+
+  btnAddFilter := TButton.Create(FOwner.sbxFilters);
+  btnAddFilter.Parent := FOwner.sbxFilters;
+  with btnAddFilter do begin
+    Height := btnDeleteFilter.Height;
+    Width := Height;
+    FHeight := Height;
+    Caption := '+';
+    Tag := btnDeleteFilter.Tag;
+    Top := btnDeleteFilter.Top;
+    Left := cbbFields.Left + cbbFields.Width + 1;
+    OnClick := @AddFilterClick;
   end;
 end;
 
@@ -532,30 +500,28 @@ var
 begin
   VPos := (Sender as TButton).Tag;
 
-  for i := 0 to High(FilterInPosition) do
-    if FilterInPosition[i] = VPos then begin
-      VPos := i;
-      break;
-		end;
+  //ShowMessage(IntToStr(VPos));
 
-  for i := 0 to Length(FFilters) - 1 do
-    if (FFilters[i] = nil) then begin
-      FFilters[i] := TQueryFilter.Create(i, Self);
-      LocateFiltersOnAdd(i, VPos);
-      with FFilters[i] do begin
-        OnDestroy := @DestroyFilterClick;
-        OnChangeData := @FilterDataChanged;
-        OnFilterAdd := @btnAddFilterClick;
-			end;
-			exit;
-    end;
+  if VPos = -1 then
+    VPos := Length(FFilters) - 1;
 
   SetLength(FFilters, Length(FFilters) + 1);
-  FFilters[High(FFilters)] := TQueryFilter.Create(High(FFilters), Self);
-  LocateFiltersOnAdd(High(FFilters), VPos);
-  FFilters[High(FFilters)].OnDestroy := @DestroyFilterClick;
-  FFilters[High(FFilters)].OnChangeData := @FilterDataChanged;
-  FFilters[High(FFilters)].OnFilterAdd := @btnAddFilterClick;
+
+  for i := Length(FFilters) - 1 downto VPos + 1 do
+    FFilters[i] := FFilters[i - 1];
+
+  FFilters[VPos + 1] := TQueryFilter.Create(VPos + 1, Self);
+  FFilters[VPos + 1].OnDestroy := @DestroyFilterClick;
+  FFilters[VPos + 1].OnChangeData := @FilterDataChanged;
+  FFilters[VPos + 1].OnFilterAdd := @btnAddFilterClick;
+
+  for i := 0 to Length(FFilters) - 1 do begin
+    FFilters[i].Tag := i;
+    FFilters[i].Top := i * (FFilters[i].Height + 2);
+	end;
+
+  sbxFilters.Constraints.MaxHeight := 3 * Height div 4;
+  sbxFilters.Height := Length(FFilters) * (FilterHeight + 2);
 end;
 
 procedure TDBTableForm.btnEditRecordClick(Sender: TObject);
@@ -593,7 +559,6 @@ begin
   if Assigned(ConstantEditor) then begin
     FreeAndNil(ConstantEditor);
     FreeAndNil(cbbOperations);
-    FreeAndNil(btnAddFilter);
 	end;
 
   if Assigned(VSender.Items.Objects[VSender.ItemIndex]) then
@@ -630,30 +595,17 @@ begin
         MinValue := Low(Integer);
 	  	end;
     if TypeOfEditor[tempft] = TEdit then
-      with (ConstantEditor as TEdit) do begin
-        MaxLength := ((VSender.Items.Objects[VSender.ItemIndex]) as TDBField).VarCharLimit;
-	  	end;
+      with (ConstantEditor as TEdit) do
+        if Assigned(VSender.Items.Objects[VSender.ItemIndex]) then
+          MaxLength := ((VSender.Items.Objects[VSender.ItemIndex]) as TDBField).VarCharLimit;
     OnChange := @EditChange;
 	end;
-
-  btnAddFilter := TButton.Create(FOwner.sbxFilters);
-  btnAddFilter.Parent := FOwner.sbxFilters;
-  with btnAddFilter do begin
-    Height := btnDeleteFilter.Height;
-    Width := Height;
-    FHeight := Height;
-    Caption := '+';
-    Tag := btnDeleteFilter.Tag;
-    Top := btnDeleteFilter.Top;
-    Left := ConstantEditor.Left + ConstantEditor.Width + 1;
-    OnClick := @AddFilterClick;
-  end;
 
   if tempft = ftUnknown then begin
     ConstantEditor.Visible := false;
     cbbOperations.Visible := false;
-    btnAddFilter.Visible := false;
-	end;
+	end else
+    btnAddFilter.Left := ConstantEditor.Left + ConstantEditor.Width + 1;
 
   FChangingData(Self);
 end;
@@ -677,10 +629,10 @@ procedure TQueryFilter.SetFilterTop(Value: integer);
 begin
   btnDeleteFilter.Top := Value;
   cbbFields.Top := Value;
+  btnAddFilter.Top := Value;
   if Assigned(ConstantEditor) then begin
     ConstantEditor.Top := Value;
     cbbOperations.Top := Value;
-    btnAddFilter.Top := Value;
 	end;
   FTop := Value;
 end;
@@ -689,10 +641,10 @@ procedure TQueryFilter.SetFilterHeight(Value: integer);
 begin
   btnDeleteFilter.Height := Value;
   cbbFields.Height := Value;
+  btnAddFilter.Height := Value;
   if Assigned(ConstantEditor) then begin
     ConstantEditor.Height := Value;
     cbbOperations.Height := Value;
-    btnAddFilter.Height := Value;
 	end;
 	FHeight := Value;
 end;
@@ -729,10 +681,10 @@ destructor TQueryFilter.Destroy;
 begin
   FreeAndNil(btnDeleteFilter);
   FreeAndNil(cbbFields);
+  FreeAndNil(btnAddFilter);
   if Assigned(ConstantEditor) then begin
     FreeAndNil(ConstantEditor);
     FreeAndNil(cbbOperations);
-    FreeAndNil(btnAddFilter);
 	end;
   inherited;
 end;
@@ -750,7 +702,7 @@ initialization
   TypeOfEditor[ftString] := TEdit;
   TypeOfEditor[ftUnknown] := TEdit;
   AvailableOperations[ftInteger] := [roEqual, roInequal, roGreater, roNotGreater, roNotLess, roLess];
-  AvailableOperations[ftString] := [roEqual, roInequal, roContaining, roStartsWith];
+  AvailableOperations[ftString] := [roContaining, roStartsWith, roEqual, roInequal, roGreater, roNotGreater, roNotLess, roLess];
   Operations[roGreater] := TRelOperation.Create('>', '  > ');
   Operations[roContaining] := TRelOperation.Create('Содержит', '  containing ');
   Operations[roEqual] := TRelOperation.Create('=', '  = ');
