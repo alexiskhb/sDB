@@ -161,6 +161,8 @@ begin
     MaxLength := ADisplayedField.VarCharLimit;
     Anchors := [akLeft, akRight];
 	end;
+
+  ACard.ActiveControl := CellEditor;
 end;
 
 constructor TCellEdit.Create(AReferringField, ADisplayedField: TDBField; APos: integer; ACard: TForm);

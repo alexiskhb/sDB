@@ -57,7 +57,7 @@ object DBTableForm: TDBTableForm
       Left = 2
       Height = 25
       Top = 2
-      Width = 241
+      Width = 220
       BevelOuter = bvNone
       ChildSizing.EnlargeHorizontal = crsScaleChilds
       ChildSizing.EnlargeVertical = crsScaleChilds
@@ -66,7 +66,7 @@ object DBTableForm: TDBTableForm
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 100
       ClientHeight = 25
-      ClientWidth = 241
+      ClientWidth = 220
       DataSource = DataSource
       OnClick = DBNavigatorClick
       Options = []

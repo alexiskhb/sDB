@@ -292,12 +292,14 @@ begin
   with DBNavigator do begin
     DataSource := DataSource;
     Controls[Ord(nbDelete)].Enabled := true;
-
   end;
+
+  SQLQuery.ReadOnly := false;
 
   SQLQuery.Open;
   SQLQuery.Last;
   SQLQuery.First;
+
 end;
 
 procedure TDBTableForm.FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -513,7 +515,8 @@ end;
 
 procedure TDBTableForm.btnDeleteRecordClick(Sender: TObject);
 begin
-  DeleteRecord(FTable, DBGrid);
+  if MessageDlg('Удалить запись?', mtConfirmation, mbOKCancel, 0) = 1 then
+    DeleteRecord(FTable, DBGrid);
   RefreshTables;
 end;
 

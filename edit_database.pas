@@ -34,8 +34,16 @@ begin
       SQLQuery.Fields.FieldByName(ATable.Name + ATable.Fields[i].Name).Value;
 	end;
 
-  ConTran.CommonSQLQuery.ExecSQL;
-  ConTran.DBTransaction.Commit;
+  try
+    ConTran.CommonSQLQuery.ExecSQL;
+  except
+    on EIBDatabaseError: Exception do
+      MessageDlg('Невозможно удалить запись.' + #13+#10
+               + 'Возможно, она используется в:' + #13+#10
+               + TDBTable.TablesUsingTable(ATable), mtError, [mbOk], 0);
+  end;
+
+	ConTran.DBTransaction.Commit;
 end;
 
 procedure UpdateRecord(ATable: TDBTable; OldValues, NewValues: TVariantDynArray);
@@ -68,7 +76,14 @@ begin
       ParamByName('old_value' + IntToStr(i)).Value := OldValues[i];
 	end;
 
-  ConTran.CommonSQLQuery.ExecSQL;
+  try
+    ConTran.CommonSQLQuery.ExecSQL;
+	except
+    on EDatabaseError: Exception do
+      MessageDlg('Ошибка.' + #13+#10
+               + 'Возможно, такая запись уже существует.', mtError, [mbOk], 0);
+	end;
+
   ConTran.DBTransaction.Commit;
 end;
 
@@ -91,7 +106,13 @@ begin
 	for i := 0 to High(AValues) do
     ConTran.CommonSQLQuery.Params[i].Value := AValues[i];
 
-  ConTran.CommonSQLQuery.ExecSQL;
+  try
+    ConTran.CommonSQLQuery.ExecSQL;
+	except
+    on EDatabaseError: Exception do
+      MessageDlg('Невозможно добавить запись.', mtError, [mbOk], 0);
+	end;
+
   ConTran.DBTransaction.Commit;
 end;
 

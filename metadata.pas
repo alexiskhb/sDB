@@ -59,6 +59,7 @@ type
     procedure AddField(AName, ACaption, ATableRef, AFieldRef: string;
       AWidth: integer; AFieldType: TFieldType; AVisible: boolean; AVarCharLimit: integer); overload;
     class procedure Add(AName, ACaption: string);
+    class function TablesUsingTable(ATable: TDBTable): string;
     constructor Create(AName, ACaption: string);
   end;
 
@@ -175,6 +176,17 @@ begin
   DBTablesList.AddObject(AName, TDBTable.Create(AName, ACaption));
   DBTables[High(DBTables)] := (DBTablesList.Objects[DBTablesList.Count - 1] as TDBTable);
   DBTables[High(DBTables)].FTag := High(DBTables);
+end;
+
+class function TDBTable.TablesUsingTable(ATable: TDBTable): string;
+var
+  i, j: integer;
+begin
+  for i := 0 to High(DBTables) do
+    for j := 0 to High(DBTables[i].Fields) do
+      if DBTables[i].Fields[j].TableRef = ATable then
+        if Pos(DBTables[i].Caption, Result) = 0 then
+          Result := Result + DBTables[i].Caption + #13 + #10;
 end;
 
 constructor TDBTable.Create(AName, ACaption: string);

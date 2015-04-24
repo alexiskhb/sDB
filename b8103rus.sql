@@ -3,32 +3,32 @@ CREATE DATABASE 'localhost:/home/alexiskhb/DB/sDB/b8103rus.fdb' user 'SYSDBA' pa
 
 CREATE TABLE teachers(
 	id integer primary key,
-	name varchar(50)
+	name varchar(50) unique not null
 	);
 
 CREATE TABLE groups(
 	id integer primary key,
-	name varchar(50)
+	name varchar(50) unique not null
 	);
 
 CREATE TABLE courses(
 	id integer primary key,
-	name varchar(50)
+	name varchar(50) unique not null
 	);
 
 CREATE TABLE classrooms(
 	id integer primary key,
-	classroom varchar(50)
+	classroom varchar(50) unique not null
 	);
 
 CREATE TABLE weekdays (
 	id integer primary key,
-	Weekday varchar(15)
+	Weekday varchar(15) unique not null
 	);
 
 CREATE TABLE pairs(
 	id integer primary key,
-	period varchar(50)
+	period varchar(50) unique not null
 	);
 
 CREATE TABLE groups_courses(
