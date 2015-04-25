@@ -71,6 +71,7 @@ var
 
   procedure SetSQLQuery(ATable: TDBTable; SQLQuery: TSQLQuery);
   procedure AddColumnsToQuery(ATable: TDBTable; SQLQuery: TSQLQuery);
+  procedure VisibleColumnsToList(ATable: TDBTable; ASList: TStringList);
   function MaxValue(AGivenField: TDBField): integer;
 
 implementation
@@ -139,6 +140,19 @@ begin
       Append(',');
       if Assigned(Fields[i].TableRef) then
         AddColumnsToQuery(Fields[i].TableRef, SQLQuery);
+    end;
+end;
+
+procedure VisibleColumnsToList(ATable: TDBTable; ASList: TStringList);
+var
+  i: integer;
+begin
+  with ATable do
+    for i := 0 to High(Fields) do begin
+      if Fields[i].Visible then
+        ASList.AddObject(ATable.Name + Fields[i].Name, Fields[i]);
+      if Assigned(Fields[i].TableRef) then
+        VisibleColumnsToList(Fields[i].TableRef, ASList);
     end;
 end;
 

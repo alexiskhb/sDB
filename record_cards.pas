@@ -59,18 +59,20 @@ type
     FCellEdits: array of TCellEdit;
     FActionType: TActionType;
     FTable: TDBTable;
+    FPrimaryKey: integer;
     FOkClick: TNotifyEvent;
+    FVisibleFields: TStringList;
   public
     NewValues: TVariantDynArray;
     OldValues: TVariantDynArray;
     property OnOkClick: TNotifyEvent read FOkClick write FOkClick;
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
-    constructor Create(ATable: TDBTable; AFields: TStringList; AActionType: TActionType);
+    constructor Create(ATable: TDBTable; AActionType: TActionType);
   end;
 
   TEditRecordCard = class(TRecordCard)
   public
-    constructor Create(ATable: TDBTable; AFields: TStringList; AGrid: TDBGrid; AActionType: TActionType);
+    constructor Create(ATable: TDBTable; AActionType: TActionType);
   end;
 
   TRecordCardDynArray = array of TRecordCard;
@@ -105,7 +107,7 @@ begin
   Close;
 end;
 
-constructor TRecordCard.Create(ATable: TDBTable; AFields: TStringList; AActionType: TActionType);
+constructor TRecordCard.Create(ATable: TDBTable; AActionType: TActionType);
 var
   i, k: integer;
 begin
@@ -115,6 +117,7 @@ begin
   FActionType := AActionType;
   FTable := ATable;
   OnClose := @FormClose;
+  VisibleColumnsToList(ATable, FVisibleFields);
 
   k := 0;
   for i := 0 to High(ATable.Fields) do begin
@@ -140,28 +143,17 @@ begin
   BorderStyle := bsSingle;
 end;
 
-constructor TEditRecordCard.Create(ATable: TDBTable; AFields: TStringList; AGrid: TDBGrid; AActionType: TActionType);
+constructor TEditRecordCard.Create(ATable: TDBTable; AActionType: TActionType);
 var
   i, k: integer;
 begin
-  inherited Create(ATable, AFields, AActionType);
+  inherited Create(ATable, AActionType);
   Caption := 'Изменить запись';
-  SetLength(OldValues, Length(NewValues));
 
-  for i := 0 to High(ATable.Fields) do begin
-      OldValues[i] :=
-      AGrid.DataSource.DataSet.FieldByName
-      (ATable.Fields[i].TableOwner.Name + ATable.Fields[i].Name).Value;
-  end;
-
-  for i := 0 to High(NewValues) do
-    NewValues[i] := OldValues[i];
-
-  for i := 0 to High(FCellEdits) do begin
+  for i := 0 to High(FCellEdits) do
     FCellEdits[i].Value :=
     AGrid.DataSource.DataSet.FieldByName
     ((AFields.Objects[i] as TDBField).TableOwner.Name + (AFields.Objects[i] as TDBField).Name).Value;
-	end;
 end;
 
 procedure TRecordCard.FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -241,7 +233,6 @@ begin
     Width := 320;
     Style := csDropDownList;
     ADisplayedField.RowsTo(cbbValues, ComboIDs);
-    ItemIndex := 0;
     OnChange := @cbbValuesChange;
   end;
   cbbValuesChange(cbbValues);
