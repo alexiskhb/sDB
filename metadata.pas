@@ -247,6 +247,7 @@ initialization
   DBTables[2].AddField('name', 'Дисциплина', 300, ftString, true, 50);
 
   TDBTable.Add('groups_courses', 'Дисц. групп');
+  DBTables[3].AddField('id', 'Ид. отношения', 40, ftInteger, false, 0);
   DBTables[3].AddField('group_id', 'Ид. группы', 'Groups', 'id', 80, ftInteger, false, 0);
   DBTables[3].AddField('course_id', 'Ид. предмета', 'courses', 'id', 80, ftInteger, false, 0);
 
@@ -263,10 +264,12 @@ initialization
   DBTables[6].AddField('period', 'Время занятия', 100, ftString, true, 50);
 
   TDBTable.Add('teachers_courses', 'Дисц. препод.');
+  DBTables[7].AddField('id', 'Ид. отношения', 40, ftInteger, false, 0);
   DBTables[7].AddField('teacher_id', 'Ид. преподавателя', 'teachers', 'id', 80, ftInteger, false, 0);
   DBTables[7].AddField('course_id', 'Ид. предмета', 'courses', 'id', 80, ftInteger, false, 0);
 
   TDBTable.Add('lessons', 'Расписание');
+  DBTables[8].AddField('id', 'Ид. записи', 40, ftInteger, false, 0);
   DBTables[8].AddField('pair_id', 'Пара', 'pairs', 'id', 40, ftInteger, false, 0);
   DBTables[8].AddField('weekday_id', 'Ид. дня недели', 'weekdays', 'id', 70, ftInteger, false, 0);
   DBTables[8].AddField('group_id', 'Ид. группы', 'groups', 'id', 50, ftInteger, false, 0);
