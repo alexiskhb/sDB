@@ -6,9 +6,11 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, metadata,
-  StdCtrls, db, ExtCtrls, DBGrids, Buttons;
+  StdCtrls, db, ExtCtrls, DBGrids, Buttons, edit_database;
 
 type
+
+  TActionType = (atInsert, atUpdate);
 
   TCustomEditClass = class of TCustomEdit;
 
@@ -35,21 +37,31 @@ type
 	{ TRecordCard }
 
   TRecordCard = class(TForm)
-    btnCansel: TBitBtn;
+  published
+    btnCancel: TBitBtn;
     btnOk: TBitBtn;
-		procedure btnOkClick(Sender: TObject);
+    procedure btnCancelClick(Sender: TObject);
+    procedure btnOkClick(Sender: TObject);
   private
     FCellEdits: array of TCellEdit;
+    FActionType: TActionType;
+    FTable: TDBTable;
+    FOkClick: TNotifyEvent;
+    //memoryleak: array [1..1000, 1..1000, 1..30] of integer;
   public
     NewValues: TVariantDynArray;
-    constructor Create(ATable: TDBTable; AFields: TStringList);
+    OldValues: TVariantDynArray;
+    property OnOkClick: TNotifyEvent read FOkClick write FOkClick;
+    procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
+    constructor Create(ATable: TDBTable; AFields: TStringList; AActionType: TActionType);
   end;
 
   TEditRecordCard = class(TRecordCard)
   public
-    OldValues: TVariantDynArray;
-    constructor Create(ATable: TDBTable; AFields: TStringList; AGrid: TDBGrid);
-	end;
+    constructor Create(ATable: TDBTable; AFields: TStringList; AGrid: TDBGrid; AActionType: TActionType);
+  end;
+
+  TRecordCardDynArray = array of TRecordCard;
 
 var
   TypeOfEditor: array [Low(TFieldType)..High(TFieldType)] of TCustomEditClass;
@@ -67,16 +79,31 @@ begin
     if Assigned(FCellEdits[k]) and (FCellEdits[k].Tag = i) then begin
       NewValues[i] := FCellEdits[k].Value;
       inc(k);
-		end;
+    end;
+  case FActionType of
+    atUpdate: UpdateRecord(FTable, OldValues, NewValues);
+    atInsert: InsertRecord(FTable, NewValues);
+  end;
+  FOkClick(Sender);
+  Close;
 end;
 
-constructor TRecordCard.Create(ATable: TDBTable; AFields: TStringList);
+procedure TRecordCard.btnCancelClick(Sender: TObject);
+begin
+  Close;
+end;
+
+constructor TRecordCard.Create(ATable: TDBTable; AFields: TStringList; AActionType: TActionType);
 var
   i, k: integer;
 begin
   inherited Create(Application);
   Caption := 'Добавить запись';
-  Position := poScreenCenter;
+  Position := poDefault;
+  FActionType := AActionType;
+  FTable := ATable;
+  OnClose := @FormClose;
+
   k := 0;
   for i := 0 to High(ATable.Fields) do begin
     SetLength(NewValues, Length(NewValues) + 1);
@@ -101,11 +128,11 @@ begin
   BorderStyle := bsSingle;
 end;
 
-constructor TEditRecordCard.Create(ATable: TDBTable; AFields: TStringList; AGrid: TDBGrid);
+constructor TEditRecordCard.Create(ATable: TDBTable; AFields: TStringList; AGrid: TDBGrid; AActionType: TActionType);
 var
   i, k: integer;
 begin
-  inherited Create(ATable, AFields);
+  inherited Create(ATable, AFields, AActionType);
   Caption := 'Изменить запись';
   SetLength(OldValues, Length(NewValues));
 
@@ -123,6 +150,11 @@ begin
     AGrid.DataSource.DataSet.FieldByName
     ((AFields.Objects[i] as TDBField).TableOwner.Name + (AFields.Objects[i] as TDBField).Name).Value;
 	end;
+end;
+
+procedure TRecordCard.FormClose(Sender: TObject; var CloseAction: TCloseAction);
+begin
+  CloseAction := caFree;
 end;
 
 constructor TCellEdit.Create(ADisplayedField: TDBField; APos: integer; ACard: TForm);
@@ -197,12 +229,11 @@ begin
     Top := 10;
     Left := lbTitle.Left + lbTitle.Width;
     Height := 30;
-    Width := pnlCellEdit.Width;
+    Width := 320;
     Style := csDropDownList;
     ADisplayedField.RowsTo(Items);
     ItemIndex := 0;
-    Anchors := [akLeft, akRight];
-	end;
+  end;
   cbbValuesChange(cbbValues);
 end;
 

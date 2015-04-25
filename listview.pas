@@ -112,7 +112,8 @@ type
     procedure DBGridDblClick(Sender: TObject);
     procedure btnDeleteRecordClick(Sender: TObject);
     procedure SQLQueryAfterDelete(DataSet: TDataSet);
-		procedure SQLQueryBeforeDelete(DataSet: TDataSet);
+    procedure SQLQueryBeforeDelete(DataSet: TDataSet);
+    procedure RecordCardOkClick(Sender: TObject);
     class procedure CreateTableForm(ATag: integer; aCaption: string);
     class procedure DestroyTableForm(ATag: integer);
     class procedure FormSetFocus(ATag: integer);
@@ -123,6 +124,7 @@ type
     InitialFieldsOrder: TStringList;
     OrderIsDesc: boolean;
     FTable: TDBTable;
+    RecordCards: TRecordCardDynArray
   end;
 
   TDBTableFormDynArray = array of TDBTableForm;
@@ -237,6 +239,11 @@ begin
   SQLQuery.First;
 end;
 
+procedure TDBTableForm.RecordCardOkClick(Sender: TObject);
+begin
+  RefreshTables;
+end;
+
 procedure TDBTableForm.DBGridColumnMoved(Sender: TObject; FromIndex,
 		ToIndex: Integer);
 begin
@@ -247,12 +254,10 @@ procedure TDBTableForm.DBGridDblClick(Sender: TObject);
 var
   i: integer;
 begin
-  RecordCard := TEditRecordCard.Create(FTable, InitialFieldsOrder, DBGrid);
+  RecordCard := TEditRecordCard.Create(FTable, InitialFieldsOrder, DBGrid, atUpdate);
+  RecordCard.OnOkClick := @RecordCardOkClick;
   RecordCard.Hide;
-  if RecordCard.ShowModal = mrOK then
-    UpdateRecord(FTable, (RecordCard as TEditRecordCard).OldValues, RecordCard.NewValues);
-  FreeAndNil(RecordCard);
-  RefreshTables;
+  RecordCard.Show;
 end;
 
 procedure TDBTableForm.FormDestroy(Sender: TObject);
@@ -531,12 +536,10 @@ end;
 
 procedure TDBTableForm.btnInsertRecordClick(Sender: TObject);
 begin
-  RecordCard := TRecordCard.Create(DBTables[Self.Tag], InitialFieldsOrder);
+  RecordCard := TRecordCard.Create(DBTables[Self.Tag], InitialFieldsOrder, atInsert);
+  RecordCard.OnOkClick := @RecordCardOkClick;
   RecordCard.Hide;
-  if RecordCard.ShowModal = mrOK then
-    InsertRecord(FTable, RecordCard.NewValues);
-  RefreshTables;
-  FreeAndNil(RecordCard);
+  RecordCard.Show;
 end;
 
 procedure TDBTableForm.DBNavigatorClick(Sender: TObject;

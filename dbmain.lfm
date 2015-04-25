@@ -104,7 +104,6 @@ object MainForm: TMainForm
       Caption = 'База данных'
       object MenuConnect: TMenuItem
         Caption = 'Подключить...'
-        ShortCut = 8259
         OnClick = MenuConnectClick
       end
       object MenuDisconnect: TMenuItem

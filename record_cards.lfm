@@ -8,7 +8,7 @@ object RecordCard: TRecordCard
   ClientHeight = 132
   ClientWidth = 478
   LCLVersion = '1.2.6.0'
-  object btnCansel: TBitBtn
+  object btnCancel: TBitBtn
     Left = 88
     Height = 30
     Top = 78
@@ -18,6 +18,7 @@ object RecordCard: TRecordCard
     DefaultCaption = True
     Kind = bkCancel
     ModalResult = 2
+    OnClick = btnCancelClick
     TabOrder = 0
   end
   object btnOk: TBitBtn
