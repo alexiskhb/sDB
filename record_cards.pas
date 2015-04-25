@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, metadata,
-  StdCtrls, db, ExtCtrls, DBGrids, Buttons, edit_database;
+  StdCtrls, db, ExtCtrls, DBGrids, Buttons, edit_database, types;
 
 type
 
@@ -16,22 +16,35 @@ type
 
   TCellEdit = class
   private
-    cbbValues: TComboBox;
     pnlCellEdit: TPanel;
-    CellEditor: TCustomEdit;
     lbTitle: TLabel;
     FValue: Variant;
     FTag: integer;
     FReferringField: TDBField;
     FDisplayedField: TDBField;
-    procedure cbbValuesChange(Sender: TObject);
-    procedure CellEditorChange(Sender: TObject);
-    procedure SetValue(Value: Variant);
+    procedure SetValue(Value: Variant); virtual; abstract;
   public
-    property Tag: integer read FTag write FTag;
     property Value: Variant read FValue write SetValue;
-    constructor Create(ADisplayedField: TDBField; APos: integer; ACard: TForm); overload;
-    constructor Create(AReferringField, ADisplayedField: TDBField; APos: integer; ACard: TForm); overload;
+    property Tag: integer read FTag write FTag;
+	end;
+
+  TEditCellEdit = class (TCellEdit)
+  private
+    CellEditor: TCustomEdit;
+    procedure SetValue(AValue: Variant); override;
+  public
+    procedure CellEditorChange(Sender: TObject);
+    constructor Create(ADisplayedField: TDBField; APos: integer; ACard: TForm);
+	end;
+
+  TComboCellEdit = class (TCellEdit)
+  private
+    cbbValues: TComboBox;
+    ComboIDs: TIntegerDynArray;
+    procedure SetValue(AValue: Variant); override;
+  public
+    procedure cbbValuesChange(Sender: TObject);
+    constructor Create(AReferringField, ADisplayedField: TDBField; APos: integer; ACard: TForm);
 	end;
 
 	{ TRecordCard }
@@ -47,7 +60,6 @@ type
     FActionType: TActionType;
     FTable: TDBTable;
     FOkClick: TNotifyEvent;
-    //memoryleak: array [1..1000, 1..1000, 1..30] of integer;
   public
     NewValues: TVariantDynArray;
     OldValues: TVariantDynArray;
@@ -115,9 +127,9 @@ begin
 
     SetLength(FCellEdits, Length(FCellEdits) + 1);
     if ATable.Fields[i].FieldRef = nil then
-      FCellEdits[High(FCellEdits)] := TCellEdit.Create(AFields.Objects[k] as TDBField, i, Self)
+      FCellEdits[High(FCellEdits)] := TEditCellEdit.Create(AFields.Objects[k] as TDBField, i, Self)
     else
-      FCellEdits[High(FCellEdits)] := TCellEdit.Create(ATable.Fields[i].FieldRef, AFields.Objects[k] as TDBField, i, Self);
+      FCellEdits[High(FCellEdits)] := TComboCellEdit.Create(ATable.Fields[i].FieldRef, AFields.Objects[k] as TDBField, i, Self);
 
     FCellEdits[High(FCellEdits)].Tag := i;
     NewValues[i] := FCellEdits[High(FCellEdits)].Value;
@@ -157,11 +169,10 @@ begin
   CloseAction := caFree;
 end;
 
-constructor TCellEdit.Create(ADisplayedField: TDBField; APos: integer; ACard: TForm);
+constructor TEditCellEdit.Create(ADisplayedField: TDBField; APos: integer; ACard: TForm);
 begin
   FDisplayedField := ADisplayedField;
   FReferringField := nil;
-  cbbValues := nil;
 
   pnlCellEdit := TPanel.Create(ACard);
   with pnlCellEdit do begin
@@ -197,11 +208,10 @@ begin
   ACard.ActiveControl := CellEditor;
 end;
 
-constructor TCellEdit.Create(AReferringField, ADisplayedField: TDBField; APos: integer; ACard: TForm);
+constructor TComboCellEdit.Create(AReferringField, ADisplayedField: TDBField; APos: integer; ACard: TForm);
 begin
   FDisplayedField := ADisplayedField;
   FReferringField := AReferringField;
-  CellEditor := nil;
 
   pnlCellEdit := TPanel.Create(ACard);
   with pnlCellEdit do begin
@@ -224,42 +234,39 @@ begin
   cbbValues := TComboBox.Create(pnlCellEdit);
   with cbbValues do begin
     Parent := pnlCellEdit;
-    OnChange := @cbbValuesChange;
     AutoSize := false;
     Top := 10;
     Left := lbTitle.Left + lbTitle.Width;
     Height := 30;
     Width := 320;
     Style := csDropDownList;
-    ADisplayedField.RowsTo(Items);
+    ADisplayedField.RowsTo(cbbValues, ComboIDs);
     ItemIndex := 0;
+    OnChange := @cbbValuesChange;
   end;
   cbbValuesChange(cbbValues);
 end;
 
-procedure TCellEdit.cbbValuesChange(Sender: TObject);
+procedure TComboCellEdit.cbbValuesChange(Sender: TObject);
 begin
-  FValue :=
-    AppropriateValue(FDisplayedField,
-                     (Sender as TCombobox).Items[(Sender as TCombobox).ItemIndex],
-                     FReferringField);
+  FValue := ComboIDs[(Sender as TComboBox).ItemIndex];
 end;
 
-procedure TCellEdit.CellEditorChange(Sender: TObject);
+procedure TEditCellEdit.CellEditorChange(Sender: TObject);
 begin
   FValue := (Sender as TEdit).Text;
 end;
 
-procedure TCellEdit.SetValue(Value: Variant);
+procedure TEditCellEdit.SetValue(AValue: Variant);
 begin
-  if CellEditor <> nil then begin
-    CellEditor.Text := Value;
-    FValue := Value;
-	end
-	else if cbbValues <> nil then begin
-    cbbValues.ItemIndex := cbbValues.Items.IndexOf(Value);
-    cbbValuesChange(cbbValues);
-	end;
+  CellEditor.Text := AValue;
+  FValue := AValue;
+end;
+
+procedure TComboCellEdit.SetValue(AValue: Variant);
+begin
+  cbbValues.ItemIndex := cbbValues.Items.IndexOf(AValue);
+  cbbValuesChange(cbbValues);
 end;
 
 end.

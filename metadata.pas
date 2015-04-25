@@ -5,7 +5,7 @@ unit metadata;
 interface
 
 uses
-  Classes, SysUtils, db, dialogs, typinfo, connection_transaction, sqldb;
+  Classes, SysUtils, db, dialogs, typinfo, connection_transaction, sqldb, StdCtrls, Types;
 
 type
 
@@ -33,7 +33,7 @@ type
     property FieldRef: TDBField read FFieldRef;
     property VarCharLimit: integer read FVarCharLimit;
     property TableOwner: TDBTable read FOwner;
-    procedure RowsTo(AStrings: TStrings);
+    procedure RowsTo(AComboBox: TComboBox; var AIDs: TIntegerDynArray);
     constructor Create(AOwner: TDBTable; AName, ACaption, ATableRef, AFieldRef: string;
     AWidth: integer; AFieldType: TFieldType; APrimaryKey: boolean; AVarCharLimit: integer); overload;
     constructor Create(AOwner: TDBTable; AName, ACaption: string; AWidth: integer; AFieldType:
@@ -71,12 +71,11 @@ var
 
   procedure SetSQLQuery(ATable: TDBTable; SQLQuery: TSQLQuery);
   procedure AddColumnsToQuery(ATable: TDBTable; SQLQuery: TSQLQuery);
-  function AppropriateValue(AGivenField: TDBField; AGivenValue: Variant; ARequestedField: TDBField): Variant;
   function MaxValue(AGivenField: TDBField): integer;
 
 implementation
 
-procedure TDBField.RowsTo(AStrings: TStrings);
+procedure TDBField.RowsTo(AComboBox: TComboBox; var AIDs: TIntegerDynArray);
 var
   i: integer;
 begin
@@ -84,26 +83,16 @@ begin
     Close;
     SetSQLQuery(Self.TableOwner, ConTran.CommonSQLQuery);
     Open;
-    Last;
     First;
-    for i := 1 to RecordCount do begin
-      AStrings.Append(FieldByName(Self.TableOwner.Name + Self.Name).Value);
+    while not EOF do begin
+      SetLength(AIDs, Length(AIDs) + 1);
+      AIDs[High(AIDs)] := FieldByName(Self.TableOwner.Name + 'id').Value;
+      AComboBox.AddItem(
+                    FieldByName(Self.TableOwner.Name + Self.Name).Value,
+                    TObject(Pointer(AIDs[High(AIDs)]))
+                    );
       Next;
-	  end;
-	end;
-end;
-
-function AppropriateValue(AGivenField: TDBField; AGivenValue: Variant; ARequestedField: TDBField): Variant;
-begin
-  with ConTran.CommonSQLQuery do begin
-    Close;
-    SetSQLQuery(AGivenField.TableOwner, ConTran.CommonSQLQuery);
-    SQL.Append('where ' + AGivenField.TableOwner.Name + '.' + AGivenField.Name + ' = :givenvalue');
-    ParamByName('givenvalue').Value := AGivenValue;
-    Open;
-    Last;
-    First;
-    Result := FieldByName(ARequestedField.TableOwner.Name + ARequestedField.Name).Value;
+		end;
 	end;
 end;
 
