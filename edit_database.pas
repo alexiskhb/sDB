@@ -8,8 +8,8 @@ uses
   Classes, SysUtils, connection_transaction, metadata, DBGrids, sqldb, Dialogs;
 
 procedure DeleteRecord(ATable: TDBTable; AGrid: TDBGrid);
-procedure UpdateRecord(ATable: TDBTable; OldValues, NewValues: TVariantDynArray);
-procedure InsertRecord(ATable: TDBTable; AValues: TVariantDynArray);
+procedure UpdateRecord(ATable: TDBTable; APrimaryKey: integer; NewValues: TVariantDynArray);
+procedure InsertRecord(ATable: TDBTable; APrimaryKey: integer; AValues: TVariantDynArray);
 
 implementation
 
@@ -34,19 +34,19 @@ begin
       SQLQuery.Fields.FieldByName(ATable.Name + ATable.Fields[i].Name).Value;
 	end;
 
-  try
+  //try
     ConTran.CommonSQLQuery.ExecSQL;
-  except
-    on EIBDatabaseError: Exception do
-      MessageDlg('Невозможно удалить запись.' + #13+#10
-               + 'Возможно, она используется в:' + #13+#10
-               + TDBTable.TablesUsingTable(ATable), mtError, [mbOk], 0);
-  end;
+  //except
+  //  on EIBDatabaseError: Exception do
+  //    MessageDlg('Невозможно удалить запись.' + #13+#10
+  //             + 'Возможно, она используется в:' + #13+#10
+  //             + TDBTable.TablesUsingTable(ATable), mtError, [mbOk], 0);
+  //end;
 
 	ConTran.DBTransaction.Commit;
 end;
 
-procedure UpdateRecord(ATable: TDBTable; OldValues, NewValues: TVariantDynArray);
+procedure UpdateRecord(ATable: TDBTable; APrimaryKey: integer; NewValues: TVariantDynArray);
 var
   i: integer;
 begin
@@ -56,64 +56,65 @@ begin
     Append('update ' + ATable.Name);
     Append('set ');
 
-    for i := 0 to High(NewValues) do begin
+    for i := 1 to High(NewValues) do begin
       Append(ATable.Fields[i].Name + ' = :new_value' + IntToStr(i));
       Append(',');
 		end;
     Delete(Count - 1);
 
-    Append('where 1 = 1 ');
-    for i := 0 to High(OldValues) do
-      Append('and ' + ATable.Fields[i].Name + ' = :old_value' + IntToStr(i));
+    Append('where ' + ATable.Name + '.id = :primary_key');
+
 
     Append(';');
 	end;
 
   with ConTran.CommonSQLQuery do begin
-    for i := 0 to High(NewValues) do
+    for i := 1 to High(NewValues) do
       ParamByName('new_value' + IntToStr(i)).Value := NewValues[i];
-    for i := 0 to High(OldValues) do
-      ParamByName('old_value' + IntToStr(i)).Value := OldValues[i];
-	end;
 
-  try
+    ParamByName('primary_key').Value := APrimaryKey;
+  end;
+
+  //try
     ConTran.CommonSQLQuery.ExecSQL;
-	except
-    on EDatabaseError: Exception do
-      MessageDlg('Ошибка.' + #13+#10
-               + 'Возможно, такая запись уже существует.', mtError, [mbOk], 0);
-	end;
+	//except
+ //   on EDatabaseError: Exception do
+ //     MessageDlg('Ошибка.' + #13+#10
+ //              + 'Возможно, такая запись уже существует.', mtError, [mbOk], 0);
+	//end;
 
   ConTran.DBTransaction.Commit;
 end;
 
-procedure InsertRecord(ATable: TDBTable; AValues: TVariantDynArray);
+procedure InsertRecord(ATable: TDBTable; APrimaryKey: integer; AValues: TVariantDynArray);
 var
   i: integer;
 begin
+  //ShowMessage(IntToStr(Length(AValues)));
   ConTran.CommonSQLQuery.Close;
   with ConTran.CommonSQLQuery.SQL do begin
     Clear;
     Append('insert into  ' + ATable.Name + ' values');
     Append('(');
     for i := 0 to High(AValues) do begin
-      Append(':P' + IntToStr(i));
+      Append(' :par' + IntToStr(i));
       Append(',');
 		end;
     Delete(Count - 1);
     Append(');');
 	end;
-	for i := 0 to High(AValues) do
-    ConTran.CommonSQLQuery.Params[i].Value := AValues[i];
 
-  try
+	for i := 0 to High(AValues) do
+    ConTran.CommonSQLQuery.ParamByName('par'+IntToStr(i)).Value := AValues[i];
+
+  //try
     ConTran.CommonSQLQuery.ExecSQL;
-	except
-    on EDatabaseError: Exception do
-      MessageDlg('Невозможно добавить запись.' + #13 + #10
-                 + 'Такая запись уже существует' + #13 + #10
-                 + 'либо данные введены некорректно.', mtError, [mbOk], 0);
-	end;
+	//except
+ //   on EDatabaseError: Exception do
+ //     MessageDlg('Невозможно добавить запись.' + #13 + #10
+ //                + 'Такая запись уже существует' + #13 + #10
+ //                + 'либо данные введены некорректно.', mtError, [mbOk], 0);
+	//end;
 
   ConTran.DBTransaction.Commit;
 end;

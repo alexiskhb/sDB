@@ -124,6 +124,7 @@ type
     InitialFieldsOrder: TStringList;
     OrderIsDesc: boolean;
     FTable: TDBTable;
+    FCurPos: integer;
     RecordCards: TRecordCardDynArray
   end;
 
@@ -235,8 +236,8 @@ begin
   AddConditionsToQuery;
   AddSort;
   SQLQuery.Open;
-  SQLQuery.Last;
   SQLQuery.First;
+  SQLQuery.MoveBy(FCurPos - 1);
 end;
 
 procedure TDBTableForm.RecordCardOkClick(Sender: TObject);
@@ -247,16 +248,16 @@ end;
 procedure TDBTableForm.DBGridColumnMoved(Sender: TObject; FromIndex,
 		ToIndex: Integer);
 begin
-  //InitialFieldsOrder.Move(FromIndex - 1, ToIndex - 1);
 end;
 
 procedure TDBTableForm.DBGridDblClick(Sender: TObject);
 var
-  i: integer;
+  i, ID: integer;
 begin
-  RecordCard := TEditRecordCard.Create(FTable, InitialFieldsOrder, DBGrid, atUpdate);
+  FCurPos := SQLQuery.RecNo;
+  ID := SQLQuery.FieldByName(FTable.Name + 'id').Value;
+  RecordCard := TEditRecordCard.Create(FTable, ID, atUpdate);
   RecordCard.OnOkClick := @RecordCardOkClick;
-  RecordCard.Hide;
   RecordCard.Show;
 end;
 
@@ -489,6 +490,7 @@ end;
 
 procedure TDBTableForm.btnDeleteRecordClick(Sender: TObject);
 begin
+  FCurPos := SQLQuery.RecNo;
   if MessageDlg('Удалить запись?', mtConfirmation, mbOKCancel, 0) = 1 then
     DeleteRecord(FTable, DBGrid);
   RefreshTables;
@@ -536,9 +538,9 @@ end;
 
 procedure TDBTableForm.btnInsertRecordClick(Sender: TObject);
 begin
-  RecordCard := TRecordCard.Create(DBTables[Self.Tag], InitialFieldsOrder, atInsert);
+  FCurPos := SQLQuery.RecNo;
+  RecordCard := TRecordCard.Create(FTable, NextID, atInsert);
   RecordCard.OnOkClick := @RecordCardOkClick;
-  RecordCard.Hide;
   RecordCard.Show;
 end;
 

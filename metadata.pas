@@ -71,8 +71,8 @@ var
 
   procedure SetSQLQuery(ATable: TDBTable; SQLQuery: TSQLQuery);
   procedure AddColumnsToQuery(ATable: TDBTable; SQLQuery: TSQLQuery);
-  procedure VisibleColumnsToList(ATable: TDBTable; ASList: TStringList);
-  function MaxValue(AGivenField: TDBField): integer;
+  procedure AllQueryColumnsToList(ATable: TDBTable; var ASList: TStringList);
+  function NextID: integer;
 
 implementation
 
@@ -97,15 +97,15 @@ begin
 	end;
 end;
 
-function MaxValue(AGivenField: TDBField): integer;
+function NextID: integer;
 begin
   with ConTran.CommonSQLQuery do begin
     Close;
     SQL.Clear;
-    SQL.Append('select max(' + AGivenField.TableOwner.Name + '.' + AGivenField.Name + ') as maxvalue');
-    SQL.Append('from ' + AGivenField.TableOwner.Name);
+    SQL.Append('select next value for global_sequence');
+    SQL.Append('from RDB$DATABASE');
     Open;
-    Result := FieldByName('maxvalue').Value;
+    Result := Fields[0].Value;
 	end;
 end;
 
@@ -143,16 +143,15 @@ begin
     end;
 end;
 
-procedure VisibleColumnsToList(ATable: TDBTable; ASList: TStringList);
+procedure AllQueryColumnsToList(ATable: TDBTable; var ASList: TStringList);
 var
   i: integer;
 begin
   with ATable do
     for i := 0 to High(Fields) do begin
-      if Fields[i].Visible then
-        ASList.AddObject(ATable.Name + Fields[i].Name, Fields[i]);
+      ASList.AddObject(ATable.Name + Fields[i].Name, Fields[i]);
       if Assigned(Fields[i].TableRef) then
-        VisibleColumnsToList(Fields[i].TableRef, ASList);
+        AllQueryColumnsToList(Fields[i].TableRef, ASList);
     end;
 end;
 
@@ -263,7 +262,7 @@ initialization
   DBTables[5].AddField('weekday', 'День недели', 100, ftString, true, 15);
 
   TDBTable.Add('pairs', 'Период зан.');
-  DBTables[6].AddField('ID', 'Пара', 40, ftInteger, false, 0);
+  DBTables[6].AddField('id', 'Пара', 40, ftInteger, false, 0);
   DBTables[6].AddField('period', 'Время занятия', 100, ftString, true, 50);
 
   TDBTable.Add('teachers_courses', 'Дисц. препод.');
