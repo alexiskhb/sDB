@@ -238,8 +238,6 @@ object DBTableForm: TDBTableForm
   end
   object SQLQuery: TSQLQuery
     FieldDefs = <>
-    AfterDelete = SQLQueryAfterDelete
-    BeforeDelete = SQLQueryBeforeDelete
     Database = ConTran.DBConnection
     Transaction = ConTran.DBTransaction
     Params = <>

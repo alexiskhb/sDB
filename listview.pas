@@ -6,8 +6,7 @@ interface
 
 uses
   connection_transaction, Classes, lcltype, SysUtils, Forms, Menus, DBCtrls, DB, DBGrids,
-  ExtCtrls, sqldb, Dialogs, Controls, StdCtrls, metadata, Spin, Buttons, Messages, record_cards,
-  edit_database;
+  ExtCtrls, sqldb, Dialogs, Controls, StdCtrls, metadata, Spin, Buttons, record_cards;
 
 type
 
@@ -64,7 +63,7 @@ type
     procedure OperationChange(Sender: TObject);
     procedure AddFilterClick(Sender: TObject);
     constructor Create(AIndex: integer; AForm: TDBTableForm);
-    destructor Destroy;
+    destructor Destroy; override;
  	end;
 
   { TDBTableForm }
@@ -88,14 +87,16 @@ type
     MainMenu: TMainMenu;
     miCloseTable: TMenuItem;
     RecordCard: TRecordCard;
-	  procedure btnAddFilterClick(Sender: TObject);
 		procedure btnEditRecordClick(Sender: TObject);
+    procedure DBGridDblClick(Sender: TObject);
 		procedure btnInsertRecordClick(Sender: TObject);
+    procedure btnDeleteRecordClick(Sender: TObject);
 		procedure DBNavigatorClick(Sender: TObject; Button: TDBNavButtonType);
+    procedure btnAddFilterClick(Sender: TObject);
+    procedure btnFilterClick(Sender: TObject);
     procedure miCloseOtherTablesClick(Sender: TObject);
     procedure miCloseTableClick(Sender: TObject);
 		procedure miResetClick(Sender: TObject);
-		procedure btnFilterClick(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormDestroy(Sender: TObject);
 		procedure FormShow(Sender: TObject);
@@ -106,13 +107,7 @@ type
     procedure AddColumnsToGrid(ATable: TDBTable);
     procedure DestroyFilterClick(Sender: TObject);
     procedure FDBGridTitleClick(Column: TColumn);
-    procedure DBGridColumnMoved(Sender: TObject; FromIndex,
-		ToIndex: Integer);
     procedure FilterDataChanged(Sender: TObject);
-    procedure DBGridDblClick(Sender: TObject);
-    procedure btnDeleteRecordClick(Sender: TObject);
-    procedure SQLQueryAfterDelete(DataSet: TDataSet);
-    procedure SQLQueryBeforeDelete(DataSet: TDataSet);
     procedure RecordCardOkClick(Sender: TObject);
     class procedure CreateTableForm(ATag: integer; aCaption: string);
     class procedure DestroyTableForm(ATag: integer);
@@ -125,7 +120,6 @@ type
     OrderIsDesc: boolean;
     FTable: TDBTable;
     FCurPos: integer;
-    RecordCards: TRecordCardDynArray
   end;
 
   TDBTableFormDynArray = array of TDBTableForm;
@@ -245,20 +239,13 @@ begin
   RefreshTables;
 end;
 
-procedure TDBTableForm.DBGridColumnMoved(Sender: TObject; FromIndex,
-		ToIndex: Integer);
-begin
-end;
-
 procedure TDBTableForm.DBGridDblClick(Sender: TObject);
 var
-  i, ID: integer;
+  ID: integer;
 begin
   FCurPos := SQLQuery.RecNo;
   ID := SQLQuery.FieldByName(FTable.Name + 'id').Value;
-  RecordCard := TEditRecordCard.Create(FTable, ID, atUpdate);
-  RecordCard.OnOkClick := @RecordCardOkClick;
-  RecordCard.Show;
+  CardsManager.EditTable(FTable, ID, atUpdate);
 end;
 
 procedure TDBTableForm.FormDestroy(Sender: TObject);
@@ -290,7 +277,6 @@ begin
     AddColumnsToGrid(FTable);
     Options := Options - [dgEditing];
     OnTitleClick := @FDBGridTitleClick;
-    OnColumnMoved := @DBGridColumnMoved;
     OnDblClick := @DBGridDblClick;
   end;
 
@@ -304,6 +290,7 @@ begin
   SQLQuery.Last;
   SQLQuery.First;
 
+  CardsManager.OnRequestRefresh := @RecordCardOkClick;
 end;
 
 procedure TDBTableForm.FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -483,22 +470,15 @@ begin
   btnFilter.Enabled := true;
 end;
 
-procedure TDBTableForm.SQLQueryAfterDelete(DataSet: TDataSet);
-begin
-  RefreshTables;
-end;
-
 procedure TDBTableForm.btnDeleteRecordClick(Sender: TObject);
+var
+  ID: integer;
 begin
   FCurPos := SQLQuery.RecNo;
+  ID := SQLQuery.FieldByName(FTable.Name + 'id').Value;
   if MessageDlg('Удалить запись?', mtConfirmation, mbOKCancel, 0) = 1 then
-    DeleteRecord(FTable, DBGrid);
+    CardsManager.EditTable(FTable, ID, atDelete);
   RefreshTables;
-end;
-
-procedure TDBTableForm.SQLQueryBeforeDelete(DataSet: TDataSet);
-begin
-  DeleteRecord(FTable, DBGrid);
 end;
 
 procedure TDBTableForm.btnAddFilterClick(Sender: TObject);
@@ -539,9 +519,7 @@ end;
 procedure TDBTableForm.btnInsertRecordClick(Sender: TObject);
 begin
   FCurPos := SQLQuery.RecNo;
-  RecordCard := TRecordCard.Create(FTable, NextID, atInsert);
-  RecordCard.OnOkClick := @RecordCardOkClick;
-  RecordCard.Show;
+  CardsManager.EditTable(FTable, NextID, atInsert);
 end;
 
 procedure TDBTableForm.DBNavigatorClick(Sender: TObject;

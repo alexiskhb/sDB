@@ -7,41 +7,30 @@ interface
 uses
   Classes, SysUtils, connection_transaction, metadata, DBGrids, sqldb, Dialogs;
 
-procedure DeleteRecord(ATable: TDBTable; AGrid: TDBGrid);
+procedure DeleteRecord(ATable: TDBTable; APrimaryKey: integer);
 procedure UpdateRecord(ATable: TDBTable; APrimaryKey: integer; NewValues: TVariantDynArray);
 procedure InsertRecord(ATable: TDBTable; APrimaryKey: integer; AValues: TVariantDynArray);
 
 implementation
 
-procedure DeleteRecord(ATable: TDBTable; AGrid: TDBGrid);
-var
-  SQLQuery: TSQLQuery;
-  i: integer;
+procedure DeleteRecord(ATable: TDBTable; APrimaryKey: integer);
 begin
-  SQLQuery := AGrid.DataSource.DataSet as TSQLQuery;
-
   ConTran.CommonSQLQuery.Close;
-  with ConTran.CommonSQLQuery.SQL do begin
-    Clear;
-    Append('delete from ' + ATable.Name);
-    Append('where 1 = 1');
-    for i := 0 to High(ATable.Fields) do
-      Append('and ' + ATable.Name + '.' + ATable.Fields[i].Name + ' = :P' + IntToStr(i));
+  with ConTran.CommonSQLQuery do begin
+    SQL.Clear;
+    SQL.Append('delete from ' + ATable.Name);
+    SQL.Append('where ' + ATable.Name + '.id = :primary_key');
+    ParamByName('primary_key').Value := APrimaryKey;
 	end;
 
-	for i := 0 to High(ATable.Fields) do begin
-    ConTran.CommonSQLQuery.Params[i].Value :=
-      SQLQuery.Fields.FieldByName(ATable.Name + ATable.Fields[i].Name).Value;
-	end;
-
-  //try
+  try
     ConTran.CommonSQLQuery.ExecSQL;
-  //except
-  //  on EIBDatabaseError: Exception do
-  //    MessageDlg('Невозможно удалить запись.' + #13+#10
-  //             + 'Возможно, она используется в:' + #13+#10
-  //             + TDBTable.TablesUsingTable(ATable), mtError, [mbOk], 0);
-  //end;
+  except
+    on EIBDatabaseError: Exception do
+      MessageDlg('Невозможно удалить запись.' + #13+#10
+               + 'Возможно, она используется в:' + #13+#10
+               + TDBTable.TablesUsingTable(ATable), mtError, [mbOk], 0);
+  end;
 
 	ConTran.DBTransaction.Commit;
 end;
@@ -75,13 +64,18 @@ begin
     ParamByName('primary_key').Value := APrimaryKey;
   end;
 
-  //try
+  try
     ConTran.CommonSQLQuery.ExecSQL;
-	//except
- //   on EDatabaseError: Exception do
- //     MessageDlg('Ошибка.' + #13+#10
- //              + 'Возможно, такая запись уже существует.', mtError, [mbOk], 0);
-	//end;
+	except
+    on EDatabaseError: Exception do
+      MessageDlg('Ошибка.' + #13 + #10
+                 + 'Возможно, такая запись уже существует.' + #13 + #10
+                 , mtError, [mbOk], 0);
+    on EVariantError: Exception do
+      MessageDlg('Невозможно добавить запись.' + #13 + #10
+                 + 'Данные введены некорректно.' + #13 + #10
+                 , mtError, [mbOk], 0);
+	end;
 
   ConTran.DBTransaction.Commit;
 end;
@@ -90,7 +84,7 @@ procedure InsertRecord(ATable: TDBTable; APrimaryKey: integer; AValues: TVariant
 var
   i: integer;
 begin
-  //ShowMessage(IntToStr(Length(AValues)));
+  AValues[0] := APrimaryKey;
   ConTran.CommonSQLQuery.Close;
   with ConTran.CommonSQLQuery.SQL do begin
     Clear;
@@ -107,14 +101,18 @@ begin
 	for i := 0 to High(AValues) do
     ConTran.CommonSQLQuery.ParamByName('par'+IntToStr(i)).Value := AValues[i];
 
-  //try
+  try
     ConTran.CommonSQLQuery.ExecSQL;
-	//except
- //   on EDatabaseError: Exception do
- //     MessageDlg('Невозможно добавить запись.' + #13 + #10
- //                + 'Такая запись уже существует' + #13 + #10
- //                + 'либо данные введены некорректно.', mtError, [mbOk], 0);
-	//end;
+	except
+    on EVariantError: Exception do
+      MessageDlg('Невозможно добавить запись.' + #13 + #10
+                 + 'Данные введены некорректно.' + #13 + #10
+                 , mtError, [mbOk], 0);
+    on EDatabaseError: Exception do
+      MessageDlg('Невозможно добавить запись.' + #13 + #10
+                 + 'Такая запись уже существует.' + #13 + #10
+                 , mtError, [mbOk], 0);
+	end;
 
   ConTran.DBTransaction.Commit;
 end;

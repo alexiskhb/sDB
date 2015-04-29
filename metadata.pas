@@ -70,11 +70,12 @@ var
   DBTablesList: TStringList;
 
   procedure SetSQLQuery(ATable: TDBTable; SQLQuery: TSQLQuery);
-  procedure AddColumnsToQuery(ATable: TDBTable; SQLQuery: TSQLQuery);
   procedure AllQueryColumnsToList(ATable: TDBTable; var ASList: TStringList);
   function NextID: integer;
 
 implementation
+
+procedure AddColumnsToQuery(ATable: TDBTable; SQLQuery: TSQLQuery); forward;
 
 procedure TDBField.RowsTo(AComboBox: TComboBox; var AIDs: TIntegerDynArray);
 var
