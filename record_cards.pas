@@ -17,14 +17,15 @@ type
   TCardsManager = class
   private
     FCardsList: TStringList;
-    FRefreshRequest: TNotifyEvent;
+    FRefreshTablesRequest: TNotifyEvent;
     procedure CMInsertRecord(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType);
     procedure CMUpdateRecord(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType);
     procedure CMDeleteRecord(ATable: TDBTable; APrimaryKey: integer);
     procedure CardOkClicked(Sender: TObject);
     procedure CardClosed(Sender: TObject);
+    procedure RefreshValuesInCards(Sender: TObject);
   public
-    property OnRequestRefresh: TNotifyEvent read FRefreshRequest write FRefreshRequest;
+    property OnRequestRefreshTables: TNotifyEvent read FRefreshTablesRequest write FRefreshTablesRequest;
     procedure EditTable(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType);
     constructor Create;
 	end;
@@ -57,8 +58,8 @@ type
     CellEditor: TCustomEdit;
     procedure SetValue(AValue: Variant); override;
     function GetCaption: string; override;
-  public
     procedure CellEditorChange(Sender: TObject);
+  public
     constructor Create(ADisplayedField: TDBField; APos: integer; ACard: TForm);
 	end;
 
@@ -68,8 +69,9 @@ type
     FIDsAsObjects: TIntegerDynArray;
     procedure SetValue(AValue: Variant); override;
     function GetCaption: string; override;
-  public
     procedure cbbValuesChange(Sender: TObject);
+  public
+    procedure RefreshValues;
     constructor Create(ADisplayedField, AReferringField: TDBField; APos: integer; ACard: TForm);
 	end;
 
@@ -90,11 +92,14 @@ type
     FQueryFields: TStringList;
     FValuesList: TStringList;
     FCardClose: TNotifyEvent;
+    FRequestRefreshValues: TNotifyEvent;
   public
     NewValues: TVariantDynArray;
     property OnOkClick: TNotifyEvent read FOkClick write FOkClick;
     property OnCardClose: TNotifyEvent read FCardClose write FCardClose;
     property PrimaryKey: integer read FPrimaryKey;
+    property Table: TDBTable read FTable;
+    property OnDataApply: TNotifyEvent read FRequestRefreshValues write FRequestRefreshValues;
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure CellEditValueChange(Sender: TObject);
     constructor Create(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType);
@@ -133,6 +138,7 @@ begin
     atInsert: InsertRecord(FTable, NextID, NewValues);
   end;
 
+  FRequestRefreshValues(FTable);
   FOkClick(Sender);
   Close;
 end;
@@ -148,7 +154,7 @@ var
   Field: TDBField;
 begin
   inherited Create(Application);
-  Caption := ATable.Caption + ': Добавить запись';
+  Caption := ATable.Caption + ': добавить запись';
   Position := poDefault;
   FActionType := AActionType;
   FTable := ATable;
@@ -196,6 +202,8 @@ begin
 	end;
 
   Height := CellEditPanelHeight * (1 + Length(FCellEdits));
+  btnCancel.Top := Height - CellEditPanelHeight div 2 - btnCancel.Height div 2;
+  btnOk.Top := btnCancel.Top;
   BorderStyle := bsSingle;
 end;
 
@@ -204,7 +212,7 @@ var
   i: integer;
 begin
   inherited Create(ATable, APrimaryKey, AActionType);
-  Caption := ATable.Caption + ': Изменить запись';
+  Caption := ATable.Caption + ': изменить запись';
 
   ConTran.CommonSQLQuery.Close;
   SetSQLQuery(ATable, ConTran.CommonSQLQuery);
@@ -215,7 +223,7 @@ begin
 
     for i := 0 to High(FCellEdits) do begin
       FCellEdits[i].Value := FieldByName(FCellEdits[i].DisplayedField.TableOwner.Name + FCellEdits[i].DisplayedField.Name).Value;
-      FCellEdits[i].lbOldValue.Caption := FCellEdits[i].Caption;
+      FCellEdits[i].lbOldValue.Caption := 'Было: ' + FCellEdits[i].Caption;
     end;
 	end;
 end;
@@ -249,8 +257,8 @@ begin
     Parent := pnlCellEdit;
     AutoSize := false;
     Top := pnlCellEdit.Height div 2 - Height;
-    Left := 8;
-    Width := 120;
+    Left := ACard.Width div 32;
+    Width := 4 * ACard.Width div 16;
     Caption := ADisplayedField.Caption;
 	end;
 
@@ -262,9 +270,8 @@ begin
     Top := pnlCellEdit.Height div 2 - Height;
     Left := lbTitle.Left + lbTitle.Width;
     Height := 30;
-    Width := pnlCellEdit.Width;
+    Width := 11 * ACard.Width div 16;
     MaxLength := ADisplayedField.VarCharLimit;
-    Anchors := [akLeft, akRight];
 	end;
 
   lbOldValue := TLabel.Create(pnlCellEdit);
@@ -273,7 +280,7 @@ begin
     AutoSize := false;
     Top := CellEditor.Top + CellEditor.Height;
     Left := CellEditor.Left;
-    Width := 500;
+    Width := CellEditor.Width;
     Caption := CellEditor.Text;
     Font.Size := 9;
 	end;
@@ -299,8 +306,8 @@ begin
     Parent := pnlCellEdit;
     AutoSize := false;
     Top := pnlCellEdit.Height div 2 - Height;
-    Left := 8;
-    Width := 120;
+    Left := ACard.Width div 32;
+    Width := 4 * ACard.Width div 16;
     Caption := ADisplayedField.Caption;
 	end;
 
@@ -311,7 +318,7 @@ begin
     Top := pnlCellEdit.Height div 2 - Height;
     Left := lbTitle.Left + lbTitle.Width;
     Height := 30;
-    Width := 320;
+    Width := 11 * ACard.Width div 16;
     Style := csDropDownList;
     ADisplayedField.RowsTo(cbbValues, FIDsAsObjects);
     OnChange := @cbbValuesChange;
@@ -324,7 +331,7 @@ begin
     AutoSize := false;
     Top := cbbValues.Top + cbbValues.Height;
     Left := cbbValues.Left;
-    Width := 500;
+    Width := cbbValues.Width;
     Font.Size := 9;
 	end;
 end;
@@ -334,6 +341,18 @@ begin
   FValue := FIDsAsObjects[(Sender as TComboBox).ItemIndex];
   if Assigned(FValueChanged) then
     FValueChanged(Self);
+end;
+
+procedure TComboCellEdit.RefreshValues;
+var
+  MemID: integer;
+begin
+  MemID := -1;
+  if cbbValues.ItemIndex <> -1 then
+    MemID := Integer(Pointer(cbbValues.Items.Objects[cbbValues.ItemIndex]));
+  FDisplayedField.RowsTo(cbbValues, FIDsAsObjects);
+  if MemID <> -1 then
+    cbbValues.ItemIndex := cbbValues.Items.IndexOfObject(TObject(Pointer(MemID)));
 end;
 
 procedure TEditCellEdit.CellEditorChange(Sender: TObject);
@@ -385,6 +404,7 @@ begin
   with (FCardsList.Objects[FCardsList.Count - 1] as TRecordCard) do begin
     OnOkClick := @CardOkClicked;
     OnCardClose := @CardClosed;
+    OnDataApply := @RefreshValuesInCards;
     Show;
 	end;
 end;
@@ -397,6 +417,7 @@ begin
       with (Objects[FCardsList.Count - 1] as TEditRecordCard) do begin
         OnOkClick := @CardOkClicked;
         OnCardClose := @CardClosed;
+        OnDataApply := @RefreshValuesInCards;
         Show;
 			end;
 		end
@@ -408,17 +429,15 @@ end;
 procedure TCardsManager.CMDeleteRecord(ATable: TDBTable; APrimaryKey: integer);
 begin
   DeleteRecord(ATable, APrimaryKey);
-  with FCardsList do begin
-    if IndexOf(IntToStr(APrimaryKey)) <> -1 then begin
+  with FCardsList do
+    if IndexOf(IntToStr(APrimaryKey)) <> -1 then
       (Objects[IndexOf(IntToStr(APrimaryKey))] as TEditRecordCard).Close;
-      Delete(IndexOf(IntToStr(APrimaryKey)));
-  	end;
-	end;
+  RefreshValuesInCards(ATable);
 end;
 
 procedure TCardsManager.CardOkClicked(Sender: TObject);
 begin
-  FRefreshRequest(Sender);
+  FRefreshTablesRequest(Sender);
 end;
 
 procedure TCardsManager.CardClosed(Sender: TObject);
@@ -426,10 +445,22 @@ begin
   FCardsList.Delete(FCardsList.IndexOf(IntToStr((Sender as TRecordCard).PrimaryKey)));
 end;
 
+procedure TCardsManager.RefreshValuesInCards(Sender: TObject);
+var
+  i, j: integer;
+begin
+  with FCardsList do
+    for i := 0 to Count - 1 do
+      for j := 0 to High((Objects[i] as TRecordCard).FCellEdits) do
+        if (Objects[i] as TRecordCard).FCellEdits[j].FDisplayedField.TableOwner =
+          (Sender as TDBTable) then
+            if (Objects[i] as TRecordCard).FCellEdits[j].ClassType = TComboCellEdit then
+              ((Objects[i] as TRecordCard).FCellEdits[j] as TComboCellEdit).RefreshValues;
+end;
+
 initialization
 
   CardsManager := TCardsManager.Create;
-
 
 end.
 

@@ -78,14 +78,14 @@ implementation
 procedure AddColumnsToQuery(ATable: TDBTable; SQLQuery: TSQLQuery); forward;
 
 procedure TDBField.RowsTo(AComboBox: TComboBox; var AIDs: TIntegerDynArray);
-var
-  i: integer;
 begin
   with ConTran.CommonSQLQuery do begin
     Close;
     SetSQLQuery(Self.TableOwner, ConTran.CommonSQLQuery);
     Open;
     First;
+    SetLength(AIDs, 0);
+    AComboBox.Clear;
     while not EOF do begin
       SetLength(AIDs, Length(AIDs) + 1);
       AIDs[High(AIDs)] := FieldByName(Self.TableOwner.Name + 'id').Value;

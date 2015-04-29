@@ -290,7 +290,7 @@ begin
   SQLQuery.Last;
   SQLQuery.First;
 
-  CardsManager.OnRequestRefresh := @RecordCardOkClick;
+  CardsManager.OnRequestRefreshTables := @RecordCardOkClick;
 end;
 
 procedure TDBTableForm.FormClose(Sender: TObject; var CloseAction: TCloseAction);
