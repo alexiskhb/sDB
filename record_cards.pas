@@ -42,11 +42,13 @@ type
     FReferringField: TDBField;
     FValueChanged: TNotifyEvent;
     procedure SetValue(Value: Variant); virtual; abstract;
+    function GetCaption: string; virtual; abstract;
   public
     property ReferringField: TDBField read FReferringField;
     property DisplayedField: TDBField read FDisplayedField;
     property OnValueChanged: TNotifyEvent read FValueChanged write FValueChanged;
     property Value: Variant read FValue write SetValue;
+    property Caption: string read GetCaption;
     property Tag: integer read FTag write FTag;
 	end;
 
@@ -54,6 +56,7 @@ type
   private
     CellEditor: TCustomEdit;
     procedure SetValue(AValue: Variant); override;
+    function GetCaption: string; override;
   public
     procedure CellEditorChange(Sender: TObject);
     constructor Create(ADisplayedField: TDBField; APos: integer; ACard: TForm);
@@ -64,6 +67,7 @@ type
     cbbValues: TComboBox;
     FIDsAsObjects: TIntegerDynArray;
     procedure SetValue(AValue: Variant); override;
+    function GetCaption: string; override;
   public
     procedure cbbValuesChange(Sender: TObject);
     constructor Create(ADisplayedField, AReferringField: TDBField; APos: integer; ACard: TForm);
@@ -191,7 +195,7 @@ begin
         FValuesList.AddObject('', Field);
 	end;
 
-  Height := CellEditPanelHeight * (1 + Length(FCellEdits)) + 30;
+  Height := CellEditPanelHeight * (1 + Length(FCellEdits));
   BorderStyle := bsSingle;
 end;
 
@@ -211,8 +215,8 @@ begin
 
     for i := 0 to High(FCellEdits) do begin
       FCellEdits[i].Value := FieldByName(FCellEdits[i].DisplayedField.TableOwner.Name + FCellEdits[i].DisplayedField.Name).Value;
-
-		end;
+      FCellEdits[i].lbOldValue.Caption := FCellEdits[i].Caption;
+    end;
 	end;
 end;
 
@@ -244,7 +248,7 @@ begin
   with lbTitle do begin
     Parent := pnlCellEdit;
     AutoSize := false;
-    Top := 10;
+    Top := pnlCellEdit.Height div 2 - Height;
     Left := 8;
     Width := 120;
     Caption := ADisplayedField.Caption;
@@ -255,7 +259,7 @@ begin
     Parent := pnlCellEdit;
     OnChange := @CellEditorChange;
     AutoSize := false;
-    Top := 10;
+    Top := pnlCellEdit.Height div 2 - Height;
     Left := lbTitle.Left + lbTitle.Width;
     Height := 30;
     Width := pnlCellEdit.Width;
@@ -271,6 +275,7 @@ begin
     Left := CellEditor.Left;
     Width := 500;
     Caption := CellEditor.Text;
+    Font.Size := 9;
 	end;
 
   ACard.ActiveControl := CellEditor;
@@ -293,7 +298,7 @@ begin
   with lbTitle do begin
     Parent := pnlCellEdit;
     AutoSize := false;
-    Top := 10;
+    Top := pnlCellEdit.Height div 2 - Height;
     Left := 8;
     Width := 120;
     Caption := ADisplayedField.Caption;
@@ -303,7 +308,7 @@ begin
   with cbbValues do begin
     Parent := pnlCellEdit;
     AutoSize := false;
-    Top := 10;
+    Top := pnlCellEdit.Height div 2 - Height;
     Left := lbTitle.Left + lbTitle.Width;
     Height := 30;
     Width := 320;
@@ -320,6 +325,7 @@ begin
     Top := cbbValues.Top + cbbValues.Height;
     Left := cbbValues.Left;
     Width := 500;
+    Font.Size := 9;
 	end;
 end;
 
@@ -347,6 +353,16 @@ procedure TComboCellEdit.SetValue(AValue: Variant);
 begin
   cbbValues.ItemIndex := cbbValues.Items.IndexOf(AValue);
   cbbValuesChange(cbbValues);
+end;
+
+function TEditCellEdit.GetCaption: string;
+begin
+  Result := CellEditor.Text;
+end;
+
+function TComboCellEdit.GetCaption: string;
+begin
+  Result := cbbValues.Items[cbbValues.ItemIndex];
 end;
 
 constructor TCardsManager.Create;
