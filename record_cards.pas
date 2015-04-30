@@ -126,6 +126,7 @@ implementation
 procedure TRecordCard.btnOkClick(Sender: TObject);
 var
   i: integer;
+  EditResult: integer;
 begin
   for i := 0 to High(FTable.Fields) do
     if (FTable.Fields[i].FieldRef = nil) then
@@ -134,13 +135,14 @@ begin
       NewValues[i] := FValuesList.Strings[FValuesList.IndexOfObject(FTable.Fields[i].FieldRef)];
 
   case FActionType of
-    atUpdate: UpdateRecord(FTable, FPrimaryKey, NewValues);
-    atInsert: InsertRecord(FTable, NextID, NewValues);
+    atUpdate: EditResult := UpdateRecord(FTable, FPrimaryKey, NewValues);
+    atInsert: EditResult := InsertRecord(FTable, NextID, NewValues);
   end;
 
   FRequestRefreshValues(FTable);
   FOkClick(Sender);
-  Close;
+  if EditResult = 0
+    then Close;
 end;
 
 procedure TRecordCard.btnCancelClick(Sender: TObject);
@@ -427,12 +429,16 @@ begin
 end;
 
 procedure TCardsManager.CMDeleteRecord(ATable: TDBTable; APrimaryKey: integer);
+var
+  DeleteResult: integer;
 begin
-  DeleteRecord(ATable, APrimaryKey);
+  DeleteResult := DeleteRecord(ATable, APrimaryKey);
   with FCardsList do
-    if IndexOf(IntToStr(APrimaryKey)) <> -1 then
-      (Objects[IndexOf(IntToStr(APrimaryKey))] as TEditRecordCard).Close;
-  RefreshValuesInCards(ATable);
+    if DeleteResult = 0 then begin
+      if IndexOf(IntToStr(APrimaryKey)) <> -1 then
+        (Objects[IndexOf(IntToStr(APrimaryKey))] as TEditRecordCard).Close;
+      RefreshValuesInCards(ATable);
+		end;
 end;
 
 procedure TCardsManager.CardOkClicked(Sender: TObject);
