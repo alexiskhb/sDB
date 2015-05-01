@@ -214,13 +214,15 @@ begin
       if (Pos('↑', Caption) <> 0) then begin
         SQLQuery.SQL.Append('order by ' + DBGrid.Columns[i].DisplayName);
         SQLQuery.SQL.Append('  desc');
-        break;
+        exit;
 		  end else
         if (Pos('↓', Caption) <> 0) then begin
           SQLQuery.SQL.Append('order by ' + DBGrid.Columns[i].DisplayName);
           SQLQuery.SQL.Append('  asc');
-          break;
+          exit;
 			  end;
+  SQLQuery.SQL.Append('order by ' + FTable.Name + '.id');
+  SQLQuery.SQL.Append('  asc');
 end;
 
 procedure TDBTableForm.RefreshTable;
@@ -285,6 +287,8 @@ begin
   end;
 
   SQLQuery.ReadOnly := false;
+
+  AddSort;
 
   SQLQuery.Open;
   SQLQuery.Last;
