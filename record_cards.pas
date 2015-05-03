@@ -30,8 +30,6 @@ type
     constructor Create;
 	end;
 
-  TCustomEditClass = class of TCustomEdit;
-
   TCellEdit = class
   private
     pnlCellEdit: TPanel;
@@ -93,6 +91,7 @@ type
     FValuesList: TStringList;
     FCardClose: TNotifyEvent;
     FRequestRefreshValues: TNotifyEvent;
+    FRequestRememberRecNO: TNotifyEvent;
   public
     NewValues: TVariantDynArray;
     property OnOkClick: TNotifyEvent read FOkClick write FOkClick;
@@ -113,7 +112,6 @@ type
   TRecordCardDynArray = array of TRecordCard;
 
 var
-  TypeOfEditor: array [Low(TFieldType)..High(TFieldType)] of TCustomEditClass;
   CardsManager: TCardsManager;
 
 const
@@ -187,11 +185,9 @@ begin
           FValuesList.AddObject('', Field);
 			end
 			else begin
-        FCellEdits[High(FCellEdits)] := TComboCellEdit.Create
-                                        (Field,
-                                         (FQueryFields.Objects[k] as TDBField).FieldRef,
-                                         High(FCellEdits),
-                                         Self);
+        FCellEdits[High(FCellEdits)] := TComboCellEdit.Create(
+          Field, (FQueryFields.Objects[k] as TDBField).FieldRef,
+          High(FCellEdits), Self);
         if (FValuesList.IndexOfObject((FQueryFields.Objects[k] as TDBField).FieldRef) < 0) then
           FValuesList.AddObject('', (FQueryFields.Objects[k] as TDBField).FieldRef);
       end;

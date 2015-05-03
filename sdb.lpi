@@ -41,7 +41,7 @@
         <PackageName Value="LCL"/>
       </Item4>
     </RequiredPackages>
-    <Units Count="9">
+    <Units Count="10">
       <Unit0>
         <Filename Value="sdb.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -105,6 +105,11 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="edit_database"/>
       </Unit8>
+      <Unit9>
+        <Filename Value="query_filter.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="query_filter"/>
+      </Unit9>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -145,6 +150,7 @@
       </Item3>
       <Item4>
         <Name Value="EDatabaseError"/>
+        <Enabled Value="False"/>
       </Item4>
       <Item5>
         <Name Value="EIBDatabaseError"/>
@@ -157,6 +163,7 @@
       </Item7>
       <Item8>
         <Name Value="EStringListError"/>
+        <Enabled Value="False"/>
       </Item8>
     </Exceptions>
   </Debugging>
