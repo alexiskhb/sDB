@@ -248,7 +248,11 @@ object DBTableForm: TDBTableForm
     left = 16
     top = 160
     object miTable: TMenuItem
-      Caption = 'Таблица'
+      Caption = 'Список'
+      object miTimeTable: TMenuItem
+        Caption = 'Как таблица'
+        OnClick = miTimeTableClick
+      end
       object miReset: TMenuItem
         Caption = 'Сброс'
         OnClick = miResetClick

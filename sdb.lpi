@@ -41,7 +41,7 @@
         <PackageName Value="LCL"/>
       </Item4>
     </RequiredPackages>
-    <Units Count="10">
+    <Units Count="11">
       <Unit0>
         <Filename Value="sdb.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -110,6 +110,13 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="query_filter"/>
       </Unit9>
+      <Unit10>
+        <Filename Value="time_table.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="TimeTable"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="time_table"/>
+      </Unit10>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -146,11 +153,9 @@
       </Item2>
       <Item3>
         <Name Value="EFOpenError"/>
-        <Enabled Value="False"/>
       </Item3>
       <Item4>
         <Name Value="EDatabaseError"/>
-        <Enabled Value="False"/>
       </Item4>
       <Item5>
         <Name Value="EIBDatabaseError"/>

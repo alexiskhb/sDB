@@ -6,8 +6,8 @@ interface
 
 uses
   connection_transaction, Classes, lcltype, SysUtils, Forms, Menus, DBCtrls, DB, DBGrids,
-  ExtCtrls, sqldb, Dialogs, Controls, StdCtrls, metadata, Spin, Buttons, record_cards,
-  query_filter;
+  ExtCtrls, sqldb, Dialogs, Controls, StdCtrls, metadata, Buttons, record_cards,
+  query_filter, time_table;
 
 type
 
@@ -22,6 +22,7 @@ type
     DBNavigator: TDBNavigator;
     DataSource: TDataSource;
     DBGrid: TDBGrid;
+	  miTimeTable: TMenuItem;
 		miReset: TMenuItem;
     SQLQuery: TSQLQuery;
     btnAddFilter: TButton;
@@ -41,6 +42,7 @@ type
 		procedure DBNavigatorClick(Sender: TObject; Button: TDBNavButtonType);
     procedure btnAddFilterClick(Sender: TObject);
     procedure btnFilterClick(Sender: TObject);
+		procedure miTimeTableClick(Sender: TObject);
     procedure miCloseOtherTablesClick(Sender: TObject);
     procedure miCloseTableClick(Sender: TObject);
 		procedure miResetClick(Sender: TObject);
@@ -68,6 +70,7 @@ type
     OrderIsDesc: boolean;
     FTable: TDBTable;
     FCurPos: integer;
+    FTimeTable: TTimeTable;
   end;
 
   TDBTableFormDynArray = array of TDBTableForm;
@@ -279,7 +282,6 @@ begin
     with DBGrid.Columns[i].Title do
       if (Pos('↑', Caption) <> 0) or (Pos('↓', Caption) <> 0) then
         Caption := Copy(Caption, Length('↑ ') + 1, Length(Caption));
-
 end;
 
 procedure TDBTableForm.btnFilterClick(Sender: TObject);
@@ -290,6 +292,16 @@ begin
   AddConditionsToQuery;
   AddSort;
   SQLQuery.Open;
+end;
+
+procedure TDBTableForm.miTimeTableClick(Sender: TObject);
+begin
+  if not Assigned(FTimeTable) then begin
+    FTimeTable := TTimeTable.Create(FTable);
+    FTimeTable.Show;
+	end
+	else
+    FTimeTable.SetFocus;
 end;
 
 procedure TDBTableForm.AddConditionsToQuery;

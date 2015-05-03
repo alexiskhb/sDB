@@ -5,14 +5,9 @@ program sdb;
 uses {$IFDEF UNIX} {$IFDEF UseCThreads}
   cthreads, {$ENDIF} {$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms,
-  connection_transaction,
-  DBMain,
-  FormConnect,
-  metadata,
-  aboutsdb,
-  listview,
-  record_cards, edit_database, query_filter { you can add units after this };
+  Forms, connection_transaction, DBMain, FormConnect, metadata, aboutsdb,
+	listview, record_cards, edit_database, query_filter,
+time_table { you can add units after this };
 
 {$R *.res}
 
