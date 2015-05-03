@@ -22,6 +22,7 @@ object DBTableForm: TDBTableForm
     Columns = <>
     DataSource = DataSource
     TabOrder = 0
+    OnColumnMoved = DBGridColumnMoved
   end
   object Splitter: TSplitter
     Cursor = crVSplit

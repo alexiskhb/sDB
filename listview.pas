@@ -36,6 +36,7 @@ type
     miCloseTable: TMenuItem;
     RecordCard: TRecordCard;
 		procedure btnEditRecordClick(Sender: TObject);
+		procedure DBGridColumnMoved(Sender: TObject; FromIndex, ToIndex: Integer);
     procedure DBGridDblClick(Sender: TObject);
 		procedure btnInsertRecordClick(Sender: TObject);
     procedure btnDeleteRecordClick(Sender: TObject);
@@ -66,7 +67,7 @@ type
     class function FormExists(ATag: integer): boolean;
   private
     FFilters: array of TQueryFilter;
-    InitialFieldsOrder: TStringList;
+    FFieldsOrder: TStringList;
     OrderIsDesc: boolean;
     FTable: TDBTable;
     FCurPos: integer;
@@ -129,7 +130,7 @@ begin
         Columns[Columns.Count - 1].Title.Caption := Fields[i].Caption;
         Columns[Columns.Count - 1].Width := Fields[i].Width + 10;
         Columns[Columns.Count - 1].Visible := Fields[i].Visible;
-        InitialFieldsOrder.AddObject(Columns[Columns.Count - 1].FieldName, Fields[i]);
+        FFieldsOrder.AddObject(Columns[Columns.Count - 1].FieldName, Fields[i]);
       end;
       if Assigned(Fields[i].TableRef) then
         AddColumnsToGrid(Fields[i].TableRef);
@@ -154,20 +155,29 @@ end;
 procedure TDBTableForm.AddSort;
 var
   i: integer;
+  sortfield: string;
+  Field: TDBField;
 begin
-  for i := 0 to DBGrid.Columns.Count - 1 do
+  for i := 0 to DBGrid.Columns.Count - 1 do begin
+    Field := FFieldsOrder.Objects[i] as TDBField;
+    if Field.SortField = nil then
+      sortfield := Field.TableOwner.Name + Field.Name
+    else
+      sortfield := Field.SortField.TableOwner.Name + Field.SortField.Name;
     with DBGrid.Columns[i].Title do
       if (Pos('↑', Caption) <> 0) then begin
-        SQLQuery.SQL.Append('order by ' + DBGrid.Columns[i].DisplayName);
+        SQLQuery.SQL.Append('order by ' + sortfield);
         SQLQuery.SQL.Append('  desc');
         exit;
 		  end else
         if (Pos('↓', Caption) <> 0) then begin
-          SQLQuery.SQL.Append('order by ' + DBGrid.Columns[i].DisplayName);
+          SQLQuery.SQL.Append('order by ' + sortfield);
           SQLQuery.SQL.Append('  asc');
           exit;
 			  end;
-  SQLQuery.SQL.Append('order by ' + FTable.Name + '.id');
+	end;
+
+	SQLQuery.SQL.Append('order by ' + FTable.Name + '.id');
   SQLQuery.SQL.Append('  asc');
 end;
 
@@ -222,8 +232,8 @@ begin
     DataSet.EnableControls;
 	end;
 
-  InitialFieldsOrder := TStringList.Create;
-  InitialFieldsOrder.Sorted := false;
+  FFieldsOrder := TStringList.Create;
+  FFieldsOrder.Sorted := false;
 
   with DBGrid do begin
     DataSource := DataSource;
@@ -409,6 +419,12 @@ end;
 procedure TDBTableForm.btnEditRecordClick(Sender: TObject);
 begin
   DBGridDblClick(Sender);
+end;
+
+procedure TDBTableForm.DBGridColumnMoved(Sender: TObject; FromIndex,
+		ToIndex: Integer);
+begin
+  FFieldsOrder.Move(FromIndex - 1, ToIndex - 1);
 end;
 
 procedure TDBTableForm.btnInsertRecordClick(Sender: TObject);

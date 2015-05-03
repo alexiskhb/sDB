@@ -23,6 +23,7 @@ type
     FFieldRef: TDBField;
     FOwner: TDBTable;
     FVarCharLimit: integer;
+    FSortField: TDBField;
   public
     property Name: string read FName;
     property Caption: string read FCaption;
@@ -31,6 +32,7 @@ type
     property Visible: boolean read FPrimaryKey write FPrimaryKey;
     property TableRef: TDBTable read FTableRef;
     property FieldRef: TDBField read FFieldRef;
+    property SortField: TDBField read FSortField write FSortField;
     property VarCharLimit: integer read FVarCharLimit;
     property TableOwner: TDBTable read FOwner;
     procedure RowsTo(AComboBox: TComboBox; var AIDs: TIntegerDynArray);
@@ -212,6 +214,7 @@ begin
   FFieldType := AFieldType;
   FPrimaryKey := APrimaryKey;
   FOwner := AOwner;
+  FSortField := nil;
   FVarCharLimit := AVarCharLimit;
   FTableRef := (DBTablesList.Objects[DBTablesList.IndexOf(ATableRef)] as TDBTable);
   FFieldRef := (FTableRef.FFieldsList.Objects[FTableRef.FFieldsList.IndexOf(AFieldRef)] as TDBField);
@@ -225,6 +228,7 @@ begin
   FWidth := AWidth;
   FFieldType := AFieldType;
   FPrimaryKey := APrimaryKey;
+  FSortField := nil;
   FOwner := AOwner;
   FVarCharLimit := AVarCharLimit;
 end;
@@ -261,10 +265,12 @@ initialization
   TDBTable.Add('weekdays', 'Дни недели');
   DBTables[5].AddField('id', 'День', 40, ftInteger, false, 0);
   DBTables[5].AddField('weekday', 'День недели', 100, ftString, true, 15);
+  DBTables[5].Fields[1].SortField := DBTables[5].Fields[0];
 
   TDBTable.Add('pairs', 'Период зан.');
   DBTables[6].AddField('id', 'Пара', 40, ftInteger, false, 0);
   DBTables[6].AddField('period', 'Время занятия', 100, ftString, true, 50);
+  DBTables[6].Fields[1].SortField := DBTables[6].Fields[0];
 
   TDBTable.Add('teachers_courses', 'Дисц. препод.');
   DBTables[7].AddField('id', 'Ид. отношения', 40, ftInteger, false, 0);
