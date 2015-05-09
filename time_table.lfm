@@ -1,7 +1,7 @@
 object TimeTable: TTimeTable
-  Left = 525
+  Left = 282
   Height = 400
-  Top = 169
+  Top = 224
   Width = 593
   Caption = 'timetable'
   ClientHeight = 400
@@ -27,7 +27,7 @@ object TimeTable: TTimeTable
       Width = 100
       AutoSize = False
       ItemHeight = 0
-      OnChange = cbbHorzChange
+      OnChange = cbbChange
       Style = csDropDownList
       TabOrder = 0
     end
@@ -38,6 +38,7 @@ object TimeTable: TTimeTable
       Width = 100
       AutoSize = False
       ItemHeight = 0
+      OnChange = cbbChange
       Style = csDropDownList
       TabOrder = 1
     end
@@ -120,14 +121,6 @@ object TimeTable: TTimeTable
       ResizeAnchor = akTop
     end
   end
-  object sgTable: TStringGrid
-    Left = 0
-    Height = 360
-    Top = 40
-    Width = 419
-    Align = alClient
-    TabOrder = 2
-  end
   object Splitter: TSplitter
     Left = 419
     Height = 360
@@ -135,5 +128,14 @@ object TimeTable: TTimeTable
     Width = 5
     Align = alRight
     ResizeAnchor = akRight
+  end
+  object SQLQuery: TSQLQuery
+    FieldDefs = <>
+    Database = ConTran.DBConnection
+    Transaction = ConTran.DBTransaction
+    Params = <>
+    DataSource = ConTran.CommonDS
+    left = 16
+    top = 48
   end
 end

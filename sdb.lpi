@@ -108,12 +108,14 @@
       <Unit9>
         <Filename Value="query_filter.pas"/>
         <IsPartOfProject Value="True"/>
+        <HasResources Value="True"/>
         <UnitName Value="query_filter"/>
       </Unit9>
       <Unit10>
         <Filename Value="time_table.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="TimeTable"/>
+        <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="time_table"/>
       </Unit10>
