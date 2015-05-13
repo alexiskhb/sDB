@@ -238,7 +238,7 @@ begin
   with DBGrid do begin
     DataSource := DataSource;
     AddColumnsToGrid(FTable);
-    Options := Options - [dgEditing];
+    Options := Options - [dgEditing] + [dgThumbTracking];
     OnTitleClick := @FDBGridTitleClick;
     OnDblClick := @DBGridDblClick;
   end;

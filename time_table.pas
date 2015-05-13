@@ -21,20 +21,23 @@ type
 	  cbbHorz: TComboBox;
  	  cbbVert: TComboBox;
 	  clbVisibleFields: TCheckListBox;
+		ImageList: TImageList;
 	  pnlControlsRight: TPanel;
 	  pnlContols: TPanel;
 		Splitter: TSplitter;
 		CheckSplitter: TSplitter;
     sgTable: TMyStringGrid;
 		SQLQuery: TSQLQuery;
+		StringGrid1: TStringGrid;
 		procedure btnApplyClick(Sender: TObject);
     procedure cbbChange(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure AddFieldsToLists(ATable: TDBTable);
-    procedure FillTitles(Horz, Vert: TDBField);
+    procedure FillTable(Horz, Vert: TDBField);
+		procedure GridDrawCell(Sender: TObject; aCol, aRow: Integer;
+		  aRect: TRect; aState: TGridDrawState);
   private
     FTable: TDBTable;
-    FSQLQuery: TSQLQuery;
   public
     constructor Create(ATable: TDBTable);
   end;
@@ -64,10 +67,10 @@ begin
   with sgTable do begin
     Parent := Self;
     Align := alClient;
-    Options := Options + [goRowSizing, goColSizing] - [goFixedColSizing];
+    Options := Options + [goRowSizing, goColSizing, goThumbTracking] - [goFixedColSizing];
     DefaultColWidth := 100;
     DefaultRowHeight := 30;
-
+    OnDrawCell := @GridDrawCell;
 	end;
 
 end;
@@ -85,7 +88,7 @@ end;
 
 procedure TTimeTable.btnApplyClick(Sender: TObject);
 begin
-  FillTitles(
+  FillTable(
     cbbHorz.Items.Objects[cbbHorz.ItemIndex] as TDBField,
     cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField);
 end;
@@ -107,73 +110,92 @@ begin
     end;
 end;
 
-procedure TTimeTable.FillTitles(Horz, Vert: TDBField);
+procedure TTimeTable.FillTable(Horz, Vert: TDBField);
 var
   x, y, i: integer;
   Field: TDBField;
+  count: integer;
+  horzids, vertids: array of integer;
 begin
-  y := 0;
   sgTable.Reset;
 
+  SetLength(horzids, 1);
+  SetLength(vertids, 1);
+
   with SQLQuery do begin
+    Close;
+    SetSQLQuery(FTable, SQLQuery);
+    SQL.Append(
+      'order by ' + Vert.SortField.TableOwner.Name + Vert.SortField.Name +
+      ', ' + Horz.SortField.TableOwner.Name + Horz.SortField.Name + ' asc');
+    Open;
+    First;
+  end;
 
-	end;
-
-  with ConTran.CommonSQLQuery do begin
+	with ConTran.CommonSQLQuery do begin
     Close;
     SetSQLQuery(Horz.TableOwner, ConTran.CommonSQLQuery);
     SQL.Append('order by ' + Horz.SortField.TableOwner.Name + Horz.SortField.Name + ' asc');
     Open;
     First;
     while not EOF do begin
+      SetLength(horzids, length(horzids) + 1);
+      horzids[High(horzids)] := FieldByName(Horz.TableOwner.Name + 'id').AsInteger;
       sgTable.Columns.Add.Title.Caption := FieldByName(Horz.TableOwner.Name + Horz.Name).Value;
       Next;
-		end;
+    end;
 
     Close;
     SetSQLQuery(Vert.TableOwner, ConTran.CommonSQLQuery);
     SQL.Append('order by ' + Vert.SortField.TableOwner.Name + Vert.SortField.Name + ' asc');
     Open;
     First;
+    y := 0;
     while not EOF do begin
       inc(y);
+      SetLength(vertids, y + 1);
+      vertids[y] := FieldByName(Vert.TableOwner.Name + 'id').AsInteger;
       sgTable.RowCount := sgTable.RowCount + 1;
       sgTable.Cells[0, y] := FieldByName(Vert.TableOwner.Name + Vert.Name).Value;
-      Next;
-		end;
-
-    Close;
-    SetSQLQuery(FTable, ConTran.CommonSQLQuery);
-    SQL.Append(
-      'order by ' + Vert.SortField.TableOwner.Name + Vert.SortField.Name +
-      ', ' + Horz.SortField.TableOwner.Name + Horz.SortField.Name);
-    Open;
-    First;
-    x := 1;
-    y := 1;
-    while not EOF do begin
-      if(FieldByName(Horz.TableOwner.Name + Horz.Name).Value = sgTable.Columns[x - 1].Title.Caption) and
-        (FieldByName(Vert.TableOwner.Name + Vert.Name).Value = sgTable.Cells[0, y]) then begin
-          for i := 0 to clbVisibleFields.Count - 1 do begin
-            if not clbVisibleFields.Checked[i] then
-              continue;
-            Field := clbVisibleFields.Items.Objects[i] as TDBField;
-            sgTable.Cells[x, y] :=
-              sgTable.Cells[x, y] +
-              FieldByName(Field.TableOwner.Name + Field.Name).Value + #13 + #10;
-				  end;
-			end
-			else begin
-        inc(x);
-        if x >= sgTable.ColCount then begin
-          x := 1;
-          inc(y);
+      x := 1;
+      with SQLQuery do begin
+        while not EOF do begin
+          if
+          (FieldByName(Horz.TableOwner.Name + 'id').AsInteger = horzids[x]) and
+          (FieldByName(Vert.TableOwner.Name + 'id').AsInteger = vertids[y]) then begin
+            for i := 0 to clbVisibleFields.Count - 1 do begin
+              if not clbVisibleFields.Checked[i] then continue;
+                Field := clbVisibleFields.Items.Objects[i] as TDBField;
+                sgTable.Cells[x, y] :=
+                  sgTable.Cells[x, y] +
+                  FieldByName(Field.TableOwner.Name + Field.Name).Value + ' | ';
+				    end;
+            Next;
+          end else begin
+            inc(x);
+            if x >= sgTable.ColCount then begin break; end;
+          end;
         end;
       end;
       Next;
 		end;
 	end;
+end;
 
+procedure TTimeTable.GridDrawCell(Sender: TObject; aCol, aRow: Integer;
+  aRect: TRect; aState: TGridDrawState);
+var
+  pict: TBitmap;
+begin
+  pict := TBitmap.Create;
+  ImageList.GetBitmap(1, pict);
+  sgTable.Canvas.Brush.Color := clYellow;
+  if (ACol = 1) and (ARow = 1) then
+  ;   //sgTable.Canvas.Draw(aRect, pict);
+  //sgTable.Canvas.CopyRect(aRect, pict.Canvas, aRect);
+  //sgTable.Canvas.Draw(10, 10, pict);
+ // sgTable.Canvas.TextOut(aRect.Left, aRect.Top, 'hello i''m a cell');
+  ImageList.Draw(sgTable.Canvas, aRect.Left + sgTable.ColWidths[aCol] - 16, aRect.Top + sgTable.RowHeights[aRow] - 16, 3, True);
 end;
 
 end.

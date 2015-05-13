@@ -214,7 +214,7 @@ begin
   FFieldType := AFieldType;
   FPrimaryKey := APrimaryKey;
   FOwner := AOwner;
-  FSortField := nil;
+  FSortField := Self;
   FVarCharLimit := AVarCharLimit;
   FTableRef := (DBTablesList.Objects[DBTablesList.IndexOf(ATableRef)] as TDBTable);
   FFieldRef := (FTableRef.FFieldsList.Objects[FTableRef.FFieldsList.IndexOf(AFieldRef)] as TDBField);
@@ -228,7 +228,7 @@ begin
   FWidth := AWidth;
   FFieldType := AFieldType;
   FPrimaryKey := APrimaryKey;
-  FSortField := nil;
+  FSortField := Self;
   FOwner := AOwner;
   FVarCharLimit := AVarCharLimit;
 end;
