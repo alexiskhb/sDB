@@ -1,11 +1,11 @@
 object TimeTable: TTimeTable
-  Left = 282
-  Height = 400
-  Top = 224
-  Width = 593
+  Left = 222
+  Height = 554
+  Top = 115
+  Width = 928
   Caption = 'timetable'
-  ClientHeight = 400
-  ClientWidth = 593
+  ClientHeight = 554
+  ClientWidth = 928
   Constraints.MinHeight = 300
   Constraints.MinWidth = 350
   OnClose = FormClose
@@ -14,10 +14,10 @@ object TimeTable: TTimeTable
     Left = 0
     Height = 40
     Top = 0
-    Width = 593
+    Width = 928
     Align = alTop
     ClientHeight = 40
-    ClientWidth = 593
+    ClientWidth = 928
     ParentColor = False
     TabOrder = 0
     object cbbHorz: TComboBox
@@ -43,7 +43,7 @@ object TimeTable: TTimeTable
       TabOrder = 1
     end
     object btnApply: TBitBtn
-      Left = 528
+      Left = 863
       Height = 26
       Top = 8
       Width = 56
@@ -91,12 +91,12 @@ object TimeTable: TTimeTable
     end
   end
   object pnlControlsRight: TPanel
-    Left = 424
-    Height = 360
+    Left = 759
+    Height = 514
     Top = 40
     Width = 169
     Align = alRight
-    ClientHeight = 360
+    ClientHeight = 514
     ClientWidth = 169
     ParentColor = False
     TabOrder = 1
@@ -108,6 +108,9 @@ object TimeTable: TTimeTable
       Align = alTop
       BorderStyle = bsNone
       ItemHeight = 0
+      MultiSelect = True
+      OnMouseWheelDown = clbVisibleFieldsMouseWheelDown
+      OnMouseWheelUp = clbVisibleFieldsMouseWheelUp
       TabOrder = 0
       TopIndex = -1
     end
@@ -122,8 +125,8 @@ object TimeTable: TTimeTable
     end
   end
   object Splitter: TSplitter
-    Left = 419
-    Height = 360
+    Left = 754
+    Height = 514
     Top = 40
     Width = 5
     Align = alRight

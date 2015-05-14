@@ -6,17 +6,17 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-	StdCtrls, CheckLst, Grids, Buttons, metadata, connection_transaction, sqldb;
+	StdCtrls, CheckLst, Grids, Buttons, metadata, connection_transaction, sqldb, types;
 
 type
-
-  TStringListDynArrayArray = array of array of TStringList;
 
   TMyStringGrid = class(TStringGrid)
   public
     CellStrings: array of array of TStringList;
     procedure Reset;
   end;
+
+  { TTimeTable }
 
   TTimeTable = class(TForm)
     btnApply: TBitBtn;
@@ -33,11 +33,17 @@ type
     StringGrid1: TStringGrid;
     procedure btnApplyClick(Sender: TObject);
     procedure cbbChange(Sender: TObject);
+    procedure clbVisibleFieldsMouseWheelDown(Sender: TObject;
+      Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
+    procedure clbVisibleFieldsMouseWheelUp(Sender: TObject; Shift: TShiftState;
+      MousePos: TPoint; var Handled: Boolean);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure AddFieldsToLists(ATable: TDBTable);
     procedure FillTable(Horz, Vert: TDBField);
     procedure GridDrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
+    procedure sgTableGetCellHint(Sender: TObject; ACol, ARow: Integer;
+      var HintText: String);
   private
     FTable: TDBTable;
   public
@@ -73,13 +79,17 @@ begin
 
   sgTable := TMyStringGrid.Create(Self);
   with sgTable do begin
+    SetLength(CellStrings, 1, 1);
     Parent := Self;
     Align := alClient;
-    Options := Options + [goRowSizing, goColSizing, goThumbTracking] - [goFixedColSizing];
-    DefaultColWidth := 100;
-    DefaultRowHeight := 30;
+    Options := Options + [goRowSizing, goColSizing, goThumbTracking, goFixedColSizing, goCellHints];
+    DefaultColWidth := 200;
+    DefaultRowHeight := 100;
     OnDrawCell := @GridDrawCell;
-    SetLength(CellStrings, 1, 1);
+    ColWidths[0] := 100;
+    RowHeights[0] := 30;
+    ShowHint := true;
+    OnGetCellHint := @sgTableGetCellHint;
   end;
 
 end;
@@ -93,6 +103,32 @@ procedure TTimeTable.cbbChange(Sender: TObject);
 begin
   if (cbbHorz.ItemIndex <> -1) and (cbbVert.ItemIndex <> -1) then
     btnApply.Enabled := true;
+end;
+
+procedure TTimeTable.clbVisibleFieldsMouseWheelDown(Sender: TObject;
+  Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
+var
+  i: integer;
+begin
+  for i := clbVisibleFields.Count - 1 downto 0 do
+    with clbVisibleFields do
+      if Selected[i] and (i < Count - 1) then begin
+        clbVisibleFields.Items.Move(i, i + 1);
+        clbVisibleFields.Selected[i + 1] := true;
+      end;
+end;
+
+procedure TTimeTable.clbVisibleFieldsMouseWheelUp(Sender: TObject;
+  Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
+var
+  i: integer;
+begin
+  for i := 0 to clbVisibleFields.Count - 1 do
+    with clbVisibleFields do
+      if Selected[i] and (i > 0) then begin
+        clbVisibleFields.Items.Move(i, i - 1);
+        clbVisibleFields.Selected[i - 1] := true;
+      end;
 end;
 
 procedure TTimeTable.btnApplyClick(Sender: TObject);
@@ -123,11 +159,12 @@ procedure TTimeTable.FillTable(Horz, Vert: TDBField);
 var
   x, y, i: integer;
   Field: TDBField;
-  count: integer;
   horzids, vertids: array of integer;
+  CheckedCount: integer;
 begin
   sgTable.Reset;
 
+  CheckedCount := 0;
   SetLength(horzids, 1);
   SetLength(vertids, 1);
 
@@ -190,9 +227,6 @@ begin
             for i := 0 to clbVisibleFields.Count - 1 do begin
               if not clbVisibleFields.Checked[i] then continue;
                 Field := clbVisibleFields.Items.Objects[i] as TDBField;
-                //sgTable.Cells[x, y] :=
-                //  sgTable.Cells[x, y] +
-                  //FieldByName(Field.TableOwner.Name + Field.Name).Value + ' | ';
                 sgTable.CellStrings[y, x].Append(FieldByName(Field.TableOwner.Name + Field.Name).Value);
 	      end;
             Next;
@@ -204,6 +238,15 @@ begin
       end;
       Next;
     end;
+  end;
+
+  for i := 0 to clbVisibleFields.Count - 1 do
+    if clbVisibleFields.Checked[i] then inc(CheckedCount);
+  with sgTable do begin
+    DefaultRowHeight := (CheckedCount + 1)*Canvas.TextHeight('A');
+    //ColWidths[0] := 100;
+    RowHeights[0] := 30;
+    //clbVisibleFields.Items.;
   end;
 end;
 
@@ -227,6 +270,14 @@ begin
         Canvas.TextOut(aRect.Left, aRect.Top + i*Canvas.TextHeight('A'), CellStrings[aRow, aCol].Strings[i]);
   end;
   ImageList.Draw(sgTable.Canvas, aRect.Left + sgTable.ColWidths[aCol] - 16, aRect.Top + sgTable.RowHeights[aRow] - 16, 3, True);
+end;
+
+procedure TTimeTable.sgTableGetCellHint(Sender: TObject; ACol,
+  ARow: Integer; var HintText: String);
+begin
+  with sgTable do
+    if (aRow < Length(CellStrings)) and (aCol < Length(CellStrings[aRow])) and Assigned(CellStrings[aRow, aCol]) then
+      HintText := CellStrings[aRow, aCol].Text;
 end;
 
 end.
