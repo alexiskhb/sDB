@@ -10,32 +10,34 @@ uses
 
 type
 
-	{ TTimeTable }
+  TStringListDynArrayArray = array of array of TStringList;
 
   TMyStringGrid = class(TStringGrid)
+  public
+    CellStrings: array of array of TStringList;
     procedure Reset;
-	end;
+  end;
 
   TTimeTable = class(TForm)
-	  btnApply: TBitBtn;
-	  cbbHorz: TComboBox;
- 	  cbbVert: TComboBox;
-	  clbVisibleFields: TCheckListBox;
-		ImageList: TImageList;
-	  pnlControlsRight: TPanel;
-	  pnlContols: TPanel;
-		Splitter: TSplitter;
-		CheckSplitter: TSplitter;
+    btnApply: TBitBtn;
+    cbbHorz: TComboBox;
+    cbbVert: TComboBox;
+    clbVisibleFields: TCheckListBox;
+    ImageList: TImageList;
+    pnlControlsRight: TPanel;
+    pnlContols: TPanel;
+    Splitter: TSplitter;
+    CheckSplitter: TSplitter;
     sgTable: TMyStringGrid;
-		SQLQuery: TSQLQuery;
-		StringGrid1: TStringGrid;
-		procedure btnApplyClick(Sender: TObject);
+    SQLQuery: TSQLQuery;
+    StringGrid1: TStringGrid;
+    procedure btnApplyClick(Sender: TObject);
     procedure cbbChange(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure AddFieldsToLists(ATable: TDBTable);
     procedure FillTable(Horz, Vert: TDBField);
-		procedure GridDrawCell(Sender: TObject; aCol, aRow: Integer;
-		  aRect: TRect; aState: TGridDrawState);
+    procedure GridDrawCell(Sender: TObject; aCol, aRow: Integer;
+      aRect: TRect; aState: TGridDrawState);
   private
     FTable: TDBTable;
   public
@@ -49,7 +51,13 @@ implementation
 { TTimeTable }
 
 procedure TMyStringGrid.Reset;
+var
+  i, j: integer;
 begin
+  for i := 0 to High(CellStrings) do
+    for j := 0 to High(CellStrings[i]) do
+      if Assigned(CellStrings[i, j]) then
+        FreeAndNil(CellStrings[i, j]);
   while RowCount > 1 do
     DeleteColRow(false, 1);
   while ColCount > 1 do
@@ -71,7 +79,8 @@ begin
     DefaultColWidth := 100;
     DefaultRowHeight := 30;
     OnDrawCell := @GridDrawCell;
-	end;
+    SetLength(CellStrings, 1, 1);
+  end;
 
 end;
 
@@ -132,16 +141,22 @@ begin
     First;
   end;
 
-	with ConTran.CommonSQLQuery do begin
+  with ConTran.CommonSQLQuery do begin
     Close;
     SetSQLQuery(Horz.TableOwner, ConTran.CommonSQLQuery);
     SQL.Append('order by ' + Horz.SortField.TableOwner.Name + Horz.SortField.Name + ' asc');
     Open;
     First;
     while not EOF do begin
-      SetLength(horzids, length(horzids) + 1);
+      SetLength(horzids, Length(horzids) + 1);
+      SetLength(sgTable.CellStrings, 1, Length(horzids));
       horzids[High(horzids)] := FieldByName(Horz.TableOwner.Name + 'id').AsInteger;
       sgTable.Columns.Add.Title.Caption := FieldByName(Horz.TableOwner.Name + Horz.Name).Value;
+      if not Assigned(sgTable.CellStrings[0, High(horzids)]) then
+        sgTable.CellStrings[0, High(horzids)] := TStringList.Create
+      else
+        sgTable.CellStrings[0, High(horzids)].Clear;
+      sgTable.CellStrings[0, High(horzids)].Append(sgTable.Columns[High(horzids) - 1].Title.Caption);
       Next;
     end;
 
@@ -154,22 +169,32 @@ begin
     while not EOF do begin
       inc(y);
       SetLength(vertids, y + 1);
+      SetLength(sgTable.CellStrings, y + 1, sgTable.ColCount);
       vertids[y] := FieldByName(Vert.TableOwner.Name + 'id').AsInteger;
       sgTable.RowCount := sgTable.RowCount + 1;
       sgTable.Cells[0, y] := FieldByName(Vert.TableOwner.Name + Vert.Name).Value;
+      if not Assigned(sgTable.CellStrings[y, 0]) then
+        sgTable.CellStrings[y, 0] := TStringList.Create
+      else
+        sgTable.CellStrings[y, 0].Clear;
+      sgTable.CellStrings[y, 0].Append(FieldByName(Vert.TableOwner.Name + Vert.Name).Value);
       x := 1;
       with SQLQuery do begin
         while not EOF do begin
           if
           (FieldByName(Horz.TableOwner.Name + 'id').AsInteger = horzids[x]) and
           (FieldByName(Vert.TableOwner.Name + 'id').AsInteger = vertids[y]) then begin
+            if not Assigned(sgTable.CellStrings[y, x]) then
+              sgTable.CellStrings[y, x] := TStringList.Create;
+            sgTable.CellStrings[y, x].Append(' ');
             for i := 0 to clbVisibleFields.Count - 1 do begin
               if not clbVisibleFields.Checked[i] then continue;
                 Field := clbVisibleFields.Items.Objects[i] as TDBField;
-                sgTable.Cells[x, y] :=
-                  sgTable.Cells[x, y] +
-                  FieldByName(Field.TableOwner.Name + Field.Name).Value + ' | ';
-				    end;
+                //sgTable.Cells[x, y] :=
+                //  sgTable.Cells[x, y] +
+                  //FieldByName(Field.TableOwner.Name + Field.Name).Value + ' | ';
+                sgTable.CellStrings[y, x].Append(FieldByName(Field.TableOwner.Name + Field.Name).Value);
+	      end;
             Next;
           end else begin
             inc(x);
@@ -178,23 +203,29 @@ begin
         end;
       end;
       Next;
-		end;
-	end;
+    end;
+  end;
 end;
 
 procedure TTimeTable.GridDrawCell(Sender: TObject; aCol, aRow: Integer;
   aRect: TRect; aState: TGridDrawState);
 var
-  pict: TBitmap;
+  i: integer;
 begin
-  pict := TBitmap.Create;
-  ImageList.GetBitmap(1, pict);
-  sgTable.Canvas.Brush.Color := clYellow;
-  if (ACol = 1) and (ARow = 1) then
-  ;   //sgTable.Canvas.Draw(aRect, pict);
+  //pict := TBitmap.Create;
+  //ImageList.GetBitmap(1, pict);
+  //sgTable.Canvas.Draw(aRect, pict);
   //sgTable.Canvas.CopyRect(aRect, pict.Canvas, aRect);
   //sgTable.Canvas.Draw(10, 10, pict);
- // sgTable.Canvas.TextOut(aRect.Left, aRect.Top, 'hello i''m a cell');
+  //sgTable.Canvas.Brush.Color := clWhite;
+  //sgTable.Canvas.TextOut(aRect.Left, aRect.Top, sgTable.Cells[aCol, aRow]);
+  //sgTable.Canvas;
+  //if (aCol = 2) and (aRow = 2) then ShowMessage('S');
+  with sgTable do begin
+    if (aRow < Length(CellStrings)) and (aCol < Length(CellStrings[aRow])) and Assigned(CellStrings[aRow, aCol]) then
+      for i := 1 to CellStrings[aRow, aCol].Count - 1 do
+        Canvas.TextOut(aRect.Left, aRect.Top + i*Canvas.TextHeight('A'), CellStrings[aRow, aCol].Strings[i]);
+  end;
   ImageList.Draw(sgTable.Canvas, aRect.Left + sgTable.ColWidths[aCol] - 16, aRect.Top + sgTable.RowHeights[aRow] - 16, 3, True);
 end;
 
