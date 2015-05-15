@@ -64,7 +64,7 @@ type
     procedure AddFilterClick(Sender: TObject);
     constructor Create(ATable: TDBTable; AIndex: integer; APanel: TCustomControl);
     destructor Destroy; override;
- 	end;
+  end;
 
 const
   FilterHeight = 26;
@@ -97,7 +97,7 @@ begin
     OnMouseUp := @DeleteFilterClick;
   end;
 
-	cbbFields := TComboBox.Create(sbxPanel);
+  cbbFields := TComboBox.Create(sbxPanel);
   with cbbFields do begin
     Parent := sbxPanel;
     Left := btnDeleteFilter.Left + btnDeleteFilter.Width + 1;
@@ -142,7 +142,7 @@ end;
 
 procedure TQueryFilter.DeleteFilterClick(Sender: TObject; MouseButton: TMouseButton; ShiftState: TShiftState; X, Y: longint);
 begin
-  FChangingData(Self);
+  if Assigned(FChangingData) then FChangingData(Self);
   FDestroying(Sender);
 end;
 
@@ -159,7 +159,7 @@ begin
   if Assigned(ConstantEditor) then begin
     FreeAndNil(ConstantEditor);
     FreeAndNil(cbbOperations);
-	end;
+  end;
 
   if Assigned(VSender.Items.Objects[VSender.ItemIndex]) then
     tempft := ((VSender.Items.Objects[VSender.ItemIndex]) as TDBField).FieldType
@@ -179,7 +179,7 @@ begin
         AddItem(Operations[ro].Caption, Operations[ro]);
     ItemIndex := 0;
     OnChange := @OperationChange;
-	end;
+  end;
 
   ConstantEditor := TypeOfEditor[tempft].Create(Panel);
   ConstantEditor.Parent := Panel;
@@ -193,31 +193,31 @@ begin
       with (ConstantEditor as TSpinEdit) do begin
         MaxValue := High(Integer);
         MinValue := Low(Integer);
-	  	end;
+      end;
     if TypeOfEditor[tempft] = TEdit then
       with (ConstantEditor as TEdit) do
         if Assigned(VSender.Items.Objects[VSender.ItemIndex]) then
           MaxLength := ((VSender.Items.Objects[VSender.ItemIndex]) as TDBField).VarCharLimit;
     OnChange := @EditChange;
-	end;
+  end;
 
   if tempft = ftUnknown then begin
     ConstantEditor.Visible := false;
     cbbOperations.Visible := false;
-	end else
+  end else
     btnAddFilter.Left := ConstantEditor.Left + ConstantEditor.Width + 1;
 
-  FChangingData(Self);
+  if Assigned(FChangingData) then FChangingData(Self);
 end;
 
 procedure TQueryFilter.EditChange(Sender: TObject);
 begin
-  FChangingData(Self);
+  if Assigned(FChangingData) then FChangingData(Self);
 end;
 
 procedure TQueryFilter.OperationChange(Sender: TObject);
 begin
-  FChangingData(Self);
+  if Assigned(FChangingData) then FChangingData(Self);
 end;
 
 procedure TQueryFilter.AddFilterClick(Sender: TObject);
@@ -233,7 +233,7 @@ begin
   if Assigned(ConstantEditor) then begin
     ConstantEditor.Top := Value;
     cbbOperations.Top := Value;
-	end;
+  end;
   FTop := Value;
 end;
 
@@ -245,8 +245,8 @@ begin
   if Assigned(ConstantEditor) then begin
     ConstantEditor.Height := Value;
     cbbOperations.Height := Value;
-	end;
-	FHeight := Value;
+  end;
+  FHeight := Value;
 end;
 
 procedure TQueryFilter.SetFilterTag(Value: integer);
@@ -285,7 +285,7 @@ begin
   if Assigned(ConstantEditor) then begin
     FreeAndNil(ConstantEditor);
     FreeAndNil(cbbOperations);
-	end;
+  end;
   inherited;
 end;
 

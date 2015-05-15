@@ -1,7 +1,7 @@
 object TimeTable: TTimeTable
-  Left = 369
+  Left = 404
   Height = 554
-  Top = 114
+  Top = 130
   Width = 928
   Caption = 'timetable'
   ClientHeight = 554
@@ -94,8 +94,8 @@ object TimeTable: TTimeTable
     end
     object lbVert: TLabel
       Left = 8
-      Height = 18
-      Top = 16
+      Height = 24
+      Top = 8
       Width = 16
       AutoSize = False
       Caption = '↓'
@@ -105,8 +105,8 @@ object TimeTable: TTimeTable
     end
     object lbHorz: TLabel
       Left = 280
-      Height = 18
-      Top = 16
+      Height = 26
+      Top = 8
       Width = 32
       AutoSize = False
       Caption = '→'
@@ -116,26 +116,27 @@ object TimeTable: TTimeTable
     end
   end
   object pnlControlsRight: TPanel
-    Left = 759
+    Left = 766
     Height = 514
     Top = 40
-    Width = 169
+    Width = 162
     Align = alRight
     ClientHeight = 514
-    ClientWidth = 169
+    ClientWidth = 162
     ParentColor = False
     TabOrder = 1
     object clbVisibleFields: TCheckListBox
       Left = 1
-      Height = 175
+      Height = 160
       Top = 1
-      Width = 167
+      Width = 160
       Align = alTop
       BorderStyle = bsNone
       ItemHeight = 0
       MultiSelect = True
       OnMouseWheelDown = clbVisibleFieldsMouseWheelDown
       OnMouseWheelUp = clbVisibleFieldsMouseWheelUp
+      ParentFont = False
       TabOrder = 0
       TopIndex = -1
     end
@@ -143,14 +144,57 @@ object TimeTable: TTimeTable
       Cursor = crVSplit
       Left = 1
       Height = 8
-      Top = 176
-      Width = 167
+      Top = 161
+      Width = 160
       Align = alTop
       ResizeAnchor = akTop
     end
+    object pnlFilterControls: TPanel
+      Left = 1
+      Height = 28
+      Top = 169
+      Width = 160
+      Align = alTop
+      ClientHeight = 28
+      ClientWidth = 160
+      TabOrder = 2
+      object lbFilters: TLabel
+        Left = 66
+        Height = 26
+        Top = 1
+        Width = 68
+        Align = alRight
+        Caption = 'Фильтры '
+        ParentColor = False
+        OnClick = lbFiltersClick
+      end
+      object btnAddFilter: TButton
+        Tag = -1
+        Left = 134
+        Height = 26
+        Top = 1
+        Width = 25
+        Align = alRight
+        Caption = '+'
+        OnClick = btnAddFilterClick
+        TabOrder = 0
+      end
+    end
+    object sbxFilters: TScrollBox
+      Left = 1
+      Height = 316
+      Top = 197
+      Width = 160
+      HorzScrollBar.Page = 1
+      HorzScrollBar.Tracking = True
+      VertScrollBar.Page = 1
+      VertScrollBar.Tracking = True
+      Align = alClient
+      TabOrder = 3
+    end
   end
   object Splitter: TSplitter
-    Left = 754
+    Left = 761
     Height = 514
     Top = 40
     Width = 5
@@ -178,7 +222,7 @@ object TimeTable: TTimeTable
     left = 64
     top = 48
     Bitmap = {
-      4C69040000001000000010000000FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+      4C69050000001000000010000000FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
       FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
       FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
       FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
@@ -306,7 +350,39 @@ object TimeTable: TTimeTable
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
-      0000000000000000000000000000
+      0000000000000000000000000000FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+      FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+      FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+      FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+      FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+      FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+      FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+      FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+      FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+      FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+      FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+      FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+      FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+      FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
+      FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF0041C4850041C4850041C4
+      850041C4850041C4850041C4850041C4850041C4850041C4850041C4850041C4
+      850041C4850041C4850041C48500FFFFFF00FFFFFF0041C4850041C4850041C4
+      850041C4850041C4850041C4850041C4850041C4850041C4850041C4850041C4
+      850041C4850041C4850041C48500FFFFFF00FFFFFF0041C4850041C4850041C4
+      850041C4850041C4850041C4850041C4850041C4850041C4850041C4850041C4
+      850041C4850041C4850041C48500FFFFFF00FFFFFF0041C4850041C4850041C4
+      850041C4850041C4850041C4850041C4850041C4850041C4850041C4850041C4
+      850041C4850041C4850041C485FFFFFFFF00FFFFFF0041C4850041C4850041C4
+      850041C4850041C4850041C4850041C4850041C4850041C4850041C4850041C4
+      850041C4850041C485FF41C485FFFFFFFF00FFFFFF0041C4850041C4850041C4
+      850041C4850041C4850041C4850041C4850041C4850041C4850041C4850041C4
+      850041C485FF41C485FF41C485FFFFFFFF00FFFFFF0041C4850041C4850041C4
+      850041C4850041C4850041C4850041C4850041C4850041C4850041C4850041C4
+      85FF41C485FF41C485FF41C485FFFFFFFF00FFFFFF0041C4850041C4850041C4
+      850041C4850041C4850041C4850041C4850041C4850041C4850041C485FF41C4
+      85FF41C485FF41C485FF41C485FFFFFFFF00FFFFFF0041C4850041C4850041C4
+      850041C4850041C4850041C4850041C4850041C4850041C485FF41C485FF41C4
+      85FF41C485FF41C485FF41C485FF
     }
   end
   object MainMenu: TMainMenu
@@ -317,6 +393,13 @@ object TimeTable: TTimeTable
       object miShowAsList: TMenuItem
         Caption = 'Как список'
         OnClick = miShowAsListClick
+      end
+    end
+    object miOptions: TMenuItem
+      Caption = 'Опции'
+      object miEmptyCols: TMenuItem
+        Caption = 'Отображать пустые столбцы'
+        Checked = True
       end
     end
   end
