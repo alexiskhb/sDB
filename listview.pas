@@ -7,7 +7,7 @@ interface
 uses
   connection_transaction, Classes, lcltype, SysUtils, Forms, Menus, DBCtrls, DB, DBGrids,
   ExtCtrls, sqldb, Dialogs, Controls, StdCtrls, metadata, Buttons, record_cards,
-  query_filter, time_table;
+  query_filter;
 
 type
 
@@ -16,40 +16,40 @@ type
   { TDBTableForm }
 
   TDBTableForm = class(TForm)
-	  btnEditRecord: TBitBtn;
-	  btnInsertRecord: TBitBtn;
-	  btnDeleteRecord: TBitBtn;
+    btnEditRecord: TBitBtn;
+    btnInsertRecord: TBitBtn;
+    btnDeleteRecord: TBitBtn;
     DBNavigator: TDBNavigator;
     DataSource: TDataSource;
     DBGrid: TDBGrid;
-	  miTimeTable: TMenuItem;
-		miReset: TMenuItem;
+    miShowAsTable: TMenuItem;
+    miReset: TMenuItem;
     SQLQuery: TSQLQuery;
     btnAddFilter: TButton;
     btnFilter: TSpeedButton;
-		sbxFilters: TScrollBox;
-		pnlControls: TPanel;
-	  Splitter: TSplitter;
-    miTable: TMenuItem;
+    sbxFilters: TScrollBox;
+    pnlControls: TPanel;
+    Splitter: TSplitter;
+    miList: TMenuItem;
     miCloseOtherTables: TMenuItem;
     MainMenu: TMainMenu;
     miCloseTable: TMenuItem;
     RecordCard: TRecordCard;
-		procedure btnEditRecordClick(Sender: TObject);
-		procedure DBGridColumnMoved(Sender: TObject; FromIndex, ToIndex: Integer);
+    procedure btnEditRecordClick(Sender: TObject);
+    procedure DBGridColumnMoved(Sender: TObject; FromIndex, ToIndex: Integer);
     procedure DBGridDblClick(Sender: TObject);
-		procedure btnInsertRecordClick(Sender: TObject);
+    procedure btnInsertRecordClick(Sender: TObject);
     procedure btnDeleteRecordClick(Sender: TObject);
-		procedure DBNavigatorClick(Sender: TObject; Button: TDBNavButtonType);
+    procedure DBNavigatorClick(Sender: TObject; Button: TDBNavButtonType);
     procedure btnAddFilterClick(Sender: TObject);
     procedure btnFilterClick(Sender: TObject);
-		procedure miTimeTableClick(Sender: TObject);
+    procedure miShowAsTableClick(Sender: TObject);
     procedure miCloseOtherTablesClick(Sender: TObject);
     procedure miCloseTableClick(Sender: TObject);
-		procedure miResetClick(Sender: TObject);
+    procedure miResetClick(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormDestroy(Sender: TObject);
-		procedure FormShow(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     procedure AddConditionsToQuery;
     procedure AddSort;
     procedure RefreshTable;
@@ -60,7 +60,6 @@ type
     procedure FilterDataChanged(Sender: TObject);
     procedure RecordCardOkClick(Sender: TObject);
     procedure RememberCursorPosition(Sender: TObject);
-    class procedure CreateTableForm(ATag: integer; aCaption: string);
     class procedure DestroyTableForm(ATag: integer);
     class procedure FormSetFocus(ATag: integer);
     class procedure RefreshTables;
@@ -71,31 +70,24 @@ type
     OrderIsDesc: boolean;
     FTable: TDBTable;
     FCurPos: integer;
-    FTimeTable: TTimeTable;
+    FShowAsTable: TNotifyEvent;
+  public
+    property OnShowAsTableClick: TNotifyEvent read FShowAsTable write FShowAsTable;
+    constructor Create(ATable: TDBTable);
   end;
 
   TDBTableFormDynArray = array of TDBTableForm;
+
+var
+  DBTableForms: TDBTableFormDynArray;
 
 implementation
 
 {$R *.lfm}
 
-var
-  DBTableForms: TDBTableFormDynArray;
-
 class function TDBTableForm.FormExists(ATag: integer): boolean;
 begin
   Result := DBTableForms[ATag] <> nil;
-end;
-
-class procedure TDBTableForm.CreateTableForm(ATag: integer; aCaption: string);
-begin
-  Application.CreateForm(TDBTableForm, DBTableForms[ATag]);
-  with DBTableForms[ATag] do begin
-    Caption := aCaption;
-    Tag := ATag;
-    Show;
-  end;
 end;
 
 class procedure TDBTableForm.DestroyTableForm(ATag: integer);
@@ -117,6 +109,50 @@ begin
   for i := 0 to High(DBTableForms) do
     if Assigned(DBTableForms[i]) then
       DBTableForms[i].RefreshTable;
+end;
+
+constructor TDBTableForm.Create(ATable: TDBTable);
+begin
+  inherited Create(Application);
+  FTable := ATable;
+  Caption := ATable.Caption;
+
+  with SQLQuery do begin
+    Transaction := ConTran.DBTransaction;
+    Database := ConTran.DBConnection;
+    SQLQuery.Close;
+    SetSQLQuery(FTable, SQLQuery);
+  end;
+
+  with DataSource do begin
+    DataSet := SQLQuery;
+    DataSet.EnableControls;
+  end;
+
+  FFieldsOrder := TStringList.Create;
+  FFieldsOrder.Sorted := false;
+
+  with DBGrid do begin
+    DataSource := DataSource;
+    AddColumnsToGrid(FTable);
+    Options := Options - [dgEditing] + [dgThumbTracking];
+    OnTitleClick := @FDBGridTitleClick;
+    OnDblClick := @DBGridDblClick;
+  end;
+
+  with DBNavigator do begin
+    DataSource := DataSource;
+  end;
+
+  SQLQuery.ReadOnly := false;
+
+  AddSort;
+
+  SQLQuery.Open;
+  SQLQuery.Last;
+  SQLQuery.First;
+
+  CardsManager.OnRequestRefreshTables := @RecordCardOkClick;
 end;
 
 procedure TDBTableForm.AddColumnsToGrid(ATable: TDBTable);
@@ -145,10 +181,10 @@ begin
   AddConditionsToQuery;
   if OrderIsDesc then
     Column.Title.Caption := '↑ ' + Column.Title.Caption
-	else
+  else
     Column.Title.Caption := '↓ ' + Column.Title.Caption;
   AddSort;
-	OrderIsDesc := not OrderIsDesc;
+  OrderIsDesc := not OrderIsDesc;
   SQLQuery.Open;
 end;
 
@@ -169,15 +205,15 @@ begin
         SQLQuery.SQL.Append('order by ' + sortfield);
         SQLQuery.SQL.Append('  desc');
         exit;
-		  end else
+      end else
         if (Pos('↓', Caption) <> 0) then begin
           SQLQuery.SQL.Append('order by ' + sortfield);
           SQLQuery.SQL.Append('  asc');
           exit;
-			  end;
-	end;
+        end;
+  end;
 
-	SQLQuery.SQL.Append('order by ' + FTable.Name + '.id');
+  SQLQuery.SQL.Append('order by ' + FTable.Name + '.id');
   SQLQuery.SQL.Append('  asc');
 end;
 
@@ -218,44 +254,7 @@ end;
 
 procedure TDBTableForm.FormShow(Sender: TObject);
 begin
-  FTable := DBTables[Self.Tag];
-
-  with SQLQuery do begin
-    Transaction := ConTran.DBTransaction;
-    Database := ConTran.DBConnection;
-    SQLQuery.Close;
-    SetSQLQuery(FTable, SQLQuery);
-  end;
-
-  with DataSource do begin
-    DataSet := SQLQuery;
-    DataSet.EnableControls;
-	end;
-
-  FFieldsOrder := TStringList.Create;
-  FFieldsOrder.Sorted := false;
-
-  with DBGrid do begin
-    DataSource := DataSource;
-    AddColumnsToGrid(FTable);
-    Options := Options - [dgEditing] + [dgThumbTracking];
-    OnTitleClick := @FDBGridTitleClick;
-    OnDblClick := @DBGridDblClick;
-  end;
-
-  with DBNavigator do begin
-    DataSource := DataSource;
-  end;
-
-  SQLQuery.ReadOnly := false;
-
-  AddSort;
-
-  SQLQuery.Open;
-  SQLQuery.Last;
-  SQLQuery.First;
-
-  CardsManager.OnRequestRefreshTables := @RecordCardOkClick;
+  miShowAsTable.Tag := Self.Tag;
 end;
 
 procedure TDBTableForm.FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -304,14 +303,9 @@ begin
   SQLQuery.Open;
 end;
 
-procedure TDBTableForm.miTimeTableClick(Sender: TObject);
+procedure TDBTableForm.miShowAsTableClick(Sender: TObject);
 begin
-  if not Assigned(FTimeTable) then begin
-    FTimeTable := TTimeTable.Create(FTable);
-    FTimeTable.Show;
-	end
-	else
-    FTimeTable.SetFocus;
+  FShowAsTable(Sender);
 end;
 
 procedure TDBTableForm.AddConditionsToQuery;
@@ -434,12 +428,12 @@ begin
 end;
 
 procedure TDBTableForm.DBNavigatorClick(Sender: TObject;
-		Button: TDBNavButtonType);
+  Button: TDBNavButtonType);
 begin
   case Button of
     nbEdit: DBGridDblClick(DBGrid);
-		else exit;
-	end;
+    else exit;
+  end;
 end;
 
 initialization

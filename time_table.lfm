@@ -1,14 +1,17 @@
 object TimeTable: TTimeTable
-  Left = 222
+  Left = 369
   Height = 554
-  Top = 115
+  Top = 114
   Width = 928
   Caption = 'timetable'
   ClientHeight = 554
   ClientWidth = 928
   Constraints.MinHeight = 300
   Constraints.MinWidth = 350
+  Menu = MainMenu
   OnClose = FormClose
+  OnDestroy = FormDestroy
+  OnShow = FormShow
   LCLVersion = '1.2.6.0'
   object pnlContols: TPanel
     Left = 0
@@ -21,10 +24,10 @@ object TimeTable: TTimeTable
     ParentColor = False
     TabOrder = 0
     object cbbHorz: TComboBox
-      Left = 32
+      Left = 160
       Height = 26
       Top = 8
-      Width = 100
+      Width = 116
       AutoSize = False
       ItemHeight = 0
       OnChange = cbbChange
@@ -32,10 +35,10 @@ object TimeTable: TTimeTable
       TabOrder = 0
     end
     object cbbVert: TComboBox
-      Left = 160
+      Left = 24
       Height = 26
       Top = 8
-      Width = 100
+      Width = 116
       AutoSize = False
       ItemHeight = 0
       OnChange = cbbChange
@@ -88,6 +91,28 @@ object TimeTable: TTimeTable
       }
       OnClick = btnApplyClick
       TabOrder = 2
+    end
+    object lbVert: TLabel
+      Left = 8
+      Height = 18
+      Top = 16
+      Width = 16
+      AutoSize = False
+      Caption = '↓'
+      Font.Height = -19
+      ParentColor = False
+      ParentFont = False
+    end
+    object lbHorz: TLabel
+      Left = 280
+      Height = 18
+      Top = 16
+      Width = 32
+      AutoSize = False
+      Caption = '→'
+      Font.Height = -19
+      ParentColor = False
+      ParentFont = False
     end
   end
   object pnlControlsRight: TPanel
@@ -283,5 +308,16 @@ object TimeTable: TTimeTable
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000
     }
+  end
+  object MainMenu: TMainMenu
+    left = 112
+    top = 48
+    object miTable: TMenuItem
+      Caption = 'Таблица'
+      object miShowAsList: TMenuItem
+        Caption = 'Как список'
+        OnClick = miShowAsListClick
+      end
+    end
   end
 end

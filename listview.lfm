@@ -248,11 +248,11 @@ object DBTableForm: TDBTableForm
   object MainMenu: TMainMenu
     left = 16
     top = 160
-    object miTable: TMenuItem
+    object miList: TMenuItem
       Caption = 'Список'
-      object miTimeTable: TMenuItem
+      object miShowAsTable: TMenuItem
         Caption = 'Как таблица'
-        OnClick = miTimeTableClick
+        OnClick = miShowAsTableClick
       end
       object miReset: TMenuItem
         Caption = 'Сброс'

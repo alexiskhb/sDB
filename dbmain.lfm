@@ -97,8 +97,11 @@ object MainForm: TMainForm
   object MainMenu: TMainMenu
     left = 8
     top = 64
-    object MenuReference: TMenuItem
-      Caption = 'Справочник'
+    object MenuLists: TMenuItem
+      Caption = 'Списки'
+    end
+    object MenuTables: TMenuItem
+      Caption = 'Таблицы'
     end
     object MenuDatabase: TMenuItem
       Caption = 'База данных'

@@ -8,7 +8,7 @@ uses
   connection_transaction, Classes, SysUtils, sqldb, DB, IBConnection, FileUtil,
   SynHighlighterSQL, SynEdit, Forms, Controls, Graphics, Dialogs,
   DBGrids, StdCtrls, ExtCtrls, Menus, Buttons, DBCtrls, FormConnect,
-  metadata, listview, aboutsdb;
+  metadata, listview, aboutsdb, time_table;
 
 type
 
@@ -21,14 +21,15 @@ type
     DBQuery: TSQLQuery;
     MainMenu: TMainMenu;
     EntryField: TMemo;
+    MenuTables: TMenuItem;
     MenuOpenSQL: TMenuItem;
     MenuDatabase: TMenuItem;
     MenuConnect: TMenuItem;
     MenuDisconnect: TMenuItem;
     MenuHelp: TMenuItem;
     MenuAbout: TMenuItem;
-		MenuExecSQL: TMenuItem;
-		MenuReference: TMenuItem;
+    MenuExecSQL: TMenuItem;
+    MenuLists: TMenuItem;
     MenuQuit: TMenuItem;
     MenuStatements: TMenuItem;
     EntryGridSplitter: TSplitter;
@@ -37,14 +38,16 @@ type
     procedure MenuAboutClick(Sender: TObject);
     procedure MenuConnectClick(Sender: TObject);
     procedure MenuDisconnectClick(Sender: TObject);
-		procedure MenuExecSQLClick(Sender: TObject);
+    procedure MenuExecSQLClick(Sender: TObject);
     procedure MenuOpenSQLClick(Sender: TObject);
     procedure ExecuteEntryFieldStatements;
     procedure MenuQuitClick(Sender: TObject);
     procedure TryToConnectDB;
     procedure ShowDBTable(Sender: TObject);
+    procedure ShowTimeTable(Sender: TObject);
   public
-    MenuItemsTables: array of TMenuItem;
+    miLists: array of TMenuItem;
+    miTables: array of TMenuItem;
   end;
 
 var
@@ -66,17 +69,24 @@ procedure TMainForm.FormCreate(Sender: TObject);
 var
   i: integer;
 begin
-  SetLength(MenuItemsTables, Length(DBTables));
-  for i := Low(MenuItemsTables) to High(MenuItemsTables) do begin
-    MenuItemsTables[i] := TMenuItem.Create(MainMenu);
-    with MenuItemsTables[i] do begin
-      Name := DBTables[i].Name;
+  SetLength(miLists, Length(DBTables));
+  SetLength(miTables, Length(DBTables));
+  for i := Low(miLists) to High(miLists) do begin
+    miLists[i] := TMenuItem.Create(MainMenu);
+    miTables[i] := TMenuItem.Create(MainMenu);
+    with miLists[i] do begin
       Caption := DBTables[i].Caption;
       Tag := i;
       OnClick := @ShowDBTable;
     end;
+    with miTables[i] do begin
+      Caption := DBTables[i].Caption;
+      Tag := i;
+      OnClick := @ShowTimeTable;
+    end;
   end;
-  MainMenu.Items[0].Add(MenuItemsTables);
+  MainMenu.Items[0].Add(miLists);
+  MainMenu.Items[1].Add(miTables);
 end;
 
 procedure TMainForm.MenuAboutClick(Sender: TObject);
@@ -111,8 +121,27 @@ begin
   MI := (Sender as TMenuItem);
   if TDBTableForm.FormExists(MI.Tag) then
     TDBTableForm.FormSetFocus(MI.Tag)
-  else
-    TDBTableForm.CreateTableForm(MI.Tag, MI.Caption);
+  else begin
+    DBTableForms[MI.Tag] := TDBTableForm.Create(DBTables[MI.Tag]);
+    DBTableForms[MI.Tag].Tag := MI.Tag;
+    DBTableForms[MI.Tag].OnShowAsTableClick := @ShowTimeTable;
+    DBTableForms[MI.Tag].Show;
+  end;
+end;
+
+procedure TMainForm.ShowTimeTable(Sender: TObject);
+var
+  MI: TMenuItem;
+begin
+  MI := (Sender as TMenuItem);
+  if TTimeTable.FormExists(MI.Tag) then
+    TTimeTable.FormSetFocus(MI.Tag)
+  else begin
+    TimeTables[MI.Tag] := TTimeTable.Create(DBTables[MI.Tag]);
+    TimeTables[MI.Tag].Tag := MI.Tag;
+    TimeTables[MI.Tag].OnShowAsListClick := @ShowDBTable;
+    TimeTables[MI.Tag].Show;
+  end;
 end;
 
 procedure TMainForm.TryToConnectDB;

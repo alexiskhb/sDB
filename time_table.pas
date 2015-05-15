@@ -6,7 +6,8 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-	StdCtrls, CheckLst, Grids, Buttons, metadata, connection_transaction, sqldb, types;
+  StdCtrls, CheckLst, Grids, Buttons, Menus, metadata, connection_transaction,
+  sqldb, types;
 
 type
 
@@ -24,6 +25,11 @@ type
     cbbVert: TComboBox;
     clbVisibleFields: TCheckListBox;
     ImageList: TImageList;
+    lbVert: TLabel;
+    lbHorz: TLabel;
+    MainMenu: TMainMenu;
+    miShowAsList: TMenuItem;
+    miTable: TMenuItem;
     pnlControlsRight: TPanel;
     pnlContols: TPanel;
     Splitter: TSplitter;
@@ -40,15 +46,29 @@ type
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure AddFieldsToLists(ATable: TDBTable);
     procedure FillTable(Horz, Vert: TDBField);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     procedure GridDrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
+    procedure miShowAsListClick(Sender: TObject);
     procedure sgTableGetCellHint(Sender: TObject; ACol, ARow: Integer;
       var HintText: String);
+    procedure sgTableMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+    class procedure DestroyTimeTable(ATag: integer);
+    class procedure FormSetFocus(ATag: integer);
+    class function FormExists(ATag: integer): boolean;
   private
     FTable: TDBTable;
+    FShowAsList: TNotifyEvent;
   public
+    property OnShowAsListClick: TNotifyEvent read FShowAsList write FShowAsList;
     constructor Create(ATable: TDBTable);
   end;
+
+  TTimeTableDynArray = array of TTimeTable;
+
+var
+  TimeTables: TTimeTableDynArray;
 
 implementation
 
@@ -68,6 +88,23 @@ begin
     DeleteColRow(false, 1);
   while ColCount > 1 do
     DeleteColRow(true, 1);
+end;
+
+class procedure TTimeTable.DestroyTimeTable(ATag: integer);
+begin
+  if FormExists(ATag) then
+    TimeTables[ATag].Close;
+end;
+
+class procedure TTimeTable.FormSetFocus(ATag: integer);
+begin
+  if FormExists(ATag) then
+    TimeTables[ATag].SetFocus;
+end;
+
+class function TTimeTable.FormExists(ATag: integer): boolean;
+begin
+  Result := TimeTables[ATag] <> nil;
 end;
 
 constructor TTimeTable.Create(ATable: TDBTable);
@@ -90,6 +127,7 @@ begin
     RowHeights[0] := 30;
     ShowHint := true;
     OnGetCellHint := @sgTableGetCellHint;
+    OnMouseMove := @sgTableMouseMove;
   end;
 
 end;
@@ -250,11 +288,28 @@ begin
   end;
 end;
 
+procedure TTimeTable.FormDestroy(Sender: TObject);
+begin
+  TimeTables[(Sender as TTimeTable).Tag] := nil;
+end;
+
+procedure TTimeTable.FormShow(Sender: TObject);
+begin
+  miShowAsList.Tag := Self.Tag;
+end;
+
 procedure TTimeTable.GridDrawCell(Sender: TObject; aCol, aRow: Integer;
   aRect: TRect; aState: TGridDrawState);
 var
   i: integer;
+  ShouldShow: boolean;
+  CurCol, CurRow: integer;
 begin
+  curcol := 0;
+  currow := 0;
+  //sgTable.MouseCoord(Mouse.CursorPos.X, Mouse.CursorPos.Y).X;
+  sgTable.MouseToCell(sgTable.MouseCoord(Mouse.CursorPos.X, Mouse.CursorPos.Y).X, sgTable.MouseCoord(Mouse.CursorPos.X, Mouse.CursorPos.Y).X, CurCol, CurRow);
+  ShouldShow := (CurCol = aCol) and (CurRow = aRow);
   //pict := TBitmap.Create;
   //ImageList.GetBitmap(1, pict);
   //sgTable.Canvas.Draw(aRect, pict);
@@ -264,12 +319,25 @@ begin
   //sgTable.Canvas.TextOut(aRect.Left, aRect.Top, sgTable.Cells[aCol, aRow]);
   //sgTable.Canvas;
   //if (aCol = 2) and (aRow = 2) then ShowMessage('S');
+  if (aCol = 0) or (aRow = 0) then exit;
   with sgTable do begin
     if (aRow < Length(CellStrings)) and (aCol < Length(CellStrings[aRow])) and Assigned(CellStrings[aRow, aCol]) then
-      for i := 1 to CellStrings[aRow, aCol].Count - 1 do
+      for i := 0 to CellStrings[aRow, aCol].Count - 1 do begin
         Canvas.TextOut(aRect.Left, aRect.Top + i*Canvas.TextHeight('A'), CellStrings[aRow, aCol].Strings[i]);
+        if (CellStrings[aRow, aCol].Strings[i] = ' ') and ShouldShow then begin
+          ImageList.Draw(Canvas, aRect.Left + 34, aRect.Top + i*Canvas.TextHeight('A') + 1, 2, True);
+          ImageList.Draw(Canvas, aRect.Left + 17, aRect.Top + i*Canvas.TextHeight('A') + 1, 1, True);
+        end;
+      end;
+    ImageList.Draw(Canvas, aRect.Left + ColWidths[aCol] - 16, aRect.Top + RowHeights[aRow] - 16, 3, True);
+    if (aCol > 0) and (aRow > 0) and ShouldShow then
+      ImageList.Draw(Canvas, aRect.Left + 1, aRect.Top, 0, True)
   end;
-  ImageList.Draw(sgTable.Canvas, aRect.Left + sgTable.ColWidths[aCol] - 16, aRect.Top + sgTable.RowHeights[aRow] - 16, 3, True);
+end;
+
+procedure TTimeTable.miShowAsListClick(Sender: TObject);
+begin
+  FShowAsList(Sender);
 end;
 
 procedure TTimeTable.sgTableGetCellHint(Sender: TObject; ACol,
@@ -279,6 +347,21 @@ begin
     if (aRow < Length(CellStrings)) and (aCol < Length(CellStrings[aRow])) and Assigned(CellStrings[aRow, aCol]) then
       HintText := CellStrings[aRow, aCol].Text;
 end;
+
+procedure TTimeTable.sgTableMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+var
+  Rect: TRect;
+  CurCol, CurRow: longint;
+begin
+  //GridDrawCell(Sender, Col, Row, Rect, [gdFocused]);
+  sgTable.MouseToCell(Mouse.CursorPos.X, Mouse.CursorPos.Y, CurCol, CurRow);
+ // ShowMessage(inttostr(CurCol) + ' ' + inttostr(CurRow));
+  sgTable.Invalidate;
+end;
+
+initialization
+
+  SetLength(TimeTables, Length(DBTables));
 
 end.
 
