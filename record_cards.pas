@@ -21,7 +21,9 @@ type
     procedure CMInsertRecord(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType); overload;
     procedure CMInsertRecord(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType;
       Field1, Field2: TDBField; ID1, ID2: integer); overload;
-    procedure CMUpdateRecord(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType);
+    procedure CMUpdateRecord(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType); overload;
+    procedure CMUpdateRecord(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType;
+      Field1, Field2: TDBField; ID1, ID2: integer); overload;
     procedure CMDeleteRecord(ATable: TDBTable; APrimaryKey: integer);
     procedure CardOkClicked(Sender: TObject);
     procedure CardClosed(Sender: TObject);
@@ -71,7 +73,6 @@ type
   TComboCellEdit = class (TCellEdit)
   private
     cbbValues: TComboBox;
-    FIDsAsObjects: TIntegerDynArray;
     procedure SetValue(AValue: Variant); override;
     procedure SetValueID(AValue: Integer); override;
     function GetCaption: string; override;
@@ -120,6 +121,11 @@ type
   TEditRecordCard = class(TRecordCard)
   public
     constructor Create(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType);
+  end;
+
+  TFixedEditRecordCard = class(TEditRecordCard)
+    constructor Create(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType;
+      Field1, Field2: TDBField; ID1, ID2: integer);
   end;
 
   TRecordCardDynArray = array of TRecordCard;
@@ -256,6 +262,22 @@ begin
   end;
 end;
 
+constructor TFixedEditRecordCard.Create(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType;
+  Field1, Field2: TDBField; ID1, ID2: integer);
+var
+  i: integer;
+begin
+  inherited Create(ATable, APrimaryKey, AActionType);
+  for i := 0 to High(FCellEdits) do begin
+    if FCellEdits[i].DisplayedField = Field1 then begin
+      FCellEdits[i].pnlCellEdit.Enabled := false;
+    end;
+    if FCellEdits[i].DisplayedField = Field2 then begin
+      FCellEdits[i].pnlCellEdit.Enabled := false;
+    end;
+  end;
+end;
+
 procedure TRecordCard.CellEditValueChange(Sender: TObject);
 begin
   FValuesList.Strings[FValuesList.IndexOfObject((Sender as TCellEdit).ReferringField)] := (Sender as TCellEdit).Value;
@@ -348,8 +370,9 @@ begin
     Height := 30;
     Width := 11 * ACard.Width div 16;
     Style := csDropDownList;
-    ADisplayedField.RowsTo(cbbValues, FIDsAsObjects);
+    ADisplayedField.RowsTo(cbbValues);
     OnChange := @cbbValuesChange;
+    Sorted := true;
   end;
   cbbValuesChange(cbbValues);
 
@@ -366,7 +389,8 @@ end;
 
 procedure TComboCellEdit.cbbValuesChange(Sender: TObject);
 begin
-  FValue := FIDsAsObjects[(Sender as TComboBox).ItemIndex];
+  if (Sender as TComboBox).ItemIndex >= 0 then
+    FValue := Integer(Pointer((Sender as TComboBox).Items.Objects[(Sender as TComboBox).ItemIndex]));
   if Assigned(FValueChanged) then
     FValueChanged(Self);
 end;
@@ -378,7 +402,7 @@ begin
   MemID := -1;
   if cbbValues.ItemIndex <> -1 then
     MemID := Integer(Pointer(cbbValues.Items.Objects[cbbValues.ItemIndex]));
-  FDisplayedField.RowsTo(cbbValues, FIDsAsObjects);
+  FDisplayedField.RowsTo(cbbValues);
   if MemID <> -1 then
     cbbValues.ItemIndex := cbbValues.Items.IndexOfObject(TObject(Pointer(MemID)));
 end;
@@ -433,11 +457,11 @@ begin
 end;
 
 procedure TCardsManager.EditTable(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType;
-      Field1, Field2: TDBField; ID1, ID2: integer);
+  Field1, Field2: TDBField; ID1, ID2: integer);
 begin
   case AActionType of
     atInsert: CMInsertRecord(ATable, APrimaryKey, AActionType, Field1, Field2, ID1, ID2);
-    atUpdate: CMUpdateRecord(ATable, APrimaryKey, AActionType);
+    atUpdate: CMUpdateRecord(ATable, APrimaryKey, AActionType, Field1, Field2, ID1, ID2);
     atDelete: CMDeleteRecord(ATable, APrimaryKey);
   end;
 end;
@@ -454,7 +478,7 @@ begin
 end;
 
 procedure TCardsManager.CMInsertRecord(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType;
-      Field1, Field2: TDBField; ID1, ID2: integer);
+  Field1, Field2: TDBField; ID1, ID2: integer);
 begin
   FCardsList.AddObject(
     IntToStr(APrimaryKey),
@@ -472,6 +496,24 @@ begin
   with FCardsList do begin
     if IndexOf(IntToStr(APrimaryKey)) = -1 then begin
       FCardsList.AddObject(IntToStr(APrimaryKey), TEditRecordCard.Create(ATable, APrimaryKey, AActionType));
+      with (Objects[FCardsList.Count - 1] as TEditRecordCard) do begin
+        OnOkClick := @CardOkClicked;
+        OnCardClose := @CardClosed;
+        OnRequestRefresh := @RefreshValuesInCards;
+        Show;
+      end;
+    end
+    else
+      (Objects[IndexOf(IntToStr(APrimaryKey))] as TEditRecordCard).SetFocus;
+  end;
+end;
+
+procedure TCardsManager.CMUpdateRecord(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType;
+  Field1, Field2: TDBField; ID1, ID2: integer);
+begin
+  with FCardsList do begin
+    if IndexOf(IntToStr(APrimaryKey)) = -1 then begin
+      FCardsList.AddObject(IntToStr(APrimaryKey), TFixedEditRecordCard.Create(ATable, APrimaryKey, AActionType, Field1, Field2, ID1, ID2));
       with (Objects[FCardsList.Count - 1] as TEditRecordCard) do begin
         OnOkClick := @CardOkClicked;
         OnCardClose := @CardClosed;

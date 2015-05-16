@@ -35,7 +35,7 @@ type
     property SortField: TDBField read FSortField write FSortField;
     property VarCharLimit: integer read FVarCharLimit;
     property TableOwner: TDBTable read FOwner;
-    procedure RowsTo(AComboBox: TComboBox; var AIDs: TIntegerDynArray);
+    procedure RowsTo(AComboBox: TComboBox);
     constructor Create(AOwner: TDBTable; AName, ACaption, ATableRef, AFieldRef: string;
     AWidth: integer; AFieldType: TFieldType; APrimaryKey: boolean; AVarCharLimit: integer); overload;
     constructor Create(AOwner: TDBTable; AName, ACaption: string; AWidth: integer; AFieldType:
@@ -79,25 +79,22 @@ implementation
 
 procedure AddColumnsToQuery(ATable: TDBTable; SQLQuery: TSQLQuery); forward;
 
-procedure TDBField.RowsTo(AComboBox: TComboBox; var AIDs: TIntegerDynArray);
+procedure TDBField.RowsTo(AComboBox: TComboBox);
 begin
   with ConTran.CommonSQLQuery do begin
     Close;
     SetSQLQuery(Self.TableOwner, ConTran.CommonSQLQuery);
     Open;
     First;
-    SetLength(AIDs, 0);
     AComboBox.Clear;
     while not EOF do begin
-      SetLength(AIDs, Length(AIDs) + 1);
-      AIDs[High(AIDs)] := FieldByName(Self.TableOwner.Name + 'id').Value;
       AComboBox.AddItem(
                     FieldByName(Self.TableOwner.Name + Self.Name).Value,
-                    TObject(Pointer(AIDs[High(AIDs)]))
+                    TObject(Pointer(FieldByName(Self.TableOwner.Name + 'id').AsInteger))
                     );
       Next;
-		end;
-	end;
+    end;
+  end;
 end;
 
 function NextID: integer;
@@ -109,7 +106,7 @@ begin
     SQL.Append('from RDB$DATABASE');
     Open;
     Result := Fields[0].Value;
-	end;
+  end;
 end;
 
 procedure SetSQLQuery(ATable: TDBTable; SQLQuery: TSQLQuery);

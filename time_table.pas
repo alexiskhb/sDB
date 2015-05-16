@@ -147,8 +147,10 @@ begin
   i := 0;
   while Y > 0 do begin
     RecordNum := i;
-    if (X <= 17) and (X >= 1) and (Y <= 16) and (Y >= 0) then exit(gbDelete);
-    if (X <= 49) and (X >= 33) and (Y <= 16) and (Y >= 0) then exit(gbEdit);
+    if (X <= 17) and (X >= 1) and
+       (Y <= 16) and (Y >= 0) and (i < RowsCount div RowsInSpanCount) then exit(gbDelete);
+    if (X <= 49) and (X >= 33) and
+       (Y <= 16) and (Y >= 0) and (i < RowsCount div RowsInSpanCount) then exit(gbEdit);
     Y := Y - RowsInSpanCount*CellRowHeight;
     inc(i);
   end;
@@ -196,8 +198,10 @@ var
   i: integer;
   GlyphButton: TGlyphButton;
   Field1, Field2: TDBField;
-  ID1, ID2: integer;
+  ID, ID1, ID2: integer;
 begin
+  RecordNum := -1;
+
   CheckedCount := 0;
   for i := 0 to clbVisibleFields.Count - 1 do
     if clbVisibleFields.Checked[i] then inc(CheckedCount);
@@ -207,6 +211,8 @@ begin
     MouseToCell(Point.X, Point.Y, CurCol, CurRow);
     Rect := CellRect(CurCol, CurRow);
 
+    if (CurCol = 0) or (CurRow = 0) then exit;
+
     if (CurCol > 0) and (CurRow > 0) then
       if CellStringsAssigned(CurCol, CurRow) then
         GlyphButton := Button(Rect, Point, sgTable.CellStrings[CurRow, CurCol].Count, CheckedCount + 1, RecordNum)
@@ -215,13 +221,16 @@ begin
 
     Field1 := cbbHorz.Items.Objects[cbbHorz.ItemIndex] as TDBField;
     Field2 := cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField;
+    if RecordNum <> -1 then
+      ID := FRecords[CurRow, CurCol, RecordNum];
     ID1 := horzids[CurCol];
     ID2 := vertids[CurRow];
 
     case GlyphButton of
       gbNone:;
-      gbDelete: ShowMessage('Delete');
-      gbEdit: ShowMessage('Edit');
+      gbDelete: if MessageDlg('Удалить запись?', mtConfirmation, mbOKCancel, 0) = 1 then
+        CardsManager.EditTable(FTable, ID, atDelete);
+      gbEdit: CardsManager.EditTable(FTable, ID, atUpdate, Field1, Field2, ID1, ID2);
       gbAdd: CardsManager.EditTable(FTable, NextID, atInsert, Field1, Field2, ID1, ID2);
       gbExpand: ExpandCell(CurCol, CurRow);
     end;
@@ -376,6 +385,7 @@ begin
   CheckedCount := 0;
   SetLength(horzids, 1);
   SetLength(vertids, 1);
+  SetLength(FRecords, 0, 0, 0);
   SetLength(FRecords, 1);
 
   with SQLQuery do begin
