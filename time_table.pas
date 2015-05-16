@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   StdCtrls, CheckLst, Grids, Buttons, Menus, metadata, connection_transaction,
-  sqldb, types, query_filter, cell_contents;
+  sqldb, types, query_filter, cell_contents, record_cards;
 
 type
 
@@ -73,12 +73,12 @@ type
     procedure sgTableGetCellHint(Sender: TObject; ACol, ARow: Integer;
       var HintText: String);
     procedure sgTableMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
-    class procedure DestroyTimeTable(ATag: integer);
-    class procedure FormSetFocus(ATag: integer);
-    class function FormExists(ATag: integer): boolean;
     procedure sgTableMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure sgTableDblClick(Sender: TObject);
+    class procedure DestroyTimeTable(ATag: integer);
+    class procedure FormSetFocus(ATag: integer);
+    class function FormExists(ATag: integer): boolean;
   private
     FTable: TDBTable;
     FShowAsList: TNotifyEvent;
@@ -89,6 +89,7 @@ type
     IsRightPnlExtended: boolean;
     IsColEmpty: array of boolean;
     IsRowEmpty: array of boolean;
+    horzids, vertids: array of integer;
   public
     property OnShowAsListClick: TNotifyEvent read FShowAsList write FShowAsList;
     constructor Create(ATable: TDBTable);
@@ -139,6 +140,7 @@ begin
   CellRowHeight := Canvas.TextHeight('A');
 
   if (X <= Wh) and (X >= Wh - 16) and (Y <= 16) and (Y >= 0) then exit(gbAdd);
+  if RowsCount = 0 then exit(gbNone);
   if (X <= Wh) and (X >= Wh - 16) and
      (Y <= Ht) and (Y >= Ht - 16) and (CellRowHeight*RowsCount > Ht) then exit(gbExpand);
 
@@ -192,23 +194,37 @@ var
   RecordNum: integer;
   CheckedCount: integer;
   i: integer;
+  GlyphButton: TGlyphButton;
+  Field1, Field2: TDBField;
+  ID1, ID2: integer;
 begin
   CheckedCount := 0;
   for i := 0 to clbVisibleFields.Count - 1 do
     if clbVisibleFields.Checked[i] then inc(CheckedCount);
+
   with sgTable do begin
     Point := ScreenToClient(Mouse.CursorPos);
     MouseToCell(Point.X, Point.Y, CurCol, CurRow);
     Rect := CellRect(CurCol, CurRow);
-    if (CurCol > 0) and (CurRow > 0) and CellStringsAssigned(CurCol, CurRow) then
-      case Button(Rect, Point, sgTable.CellStrings[CurRow, CurCol].Count, CheckedCount + 1, RecordNum) of
-        gbNone:;
-        gbDelete: ShowMessage('Delete');
-        gbEdit: ShowMessage('Edit');
-        gbAdd: ShowMessage('Add');
-        gbExpand: ExpandCell(CurCol, CurRow);
-      end;
-    ShowMessage(IntToStr(FRecords[CurRow, CurCol, 0]));
+
+    if (CurCol > 0) and (CurRow > 0) then
+      if CellStringsAssigned(CurCol, CurRow) then
+        GlyphButton := Button(Rect, Point, sgTable.CellStrings[CurRow, CurCol].Count, CheckedCount + 1, RecordNum)
+      else
+        GlyphButton := Button(Rect, Point, 0, CheckedCount + 1, RecordNum);
+
+    Field1 := cbbHorz.Items.Objects[cbbHorz.ItemIndex] as TDBField;
+    Field2 := cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField;
+    ID1 := horzids[CurCol];
+    ID2 := vertids[CurRow];
+
+    case GlyphButton of
+      gbNone:;
+      gbDelete: ShowMessage('Delete');
+      gbEdit: ShowMessage('Edit');
+      gbAdd: CardsManager.EditTable(FTable, NextID, atInsert, Field1, Field2, ID1, ID2);
+      gbExpand: ExpandCell(CurCol, CurRow);
+    end;
   end;
 end;
 
@@ -353,7 +369,6 @@ procedure TTimeTable.FillTable(Horz, Vert: TDBField);
 var
   x, y, i: integer;
   Field: TDBField;
-  horzids, vertids: array of integer;
   CheckedCount: integer;
 begin
   sgTable.Reset;
