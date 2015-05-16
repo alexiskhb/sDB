@@ -11,9 +11,15 @@ uses
 
 type
 
+  TGlyphButton = (gbNone, gbDelete, gbEdit, gbAdd, gbExpand);
+
   TMyStringGrid = class(TStringGrid)
   public
     CellStrings: array of array of TStringList;
+    function CellStringsAssigned(ACol, ARow: integer): boolean;
+    function Button(ARect: TRect; APoint: TPoint; RowsCount: integer;
+      var RecordNum: integer): TGlyphButton;
+    procedure ExpandCell(ACol, ARow: integer);
     procedure Reset;
   end;
 
@@ -70,6 +76,9 @@ type
     class procedure DestroyTimeTable(ATag: integer);
     class procedure FormSetFocus(ATag: integer);
     class function FormExists(ATag: integer): boolean;
+    procedure sgTableMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure sgTableDblClick(Sender: TObject);
   private
     FTable: TDBTable;
     FShowAsList: TNotifyEvent;
@@ -88,6 +97,7 @@ const
   DefaultRightPanelWidth = 162;
   ExtendedRigthPanelWidth = 362;
   DefaultColumnWidth = 200;
+  NarrowColumnWidth = 100;
 
 var
   TimeTables: TTimeTableDynArray;
@@ -112,6 +122,43 @@ begin
     DeleteColRow(true, 1);
 end;
 
+function TMyStringGrid.Button(ARect: TRect; APoint: TPoint; RowsCount: integer;
+  var RecordNum: integer): TGlyphButton;
+var
+  RowNum, ColNum: integer;
+  X, Y, Ht, Wh, CellRowHeight, CellColWidth: integer;
+begin
+  X := APoint.X - ARect.Left;
+  Y := APoint.Y - ARect.Top;
+  Ht := ARect.Bottom - ARect.Top;
+  Wh := ARect.Right - ARect.Left;
+  CellRowHeight := Canvas.TextHeight('A');
+  CellColWidth := 16;
+
+  if (X <= Wh) and (X >= Wh - 16) and (Y <= 16) and (Y >= 0) then exit(gbAdd);
+  if (X <= Wh) and (X >= Wh - 16) and
+     (Y <= Ht) and (Y >= Ht - 16) and (CellRowHeight*RowsCount > Ht) then exit(gbExpand);
+  //if (X < ) and (X > ) and (Y < ) and (Y > ) then exit();
+  //if (X < ) and (X > ) and (Y < ) and (Y > ) then exit();
+
+  exit(gbNone);
+
+
+
+
+end;
+
+function TMyStringGrid.CellStringsAssigned(ACol, ARow: integer): boolean;
+begin
+  Result := (aRow < Length(CellStrings)) and (aCol < Length(CellStrings[aRow])) and
+      Assigned(CellStrings[aRow, aCol]);
+end;
+
+procedure TMyStringGrid.ExpandCell(ACol, ARow: integer);
+begin
+  RowHeights[ARow] := Canvas.TextHeight('A') * CellStrings[ARow, ACol].Count;
+end;
+
 class procedure TTimeTable.DestroyTimeTable(ATag: integer);
 begin
   if FormExists(ATag) then
@@ -127,6 +174,58 @@ end;
 class function TTimeTable.FormExists(ATag: integer): boolean;
 begin
   Result := TimeTables[ATag] <> nil;
+end;
+
+procedure TTimeTable.sgTableMouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  CurCol, CurRow: longint;
+  Point: TPoint;
+  Rect: TRect;
+  CellRow: integer;
+  RecordNum: integer;
+  CheckedCount: integer;
+begin
+  with sgTable do begin
+    Point := ScreenToClient(Mouse.CursorPos);
+    MouseToCell(Point.X, Point.Y, CurCol, CurRow);
+    Rect := CellRect(CurCol, CurRow);
+    if (CurCol > 0) and (CurRow > 0) and CellStringsAssigned(CurCol, CurRow) then
+      case Button(Rect, Point, sgTable.CellStrings[CurRow, CurCol].Count, RecordNum) of
+        gbNone: ;
+        gbDelete: ShowMessage('Delete');
+        gbEdit: ShowMessage('Edit');
+        gbAdd: ShowMessage('Add');
+        gbExpand: ExpandCell(CurCol, CurRow);
+      end;
+  end;
+end;
+
+procedure TTimeTable.sgTableDblClick(Sender: TObject);
+var
+  CurCol, CurRow: integer;
+  Point: TPoint;
+  CheckedCount: integer;
+  i: integer;
+begin
+  CheckedCount := 0;
+  with sgTable do begin
+    Point := ScreenToClient(Mouse.CursorPos);
+    MouseToCell(Point.X, Point.Y, CurCol, CurRow);
+    if CurRow = 0 then
+      if IsColEmpty[CurCol] then
+        ColWidths[CurCol] := NarrowColumnWidth
+      else
+        ColWidths[CurCol] := DefaultColumnWidth;
+    if CurCol = 0 then
+      if IsRowEmpty[CurRow] then
+        RowHeights[CurRow] := Canvas.TextHeight('A')*2
+      else begin
+        for i := 0 to clbVisibleFields.Count - 1 do
+          if clbVisibleFields.Checked[i] then inc(CheckedCount);
+        RowHeights[CurRow] := Canvas.TextHeight('A')*(CheckedCount + 1);
+      end;
+  end;
 end;
 
 constructor TTimeTable.Create(ATable: TDBTable);
@@ -150,6 +249,8 @@ begin
     ShowHint := true;
     OnGetCellHint := @sgTableGetCellHint;
     OnMouseMove := @sgTableMouseMove;
+    OnMouseDown := @sgTableMouseDown;
+    OnDblClick := @sgTableDblClick;
   end;
 
   IsPnlExtended := false;
@@ -348,8 +449,7 @@ begin
     MouseToCell(ScreenToClient(Mouse.CursorPos).X, ScreenToClient(Mouse.CursorPos).Y, CurCol, CurRow);
     ShouldShow := (CurCol = aCol) and (CurRow = aRow);
 
-    if (aRow < Length(CellStrings)) and (aCol < Length(CellStrings[aRow])) and
-      Assigned(CellStrings[aRow, aCol]) then begin
+    if CellStringsAssigned(aCol, aRow) then begin
       for i := 0 to CellStrings[aRow, aCol].Count - 1 do begin
         Canvas.TextOut(aRect.Left, aRect.Top + i*Canvas.TextHeight('A'), CellStrings[aRow, aCol].Strings[i]);
         if (CellStrings[aRow, aCol].Strings[i] = ' ') and ShouldShow then begin
@@ -386,7 +486,7 @@ begin
     end else begin
       for i := 0 to High(IsColEmpty) do
         if IsColEmpty[i] then
-          sgTable.ColWidths[i] := DefaultColumnWidth;
+          sgTable.ColWidths[i] := NarrowColumnWidth;
     end;
 end;
 
@@ -447,7 +547,6 @@ begin
   end;
 
   pnlControlsRight.Width := ExtendedRigthPanelWidth;
-  //btnAddFilter.Left := ExtendedRigthPanelWidth - btnAddFilter.Width - 1;
 end;
 
 procedure TTimeTable.DestroyFilterClick(Sender: TObject);
