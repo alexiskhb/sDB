@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   StdCtrls, CheckLst, Grids, Buttons, Menus, metadata, connection_transaction,
-  sqldb, types, query_filter;
+  sqldb, types, query_filter, cell_contents;
 
 type
 
@@ -82,8 +82,9 @@ type
   private
     FTable: TDBTable;
     FShowAsList: TNotifyEvent;
+    FCellContents: TCellContents;
     FFilters: array of TQueryFilter;
-    IsPnlExtended: boolean;
+    IsRightPnlExtended: boolean;
     IsColEmpty: array of boolean;
     IsRowEmpty: array of boolean;
   public
@@ -142,10 +143,6 @@ begin
   //if (X < ) and (X > ) and (Y < ) and (Y > ) then exit();
 
   exit(gbNone);
-
-
-
-
 end;
 
 function TMyStringGrid.CellStringsAssigned(ACol, ARow: integer): boolean;
@@ -225,6 +222,20 @@ begin
           if clbVisibleFields.Checked[i] then inc(CheckedCount);
         RowHeights[CurRow] := Canvas.TextHeight('A')*(CheckedCount + 1);
       end;
+    if (CurRow = 0) and (CurCol = 0) then begin
+      ColWidths[CurCol] := NarrowColumnWidth;
+      RowHeights[CurRow] := Canvas.TextHeight('A')*2
+    end;
+
+    if (CurRow > 0) and (CurCol > 0) and CellStringsAssigned(CurCol, CurRow) then begin
+      FCellContents := TCellContents.Create(Self);
+      FCellContents.Content.Lines.Text := CellStrings[CurRow, CurCol].Text;
+      Point.X := CellRect(CurCol, CurRow).Left;
+      Point.Y := CellRect(CurCol, CurRow).Top;
+      FCellContents.Top := ClientToScreen(Point).Y;
+      FCellContents.Left := ClientToScreen(Point).X;
+      FCellContents.Show;
+    end;
   end;
 end;
 
@@ -242,18 +253,18 @@ begin
     Align := alClient;
     Options := Options + [goRowSizing, goColSizing, goThumbTracking, goFixedColSizing, goCellHints];
     DefaultColWidth := DefaultColumnWidth;
-    DefaultRowHeight := 100;
     OnDrawCell := @GridDrawCell;
-    ColWidths[0] := 100;
-    RowHeights[0] := 30;
+    ColWidths[0] := NarrowColumnWidth;
+    RowHeights[0] := Canvas.TextHeight('A')*2;
     ShowHint := true;
+    Visible := false;
     OnGetCellHint := @sgTableGetCellHint;
     OnMouseMove := @sgTableMouseMove;
     OnMouseDown := @sgTableMouseDown;
     OnDblClick := @sgTableDblClick;
   end;
 
-  IsPnlExtended := false;
+  IsRightPnlExtended := false;
   clbVisibleFields.Height := clbVisibleFields.Count*24;
 end;
 
@@ -296,6 +307,7 @@ end;
 
 procedure TTimeTable.btnApplyClick(Sender: TObject);
 begin
+  sgTable.Visible := true;
   FillTable(
     cbbHorz.Items.Objects[cbbHorz.ItemIndex] as TDBField,
     cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField);
@@ -468,11 +480,11 @@ end;
 
 procedure TTimeTable.lbFiltersClick(Sender: TObject);
 begin
-  if IsPnlExtended then
+  if IsRightPnlExtended then
     pnlControlsRight.Width := DefaultRightPanelWidth
   else
     pnlControlsRight.Width := ExtendedRigthPanelWidth;
-  IsPnlExtended := not IsPnlExtended;
+  IsRightPnlExtended := not IsRightPnlExtended;
 end;
 
 procedure TTimeTable.miEmptyColsClick(Sender: TObject);

@@ -1,0 +1,27 @@
+object CellContents: TCellContents
+  Left = 522
+  Height = 288
+  Top = 210
+  Width = 281
+  BorderStyle = bsNone
+  Caption = 'CellContents'
+  ClientHeight = 288
+  ClientWidth = 281
+  OnClose = FormClose
+  OnDeactivate = FormDeactivate
+  LCLVersion = '1.2.6.0'
+  object Content: TMemo
+    Left = 0
+    Height = 288
+    Top = 0
+    Width = 281
+    Align = alClient
+    Font.Height = -15
+    OnMouseWheelDown = ContentMouseWheelDown
+    OnMouseWheelUp = ContentMouseWheelUp
+    ParentFont = False
+    ReadOnly = True
+    ScrollBars = ssAutoBoth
+    TabOrder = 0
+  end
+end
