@@ -397,9 +397,15 @@ object TimeTable: TTimeTable
     end
     object miOptions: TMenuItem
       Caption = 'Опции'
+      object miEmptyRows: TMenuItem
+        AutoCheck = True
+        Caption = 'Сворачивать пустые строки'
+        OnClick = miEmptyRowsClick
+      end
       object miEmptyCols: TMenuItem
-        Caption = 'Отображать пустые столбцы'
-        Checked = True
+        AutoCheck = True
+        Caption = 'Сворачивать пустые столбцы'
+        OnClick = miEmptyColsClick
       end
     end
   end

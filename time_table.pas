@@ -30,6 +30,7 @@ type
     lbVert: TLabel;
     lbHorz: TLabel;
     MainMenu: TMainMenu;
+    miEmptyRows: TMenuItem;
     miEmptyCols: TMenuItem;
     miOptions: TMenuItem;
     miShowAsList: TMenuItem;
@@ -60,6 +61,8 @@ type
     procedure GridDrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
     procedure lbFiltersClick(Sender: TObject);
+    procedure miEmptyColsClick(Sender: TObject);
+    procedure miEmptyRowsClick(Sender: TObject);
     procedure miShowAsListClick(Sender: TObject);
     procedure sgTableGetCellHint(Sender: TObject; ACol, ARow: Integer;
       var HintText: String);
@@ -72,6 +75,8 @@ type
     FShowAsList: TNotifyEvent;
     FFilters: array of TQueryFilter;
     IsPnlExtended: boolean;
+    IsColEmpty: array of boolean;
+    IsRowEmpty: array of boolean;
   public
     property OnShowAsListClick: TNotifyEvent read FShowAsList write FShowAsList;
     constructor Create(ATable: TDBTable);
@@ -82,6 +87,7 @@ type
 const
   DefaultRightPanelWidth = 162;
   ExtendedRigthPanelWidth = 362;
+  DefaultColumnWidth = 200;
 
 var
   TimeTables: TTimeTableDynArray;
@@ -136,7 +142,7 @@ begin
     Parent := Self;
     Align := alClient;
     Options := Options + [goRowSizing, goColSizing, goThumbTracking, goFixedColSizing, goCellHints];
-    DefaultColWidth := 200;
+    DefaultColWidth := DefaultColumnWidth;
     DefaultRowHeight := 100;
     OnDrawCell := @GridDrawCell;
     ColWidths[0] := 100;
@@ -256,15 +262,22 @@ begin
       Next;
     end;
 
+    SetLength(IsColEmpty, Length(horzids));
+    for i := 1 to High(IsColEmpty) do
+      IsColEmpty[i] := true;
+
     Close;
     SetSQLQuery(Vert.TableOwner, ConTran.CommonSQLQuery);
     SQL.Append('order by ' + Vert.SortField.TableOwner.Name + Vert.SortField.Name + ' asc');
     Open;
     First;
     y := 0;
+    SetLength(IsRowEmpty, 1);
     while not EOF do begin
       inc(y);
       SetLength(vertids, y + 1);
+      SetLength(IsRowEmpty, y + 1);
+      IsRowEmpty[y] := true;
       SetLength(sgTable.CellStrings, y + 1, sgTable.ColCount);
       vertids[y] := FieldByName(Vert.TableOwner.Name + 'id').AsInteger;
       sgTable.RowCount := sgTable.RowCount + 1;
@@ -287,8 +300,10 @@ begin
               if not clbVisibleFields.Checked[i] then continue;
                 Field := clbVisibleFields.Items.Objects[i] as TDBField;
                 sgTable.CellStrings[y, x].Append(FieldByName(Field.TableOwner.Name + Field.Name).Value);
-	      end;
+	    end;
             Next;
+            IsColEmpty[x] := false;
+            IsRowEmpty[y] := false;
           end else begin
             inc(x);
             if x >= sgTable.ColCount then begin break; end;
@@ -298,15 +313,17 @@ begin
       Next;
     end;
   end;
+  IsColEmpty[0] := false;
+  IsRowEmpty[0] := false;
 
   for i := 0 to clbVisibleFields.Count - 1 do
     if clbVisibleFields.Checked[i] then inc(CheckedCount);
   with sgTable do begin
     DefaultRowHeight := (CheckedCount + 1)*Canvas.TextHeight('A');
-    //ColWidths[0] := 100;
     RowHeights[0] := 30;
-    //clbVisibleFields.Items.;
   end;
+  miEmptyRowsClick(miEmptyRows);
+  miEmptyColsClick(miEmptyCols);
 end;
 
 procedure TTimeTable.FormDestroy(Sender: TObject);
@@ -356,6 +373,36 @@ begin
   else
     pnlControlsRight.Width := ExtendedRigthPanelWidth;
   IsPnlExtended := not IsPnlExtended;
+end;
+
+procedure TTimeTable.miEmptyColsClick(Sender: TObject);
+var
+  i: integer;
+begin
+  if miEmptyCols.Checked then begin
+    for i := 0 to High(IsColEmpty) do
+      if IsColEmpty[i] then
+        sgTable.ColWidths[i] := 0;
+    end else begin
+      for i := 0 to High(IsColEmpty) do
+        if IsColEmpty[i] then
+          sgTable.ColWidths[i] := DefaultColumnWidth;
+    end;
+end;
+
+procedure TTimeTable.miEmptyRowsClick(Sender: TObject);
+var
+  i: integer;
+begin
+  if miEmptyRows.Checked then begin
+    for i := 0 to High(IsRowEmpty) do
+      if IsRowEmpty[i] then
+        sgTable.RowHeights[i] := 0;
+  end else begin
+    for i := 0 to High(IsRowEmpty) do
+      if IsRowEmpty[i] then
+        sgTable.RowHeights[i] := sgTable.Canvas.TextHeight('A')*2;
+  end;
 end;
 
 procedure TTimeTable.miShowAsListClick(Sender: TObject);
