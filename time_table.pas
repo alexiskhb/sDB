@@ -18,7 +18,7 @@ type
     CellStrings: array of array of TStringList;
     function CellStringsAssigned(ACol, ARow: integer): boolean;
     function Button(ARect: TRect; APoint: TPoint; RowsCount: integer;
-      var RecordNum: integer): TGlyphButton;
+      RowsInSpanCount: integer; var RecordNum: integer): TGlyphButton;
     procedure ExpandCell(ACol, ARow: integer);
     procedure Reset;
   end;
@@ -84,6 +84,8 @@ type
     FShowAsList: TNotifyEvent;
     FCellContents: TCellContents;
     FFilters: array of TQueryFilter;
+    //[X, Y, InCell]
+    FRecords: array of array of array of integer;
     IsRightPnlExtended: boolean;
     IsColEmpty: array of boolean;
     IsRowEmpty: array of boolean;
@@ -124,23 +126,30 @@ begin
 end;
 
 function TMyStringGrid.Button(ARect: TRect; APoint: TPoint; RowsCount: integer;
-  var RecordNum: integer): TGlyphButton;
+  RowsInSpanCount: integer; var RecordNum: integer): TGlyphButton;
 var
   RowNum, ColNum: integer;
   X, Y, Ht, Wh, CellRowHeight, CellColWidth: integer;
+  i: integer;
 begin
   X := APoint.X - ARect.Left;
   Y := APoint.Y - ARect.Top;
   Ht := ARect.Bottom - ARect.Top;
   Wh := ARect.Right - ARect.Left;
   CellRowHeight := Canvas.TextHeight('A');
-  CellColWidth := 16;
 
   if (X <= Wh) and (X >= Wh - 16) and (Y <= 16) and (Y >= 0) then exit(gbAdd);
   if (X <= Wh) and (X >= Wh - 16) and
      (Y <= Ht) and (Y >= Ht - 16) and (CellRowHeight*RowsCount > Ht) then exit(gbExpand);
-  //if (X < ) and (X > ) and (Y < ) and (Y > ) then exit();
-  //if (X < ) and (X > ) and (Y < ) and (Y > ) then exit();
+
+  i := 0;
+  while Y > 0 do begin
+    RecordNum := i;
+    if (X <= 17) and (X >= 1) and (Y <= 16) and (Y >= 0) then exit(gbDelete);
+    if (X <= 49) and (X >= 33) and (Y <= 16) and (Y >= 0) then exit(gbEdit);
+    Y := Y - RowsInSpanCount*CellRowHeight;
+    inc(i);
+  end;
 
   exit(gbNone);
 end;
@@ -182,19 +191,24 @@ var
   CellRow: integer;
   RecordNum: integer;
   CheckedCount: integer;
+  i: integer;
 begin
+  CheckedCount := 0;
+  for i := 0 to clbVisibleFields.Count - 1 do
+    if clbVisibleFields.Checked[i] then inc(CheckedCount);
   with sgTable do begin
     Point := ScreenToClient(Mouse.CursorPos);
     MouseToCell(Point.X, Point.Y, CurCol, CurRow);
     Rect := CellRect(CurCol, CurRow);
     if (CurCol > 0) and (CurRow > 0) and CellStringsAssigned(CurCol, CurRow) then
-      case Button(Rect, Point, sgTable.CellStrings[CurRow, CurCol].Count, RecordNum) of
-        gbNone: ;
+      case Button(Rect, Point, sgTable.CellStrings[CurRow, CurCol].Count, CheckedCount + 1, RecordNum) of
+        gbNone:;
         gbDelete: ShowMessage('Delete');
         gbEdit: ShowMessage('Edit');
         gbAdd: ShowMessage('Add');
         gbExpand: ExpandCell(CurCol, CurRow);
       end;
+    ShowMessage(IntToStr(FRecords[CurRow, CurCol, 0]));
   end;
 end;
 
@@ -209,11 +223,13 @@ begin
   with sgTable do begin
     Point := ScreenToClient(Mouse.CursorPos);
     MouseToCell(Point.X, Point.Y, CurCol, CurRow);
+
     if CurRow = 0 then
       if IsColEmpty[CurCol] then
         ColWidths[CurCol] := NarrowColumnWidth
       else
         ColWidths[CurCol] := DefaultColumnWidth;
+
     if CurCol = 0 then
       if IsRowEmpty[CurRow] then
         RowHeights[CurRow] := Canvas.TextHeight('A')*2
@@ -222,6 +238,7 @@ begin
           if clbVisibleFields.Checked[i] then inc(CheckedCount);
         RowHeights[CurRow] := Canvas.TextHeight('A')*(CheckedCount + 1);
       end;
+
     if (CurRow = 0) and (CurCol = 0) then begin
       ColWidths[CurCol] := NarrowColumnWidth;
       RowHeights[CurRow] := Canvas.TextHeight('A')*2
@@ -344,6 +361,7 @@ begin
   CheckedCount := 0;
   SetLength(horzids, 1);
   SetLength(vertids, 1);
+  SetLength(FRecords, 1);
 
   with SQLQuery do begin
     Close;
@@ -365,6 +383,7 @@ begin
     while not EOF do begin
       SetLength(horzids, Length(horzids) + 1);
       SetLength(sgTable.CellStrings, 1, Length(horzids));
+      SetLength(FRecords[0], Length(horzids), 1);
       horzids[High(horzids)] := FieldByName(Horz.TableOwner.Name + 'id').AsInteger;
       sgTable.Columns.Add.Title.Caption := FieldByName(Horz.TableOwner.Name + Horz.Name).Value;
       if not Assigned(sgTable.CellStrings[0, High(horzids)]) then
@@ -372,6 +391,7 @@ begin
       else
         sgTable.CellStrings[0, High(horzids)].Clear;
       sgTable.CellStrings[0, High(horzids)].Append(sgTable.Columns[High(horzids) - 1].Title.Caption);
+      FRecords[0, High(horzids), 0] := horzids[High(horzids)];
       Next;
     end;
 
@@ -389,23 +409,31 @@ begin
     while not EOF do begin
       inc(y);
       SetLength(vertids, y + 1);
+      vertids[y] := FieldByName(Vert.TableOwner.Name + 'id').AsInteger;
       SetLength(IsRowEmpty, y + 1);
       IsRowEmpty[y] := true;
-      SetLength(sgTable.CellStrings, y + 1, sgTable.ColCount);
-      vertids[y] := FieldByName(Vert.TableOwner.Name + 'id').AsInteger;
-      sgTable.RowCount := sgTable.RowCount + 1;
-      sgTable.Cells[0, y] := FieldByName(Vert.TableOwner.Name + Vert.Name).Value;
-      if not Assigned(sgTable.CellStrings[y, 0]) then
-        sgTable.CellStrings[y, 0] := TStringList.Create
-      else
-        sgTable.CellStrings[y, 0].Clear;
-      sgTable.CellStrings[y, 0].Append(FieldByName(Vert.TableOwner.Name + Vert.Name).Value);
+
+      with sgTable do begin
+        RowCount := RowCount + 1;
+        SetLength(CellStrings, y + 1, ColCount);
+        Cells[0, y] := FieldByName(Vert.TableOwner.Name + Vert.Name).Value;
+        if not Assigned(CellStrings[y, 0]) then
+          CellStrings[y, 0] := TStringList.Create
+        else
+          CellStrings[y, 0].Clear;
+        CellStrings[y, 0].Append(FieldByName(Vert.TableOwner.Name + Vert.Name).Value);
+
+        SetLength(FRecords, y + 1, ColCount);
+        SetLength(FRecords[y, 0], 1);
+        FRecords[y, 0, 0] := FieldByName(Vert.TableOwner.Name + 'id').AsInteger;
+      end;
       x := 1;
       with SQLQuery do begin
         while not EOF do begin
           if
           (FieldByName(Horz.TableOwner.Name + 'id').AsInteger = horzids[x]) and
           (FieldByName(Vert.TableOwner.Name + 'id').AsInteger = vertids[y]) then begin
+            SetLength(FRecords[y, x], Length(FRecords[y, x]) + 1);
             if not Assigned(sgTable.CellStrings[y, x]) then
               sgTable.CellStrings[y, x] := TStringList.Create;
             sgTable.CellStrings[y, x].Append(' ');
@@ -414,6 +442,8 @@ begin
                 Field := clbVisibleFields.Items.Objects[i] as TDBField;
                 sgTable.CellStrings[y, x].Append(FieldByName(Field.TableOwner.Name + Field.Name).Value);
 	    end;
+            FRecords[y, x, High(FRecords[y, x])] :=
+              SQLQuery.FieldByName(FTable.Name + 'id').AsInteger;
             Next;
             IsColEmpty[x] := false;
             IsRowEmpty[y] := false;
