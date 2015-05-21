@@ -122,7 +122,8 @@
       <Unit11>
         <Filename Value="cell_contents.pas"/>
         <IsPartOfProject Value="True"/>
-        <ComponentName Value="CellContents"/>
+        <ComponentName Value="CellContentsForm"/>
+        <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="cell_contents"/>
       </Unit11>

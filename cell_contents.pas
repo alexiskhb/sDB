@@ -9,9 +9,9 @@ uses
 
 type
 
-  { TCellContents }
+  { TCellContentsForm }
 
-  TCellContents = class(TForm)
+  TCellContentsForm = class(TForm)
     Content: TMemo;
     procedure ContentMouseWheelDown(Sender: TObject; Shift: TShiftState;
       MousePos: TPoint; var Handled: Boolean);
@@ -25,28 +25,28 @@ implementation
 
 {$R *.lfm}
 
-{ TCellContents }
+{ TCellContentsForm }
 
-procedure TCellContents.FormClose(Sender: TObject; var CloseAction: TCloseAction);
+procedure TCellContentsForm.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
   CloseAction := caFree;
 end;
 
-procedure TCellContents.ContentMouseWheelDown(Sender: TObject;
+procedure TCellContentsForm.ContentMouseWheelDown(Sender: TObject;
   Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
 begin
   if ssCtrl in Shift then
     Content.Font.Size := Content.Font.Size - 1;
 end;
 
-procedure TCellContents.ContentMouseWheelUp(Sender: TObject;
+procedure TCellContentsForm.ContentMouseWheelUp(Sender: TObject;
   Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
 begin
   if ssCtrl in Shift then
     Content.Font.Size := Content.Font.Size + 1;
 end;
 
-procedure TCellContents.FormDeactivate(Sender: TObject);
+procedure TCellContentsForm.FormDeactivate(Sender: TObject);
 begin
   Close;
 end;

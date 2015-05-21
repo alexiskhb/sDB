@@ -8,7 +8,7 @@ uses
   connection_transaction, Classes, SysUtils, sqldb, DB, IBConnection, FileUtil,
   SynHighlighterSQL, SynEdit, Forms, Controls, Graphics, Dialogs,
   DBGrids, StdCtrls, ExtCtrls, Menus, Buttons, DBCtrls, FormConnect,
-  metadata, listview, aboutsdb, time_table;
+  metadata, listview, aboutsdb, time_table, record_cards;
 
 type
 
@@ -45,6 +45,7 @@ type
     procedure TryToConnectDB;
     procedure ShowDBTable(Sender: TObject);
     procedure ShowTimeTable(Sender: TObject);
+    procedure RecordCardOkClick(Sender: TObject);
   public
     miLists: array of TMenuItem;
     miTables: array of TMenuItem;
@@ -87,6 +88,8 @@ begin
   end;
   MainMenu.Items[0].Add(miLists);
   MainMenu.Items[1].Add(miTables);
+
+  CardsManager.OnRequestRefreshTables := @RecordCardOkClick;
 end;
 
 procedure TMainForm.MenuAboutClick(Sender: TObject);
@@ -175,6 +178,12 @@ end;
 procedure TMainForm.MenuQuitClick(Sender: TObject);
 begin
   Close;
+end;
+
+procedure TMainForm.RecordCardOkClick(Sender: TObject);
+begin
+  TDBTableForm.RefreshLists;
+  TTimeTable.RefreshTables;
 end;
 
 end.

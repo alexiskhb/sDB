@@ -13,6 +13,11 @@ type
 
   TGlyphButton = (gbNone, gbDelete, gbEdit, gbAdd, gbExpand);
 
+  TCellIdentifier = record
+    id: integer;
+    index: integer;
+  end;
+
   TMyStringGrid = class(TStringGrid)
   public
     CellStrings: array of array of TStringList;
@@ -76,21 +81,29 @@ type
     procedure sgTableMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure sgTableDblClick(Sender: TObject);
+    procedure RefreshTable;
+    class procedure RefreshTables;
     class procedure DestroyTimeTable(ATag: integer);
     class procedure FormSetFocus(ATag: integer);
     class function FormExists(ATag: integer): boolean;
   private
     FTable: TDBTable;
     FShowAsList: TNotifyEvent;
-    FCellContents: TCellContents;
+    FCellContents: TCellContentsForm;
     FFilters: array of TQueryFilter;
-    //[X, Y, InCell]
-    FRecords: array of array of array of integer;
+    FRecords: array of array of array of TCellIdentifier;
     IsRightPnlExtended: boolean;
     IsColEmpty: array of boolean;
     IsRowEmpty: array of boolean;
     horzids, vertids: array of integer;
+    FStringsBuffer: TStringList;
+    FOnInsert: TNotifyEvent;
+    FOnUpdate: TNotifyEvent;
+    FOnDelete: TNotifyEvent;
   public
+    property OnInsert: TNotifyEvent read FOnInsert write FOnInsert;
+    property OnUpdate: TNotifyEvent read FOnUpdate write FOnUpdate;
+    property OnDelete: TNotifyEvent read FOnDelete write FOnDelete;
     property OnShowAsListClick: TNotifyEvent read FShowAsList write FShowAsList;
     constructor Create(ATable: TDBTable);
   end;
@@ -186,6 +199,15 @@ begin
   Result := TimeTables[ATag] <> nil;
 end;
 
+class procedure TTimeTable.RefreshTables;
+var
+  i: integer;
+begin
+  for i := 0 to High(TimeTables) do
+    if Assigned(TimeTables[i]) then
+      TimeTables[i].RefreshTable;
+end;
+
 procedure TTimeTable.sgTableMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
@@ -201,7 +223,6 @@ var
   ID, ID1, ID2: integer;
 begin
   RecordNum := -1;
-
   CheckedCount := 0;
   for i := 0 to clbVisibleFields.Count - 1 do
     if clbVisibleFields.Checked[i] then inc(CheckedCount);
@@ -222,14 +243,16 @@ begin
     Field1 := cbbHorz.Items.Objects[cbbHorz.ItemIndex] as TDBField;
     Field2 := cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField;
     if RecordNum <> -1 then
-      ID := FRecords[CurRow, CurCol, RecordNum];
+      ID := FRecords[CurRow, CurCol, RecordNum].id;
     ID1 := horzids[CurCol];
     ID2 := vertids[CurRow];
 
     case GlyphButton of
       gbNone:;
-      gbDelete: if MessageDlg('Удалить запись?', mtConfirmation, mbOKCancel, 0) = 1 then
+      gbDelete: if MessageDlg('Удалить запись?', mtConfirmation, mbOKCancel, 0) = 1 then begin
         CardsManager.EditTable(FTable, ID, atDelete);
+        RefreshTable;
+      end;
       gbEdit: CardsManager.EditTable(FTable, ID, atUpdate, Field1, Field2, ID1, ID2);
       gbAdd: CardsManager.EditTable(FTable, NextID, atInsert, Field1, Field2, ID1, ID2);
       gbExpand: ExpandCell(CurCol, CurRow);
@@ -270,7 +293,7 @@ begin
     end;
 
     if (CurRow > 0) and (CurCol > 0) and CellStringsAssigned(CurCol, CurRow) then begin
-      FCellContents := TCellContents.Create(Self);
+      FCellContents := TCellContentsForm.Create(Self);
       FCellContents.Content.Lines.Text := CellStrings[CurRow, CurCol].Text;
       Point.X := CellRect(CurCol, CurRow).Left;
       Point.Y := CellRect(CurCol, CurRow).Top;
@@ -287,6 +310,7 @@ begin
   FTable := ATable;
   Caption := ATable.Caption;
   AddFieldsToLists(ATable);
+  FStringsBuffer := TStringList.Create;
 
   sgTable := TMyStringGrid.Create(Self);
   with sgTable do begin
@@ -349,12 +373,14 @@ end;
 
 procedure TTimeTable.btnApplyClick(Sender: TObject);
 begin
+  sgTable.Reset;
   sgTable.Visible := true;
   FillTable(
     cbbHorz.Items.Objects[cbbHorz.ItemIndex] as TDBField,
     cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField);
-
   pnlControlsRight.Width := DefaultRightPanelWidth;
+  miEmptyRowsClick(miEmptyRows);
+  miEmptyColsClick(miEmptyCols);
 end;
 
 procedure TTimeTable.AddFieldsToLists(ATable: TDBTable);
@@ -376,17 +402,72 @@ end;
 
 procedure TTimeTable.FillTable(Horz, Vert: TDBField);
 var
-  x, y, i: integer;
+  x, y, i, j, k: integer;
   Field: TDBField;
-  CheckedCount: integer;
+  CheckedCount, ColsCount, RowsCount: integer;
+  count: integer;
 begin
-  sgTable.Reset;
-
   CheckedCount := 0;
-  SetLength(horzids, 1);
-  SetLength(vertids, 1);
-  SetLength(FRecords, 0, 0, 0);
-  SetLength(FRecords, 1);
+
+  with SQLQuery do begin
+    Close;
+    SQL.Text := 'select count(*) as ColsCount from ' + Horz.TableOwner.Name;
+    Open;
+    ColsCount := FieldByName('ColsCount').AsInteger;
+    Close;
+    SQL.Text := 'select count(*) as RowsCount from ' + Vert.TableOwner.Name;
+    Open;
+    RowsCount := FieldByName('RowsCount').AsInteger;
+    Close;
+  end;
+
+  SetLength(horzids, ColsCount + 1);
+  SetLength(vertids, RowsCount + 1);
+  SetLength(FRecords, 0);
+  SetLength(FRecords, RowsCount + 1, ColsCount + 1, 0);
+  SetLength(sgTable.CellStrings, RowsCount + 1, ColsCount + 1);
+  SetLength(IsColEmpty, ColsCount + 1);
+  SetLength(IsRowEmpty, RowsCount + 1);
+  for i := 1 to High(IsColEmpty) do
+    IsColEmpty[i] := true;
+  for i := 1 to High(IsRowEmpty) do
+    IsRowEmpty[i] := true;
+
+  SetLength(FRecords[0], ColsCount + 1, 1);
+  with SQLQuery do begin
+    Close;
+    SetSQLQuery(Horz.TableOwner, SQLQuery);
+    SQL.Append('order by ' + Horz.SortField.TableOwner.Name + Horz.SortField.Name + ' asc');
+    Open; First;
+    for j := 1 to High(horzids) do begin
+      horzids[j] := FieldByName(Horz.TableOwner.Name + 'id').AsInteger;
+      if not Assigned(sgTable.CellStrings[0, j]) then
+        sgTable.CellStrings[0, j] := TStringList.Create
+      else
+        sgTable.CellStrings[0, j].Clear;
+      sgTable.CellStrings[0, j].Append(FieldByName(Horz.TableOwner.Name + Horz.Name).AsString);
+      FRecords[0, j, 0].id := horzids[j];
+      Next;
+    end;
+  end;
+
+  with SQLQuery do begin
+    Close;
+    SetSQLQuery(Vert.TableOwner, SQLQuery);
+    SQL.Append('order by ' + Vert.SortField.TableOwner.Name + Vert.SortField.Name + ' asc');
+    Open; First;
+    for i := 1 to High(vertids) do begin
+      SetLength(FRecords[i, 0], 1);
+      vertids[i] := FieldByName(Vert.TableOwner.Name + 'id').Value;
+      if not Assigned(sgTable.CellStrings[i, 0]) then
+        sgTable.CellStrings[i, 0] := TStringList.Create
+      else
+        sgTable.CellStrings[i, 0].Clear;
+      sgTable.CellStrings[i, 0].Append(FieldByName(Vert.TableOwner.Name + Vert.Name).AsString);
+      FRecords[i, 0, 0].id := vertids[i];
+      Next;
+    end;
+  end;
 
   with SQLQuery do begin
     Close;
@@ -394,91 +475,41 @@ begin
     AddConditionsToQuery;
     SQL.Append(
       'order by ' + Vert.SortField.TableOwner.Name + Vert.SortField.Name +
-      ', ' + Horz.SortField.TableOwner.Name + Horz.SortField.Name + ' asc');
-    Open;
-    First;
+      ', ' + Horz.SortField.TableOwner.Name + Horz.SortField.Name +
+      ', ' + FTable.Name + 'id' + ' asc');
+    Open; First;
   end;
 
-  with ConTran.CommonSQLQuery do begin
-    Close;
-    SetSQLQuery(Horz.TableOwner, ConTran.CommonSQLQuery);
-    SQL.Append('order by ' + Horz.SortField.TableOwner.Name + Horz.SortField.Name + ' asc');
-    Open;
+  y := 0; k := 1;
+  count := 0;
+  with SQLQuery do begin
     First;
-    while not EOF do begin
-      SetLength(horzids, Length(horzids) + 1);
-      SetLength(sgTable.CellStrings, 1, Length(horzids));
-      SetLength(FRecords[0], Length(horzids), 1);
-      horzids[High(horzids)] := FieldByName(Horz.TableOwner.Name + 'id').AsInteger;
-      sgTable.Columns.Add.Title.Caption := FieldByName(Horz.TableOwner.Name + Horz.Name).Value;
-      if not Assigned(sgTable.CellStrings[0, High(horzids)]) then
-        sgTable.CellStrings[0, High(horzids)] := TStringList.Create
-      else
-        sgTable.CellStrings[0, High(horzids)].Clear;
-      sgTable.CellStrings[0, High(horzids)].Append(sgTable.Columns[High(horzids) - 1].Title.Caption);
-      FRecords[0, High(horzids), 0] := horzids[High(horzids)];
-      Next;
-    end;
-
-    SetLength(IsColEmpty, Length(horzids));
-    for i := 1 to High(IsColEmpty) do
-      IsColEmpty[i] := true;
-
-    Close;
-    SetSQLQuery(Vert.TableOwner, ConTran.CommonSQLQuery);
-    SQL.Append('order by ' + Vert.SortField.TableOwner.Name + Vert.SortField.Name + ' asc');
-    Open;
-    First;
-    y := 0;
-    SetLength(IsRowEmpty, 1);
     while not EOF do begin
       inc(y);
-      SetLength(vertids, y + 1);
-      vertids[y] := FieldByName(Vert.TableOwner.Name + 'id').AsInteger;
-      SetLength(IsRowEmpty, y + 1);
-      IsRowEmpty[y] := true;
-
-      with sgTable do begin
-        RowCount := RowCount + 1;
-        SetLength(CellStrings, y + 1, ColCount);
-        Cells[0, y] := FieldByName(Vert.TableOwner.Name + Vert.Name).Value;
-        if not Assigned(CellStrings[y, 0]) then
-          CellStrings[y, 0] := TStringList.Create
-        else
-          CellStrings[y, 0].Clear;
-        CellStrings[y, 0].Append(FieldByName(Vert.TableOwner.Name + Vert.Name).Value);
-
-        SetLength(FRecords, y + 1, ColCount);
-        SetLength(FRecords[y, 0], 1);
-        FRecords[y, 0, 0] := FieldByName(Vert.TableOwner.Name + 'id').AsInteger;
-      end;
       x := 1;
-      with SQLQuery do begin
-        while not EOF do begin
-          if
-          (FieldByName(Horz.TableOwner.Name + 'id').AsInteger = horzids[x]) and
-          (FieldByName(Vert.TableOwner.Name + 'id').AsInteger = vertids[y]) then begin
-            SetLength(FRecords[y, x], Length(FRecords[y, x]) + 1);
-            if not Assigned(sgTable.CellStrings[y, x]) then
-              sgTable.CellStrings[y, x] := TStringList.Create;
-            sgTable.CellStrings[y, x].Append(' ');
-            for i := 0 to clbVisibleFields.Count - 1 do begin
-              if not clbVisibleFields.Checked[i] then continue;
-                Field := clbVisibleFields.Items.Objects[i] as TDBField;
-                sgTable.CellStrings[y, x].Append(FieldByName(Field.TableOwner.Name + Field.Name).Value);
-	    end;
-            FRecords[y, x, High(FRecords[y, x])] :=
-              SQLQuery.FieldByName(FTable.Name + 'id').AsInteger;
-            Next;
-            IsColEmpty[x] := false;
-            IsRowEmpty[y] := false;
-          end else begin
-            inc(x);
-            if x >= sgTable.ColCount then begin break; end;
+      while not EOF do begin
+        if
+        (FieldByName(Horz.TableOwner.Name + 'id').AsInteger = horzids[x]) and
+        (FieldByName(Vert.TableOwner.Name + 'id').AsInteger = vertids[y]) then begin
+          SetLength(FRecords[y, x], Length(FRecords[y, x]) + 1);
+          if not Assigned(sgTable.CellStrings[y, x]) then
+            sgTable.CellStrings[y, x] := TStringList.Create;
+          sgTable.CellStrings[y, x].Append(' ');
+          for i := 0 to clbVisibleFields.Count - 1 do begin
+            if not clbVisibleFields.Checked[i] then continue;
+              Field := clbVisibleFields.Items.Objects[i] as TDBField;
+              sgTable.CellStrings[y, x].Append(FieldByName(Field.TableOwner.Name + Field.Name).Value);
           end;
+          FRecords[y, x, High(FRecords[y, x])].id := FieldByName(FTable.Name + 'id').AsInteger;
+          FRecords[y, x, High(FRecords[y, x])].index := k;
+          Next; inc(count); inc(k);
+          IsColEmpty[x] := false;
+          IsRowEmpty[y] := false;
+        end else begin
+          inc(x);
+          if x > ColsCount then break;
         end;
       end;
-      Next;
     end;
   end;
   IsColEmpty[0] := false;
@@ -490,8 +521,8 @@ begin
     DefaultRowHeight := (CheckedCount + 1)*Canvas.TextHeight('A');
     RowHeights[0] := 30;
   end;
-  miEmptyRowsClick(miEmptyRows);
-  miEmptyColsClick(miEmptyCols);
+  sgTable.RowCount := RowsCount + 1;
+  sgTable.ColCount := ColsCount + 1;
 end;
 
 procedure TTimeTable.FormDestroy(Sender: TObject);
@@ -511,11 +542,9 @@ var
   ShouldShow: boolean;
   CurCol, CurRow: integer;
 begin
-  if (aCol = 0) or (aRow = 0) then exit;
   with sgTable do begin
     MouseToCell(ScreenToClient(Mouse.CursorPos).X, ScreenToClient(Mouse.CursorPos).Y, CurCol, CurRow);
     ShouldShow := (CurCol = aCol) and (CurRow = aRow);
-
     if CellStringsAssigned(aCol, aRow) then begin
       for i := 0 to CellStrings[aRow, aCol].Count - 1 do begin
         Canvas.TextOut(aRect.Left, aRect.Top + i*Canvas.TextHeight('A'), CellStrings[aRow, aCol].Strings[i]);
@@ -527,7 +556,6 @@ begin
       if CellStrings[aRow, aCol].Count*Canvas.TextHeight('A') > aRect.Bottom - aRect.Top then
         ImageList.Draw(Canvas, aRect.Left + ColWidths[aCol] - 16, aRect.Top + RowHeights[aRow] - 16, 3, True);
     end;
-
     if (aCol > 0) and (aRow > 0) and ShouldShow then
       ImageList.Draw(Canvas, aRect.Left + ColWidths[aCol] - 16, aRect.Top, 0, True);
   end;
@@ -547,11 +575,11 @@ var
   i: integer;
 begin
   if miEmptyCols.Checked then begin
-    for i := 0 to High(IsColEmpty) do
+    for i := 0 to sgTable.ColCount - 1 do
       if IsColEmpty[i] then
         sgTable.ColWidths[i] := 0;
     end else begin
-      for i := 0 to High(IsColEmpty) do
+      for i := 0 to sgTable.ColCount - 1 do
         if IsColEmpty[i] then
           sgTable.ColWidths[i] := NarrowColumnWidth;
     end;
@@ -562,11 +590,11 @@ var
   i: integer;
 begin
   if miEmptyRows.Checked then begin
-    for i := 0 to High(IsRowEmpty) do
+    for i := 0 to sgTable.RowCount - 1 do
       if IsRowEmpty[i] then
         sgTable.RowHeights[i] := 0;
   end else begin
-    for i := 0 to High(IsRowEmpty) do
+    for i := 0 to sgTable.RowCount - 1 do
       if IsRowEmpty[i] then
         sgTable.RowHeights[i] := sgTable.Canvas.TextHeight('A')*2;
   end;
@@ -588,6 +616,20 @@ end;
 procedure TTimeTable.sgTableMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
 begin
   sgTable.Invalidate;
+end;
+
+procedure TTimeTable.RefreshTable;
+var
+  i, j: integer;
+begin
+  with sgTable do
+    for i := 0 to High(CellStrings) do
+      for j := 0 to High(CellStrings[i]) do
+        if Assigned(CellStrings[i, j]) then
+          CellStrings[i, j].Clear;
+  FillTable(
+    cbbHorz.Items.Objects[cbbHorz.ItemIndex] as TDBField,
+    cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField);
 end;
 
 procedure TTimeTable.btnAddFilterClick(Sender: TObject);

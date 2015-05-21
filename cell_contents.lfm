@@ -1,10 +1,10 @@
-object CellContents: TCellContents
+object CellContentsForm: TCellContentsForm
   Left = 522
   Height = 288
   Top = 210
   Width = 281
   BorderStyle = bsNone
-  Caption = 'CellContents'
+  Caption = 'CellContentsForm'
   ClientHeight = 288
   ClientWidth = 281
   OnClose = FormClose

@@ -99,7 +99,7 @@ type
     FQueryFields: TStringList;
     FValuesList: TStringList;
     FCardClose: TNotifyEvent;
-    FRequestRefreshValues: TNotifyEvent;
+    FRequestRefreshCards: TNotifyEvent;
     FRequestRememberRecNO: TNotifyEvent;
   public
     NewValues: TVariantDynArray;
@@ -107,7 +107,7 @@ type
     property OnCardClose: TNotifyEvent read FCardClose write FCardClose;
     property PrimaryKey: integer read FPrimaryKey;
     property Table: TDBTable read FTable;
-    property OnRequestRefresh: TNotifyEvent read FRequestRefreshValues write FRequestRefreshValues;
+    property OnRequestRefreshCards: TNotifyEvent read FRequestRefreshCards write FRequestRefreshCards;
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure CellEditValueChange(Sender: TObject);
     constructor Create(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType);
@@ -156,7 +156,7 @@ begin
     atInsert: EditResult := InsertRecord(FTable, NextID, NewValues);
   end;
 
-  FRequestRefreshValues(FTable);
+  FRequestRefreshCards(FTable);
   FOkClick(Sender);
   if EditResult = 0 then Close;
 end;
@@ -472,7 +472,7 @@ begin
   with (FCardsList.Objects[FCardsList.Count - 1] as TRecordCard) do begin
     OnOkClick := @CardOkClicked;
     OnCardClose := @CardClosed;
-    OnRequestRefresh := @RefreshValuesInCards;
+    OnRequestRefreshCards := @RefreshValuesInCards;
     Show;
   end;
 end;
@@ -486,7 +486,7 @@ begin
   with (FCardsList.Objects[FCardsList.Count - 1] as TFixedRecordCard) do begin
     OnOkClick := @CardOkClicked;
     OnCardClose := @CardClosed;
-    OnRequestRefresh := @RefreshValuesInCards;
+    OnRequestRefreshCards := @RefreshValuesInCards;
     Show;
   end;
 end;
@@ -499,7 +499,7 @@ begin
       with (Objects[FCardsList.Count - 1] as TEditRecordCard) do begin
         OnOkClick := @CardOkClicked;
         OnCardClose := @CardClosed;
-        OnRequestRefresh := @RefreshValuesInCards;
+        OnRequestRefreshCards := @RefreshValuesInCards;
         Show;
       end;
     end
@@ -517,7 +517,7 @@ begin
       with (Objects[FCardsList.Count - 1] as TEditRecordCard) do begin
         OnOkClick := @CardOkClicked;
         OnCardClose := @CardClosed;
-        OnRequestRefresh := @RefreshValuesInCards;
+        OnRequestRefreshCards := @RefreshValuesInCards;
         Show;
       end;
     end

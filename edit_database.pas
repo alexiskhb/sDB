@@ -22,7 +22,7 @@ begin
     SQL.Append('delete from ' + ATable.Name);
     SQL.Append('where ' + ATable.Name + '.id = :primary_key');
     ParamByName('primary_key').Value := APrimaryKey;
-	end;
+  end;
 
   try
     ConTran.CommonSQLQuery.ExecSQL;
@@ -32,10 +32,10 @@ begin
                + 'Возможно, она используется в:' + #13+#10
                + TDBTable.TablesUsingTable(ATable), mtError, [mbOk], 0);
       Result := 1;
-		end;
+    end;
   end;
 
-	ConTran.DBTransaction.Commit;
+  ConTran.DBTransaction.Commit;
 end;
 
 function UpdateRecord(ATable: TDBTable; APrimaryKey: integer; AValues: TVariantDynArray): integer;
@@ -53,7 +53,7 @@ begin
 		end;
     Delete(Count - 1);
     Append('where ' + ATable.Name + '.id = :primary_key ;');
-	end;
+  end;
 
   with ConTran.CommonSQLQuery do begin
     for i := 1 to High(AValues) do
@@ -63,20 +63,20 @@ begin
 
   try
     ConTran.CommonSQLQuery.ExecSQL;
-	except
+  except
     on EVariantError: Exception do begin
       MessageDlg('Невозможно изменить запись.' + #13 + #10
                  + 'Данные введены некорректно.' + #13 + #10
                  , mtError, [mbOk], 0);
       Result := 2;
-		end;
+    end;
     on EDatabaseError: Exception do begin
       MessageDlg('Ошибка.' + #13 + #10
                  + 'Возможно, такая запись уже существует.' + #13 + #10
                  , mtError, [mbOk], 0);
       Result := 1;
-		end;
-	end;
+    end;
+  end;
 
   ConTran.DBTransaction.Commit;
 end;
@@ -95,30 +95,30 @@ begin
     for i := 0 to High(AValues) do begin
       Append(' :value' + IntToStr(i));
       Append(',');
-		end;
+    end;
     Delete(Count - 1);
     Append(');');
-	end;
+  end;
 
-	for i := 0 to High(AValues) do
+  for i := 0 to High(AValues) do
     ConTran.CommonSQLQuery.ParamByName('value'+IntToStr(i)).Value := AValues[i];
 
   try
     ConTran.CommonSQLQuery.ExecSQL;
-	except
+  except
     on EVariantError: Exception do begin
       MessageDlg('Невозможно добавить запись.' + #13 + #10
                  + 'Данные введены некорректно.' + #13 + #10
                  , mtError, [mbOk], 0);
       Result := 1;
-		end;
-		on EDatabaseError: Exception do begin
+    end;
+    on EDatabaseError: Exception do begin
       MessageDlg('Невозможно добавить запись.' + #13 + #10
                  + 'Такая запись уже существует.' + #13 + #10
                  , mtError, [mbOk], 0);
       Result := 2;
-		end;
-	end;
+    end;
+  end;
 
   ConTran.DBTransaction.Commit;
 end;

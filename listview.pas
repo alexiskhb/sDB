@@ -58,11 +58,10 @@ type
     procedure DestroyFilterClick(Sender: TObject);
     procedure FDBGridTitleClick(Column: TColumn);
     procedure FilterDataChanged(Sender: TObject);
-    procedure RecordCardOkClick(Sender: TObject);
     procedure RememberCursorPosition(Sender: TObject);
     class procedure DestroyTableForm(ATag: integer);
     class procedure FormSetFocus(ATag: integer);
-    class procedure RefreshTables;
+    class procedure RefreshLists;
     class function FormExists(ATag: integer): boolean;
   private
     FFilters: array of TQueryFilter;
@@ -102,7 +101,7 @@ begin
     DBTableForms[ATag].SetFocus;
 end;
 
-class procedure TDBTableForm.RefreshTables;
+class procedure TDBTableForm.RefreshLists;
 var
   i: integer;
 begin
@@ -151,8 +150,6 @@ begin
   SQLQuery.Open;
   SQLQuery.Last;
   SQLQuery.First;
-
-  CardsManager.OnRequestRefreshTables := @RecordCardOkClick;
 end;
 
 procedure TDBTableForm.AddColumnsToGrid(ATable: TDBTable);
@@ -226,11 +223,6 @@ begin
   SQLQuery.Open;
   SQLQuery.First;
   SQLQuery.MoveBy(FCurPos - 1);
-end;
-
-procedure TDBTableForm.RecordCardOkClick(Sender: TObject);
-begin
-  RefreshTables;
 end;
 
 procedure TDBTableForm.RememberCursorPosition(Sender: TObject);
@@ -360,7 +352,7 @@ begin
   for i := 0 to Length(FFilters) - 1 do begin
     FFilters[i].Tag := i;
     FFilters[i].Top := i * (FFilters[i].Height + 2);
-	end;
+  end;
 
   sbxFilters.Constraints.MaxHeight := 3 * Height div 4;
   sbxFilters.Height := Length(FFilters) * (FilterHeight + 2);
@@ -379,7 +371,7 @@ begin
   ID := SQLQuery.FieldByName(FTable.Name + 'id').Value;
   if MessageDlg('Удалить запись?', mtConfirmation, mbOKCancel, 0) = 1 then
     CardsManager.EditTable(FTable, ID, atDelete);
-  RefreshTables;
+  RefreshLists;
 end;
 
 procedure TDBTableForm.btnAddFilterClick(Sender: TObject);
@@ -404,7 +396,7 @@ begin
   for i := 0 to Length(FFilters) - 1 do begin
     FFilters[i].Tag := i;
     FFilters[i].Top := i * (FFilters[i].Height + 2);
-	end;
+  end;
 
   sbxFilters.Constraints.MaxHeight := 3 * Height div 4;
   sbxFilters.Height := Length(FFilters) * (FilterHeight + 2);
@@ -416,7 +408,7 @@ begin
 end;
 
 procedure TDBTableForm.DBGridColumnMoved(Sender: TObject; FromIndex,
-		ToIndex: Integer);
+  ToIndex: Integer);
 begin
   FFieldsOrder.Move(FromIndex - 1, ToIndex - 1);
 end;
