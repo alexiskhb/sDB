@@ -18,6 +18,7 @@ type
   private
     FCardsList: TStringList;
     FRefreshTablesRequest: TNotifyEvent;
+    FShouldShow: boolean;
     procedure CMInsertRecord(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType); overload;
     procedure CMInsertRecord(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType;
       Field1, Field2: TDBField; ID1, ID2: integer); overload;
@@ -29,10 +30,12 @@ type
     procedure CardClosed(Sender: TObject);
     procedure RefreshValuesInCards(Sender: TObject);
   public
+    property ShouldShow: boolean read FShouldShow write FShouldShow;
     property OnRequestRefreshTables: TNotifyEvent read FRefreshTablesRequest write FRefreshTablesRequest;
     procedure EditTable(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType); overload;
     procedure EditTable(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType;
       Field1, Field2: TDBField; ID1, ID2: integer); overload;
+    procedure OkCloseLast;
     constructor Create;
   end;
 
@@ -158,7 +161,8 @@ begin
 
   FRequestRefreshCards(FTable);
   FOkClick(Sender);
-  if EditResult = 0 then Close;
+  if EditResult = 0 then Close
+  else Visible := true;
 end;
 
 procedure TRecordCard.btnCancelClick(Sender: TObject);
@@ -270,9 +274,11 @@ begin
   inherited Create(ATable, APrimaryKey, AActionType);
   for i := 0 to High(FCellEdits) do begin
     if FCellEdits[i].DisplayedField = Field1 then begin
+      FCellEdits[i].ValueID := ID1;
       FCellEdits[i].pnlCellEdit.Enabled := false;
     end;
     if FCellEdits[i].DisplayedField = Field2 then begin
+      FCellEdits[i].ValueID := ID2;
       FCellEdits[i].pnlCellEdit.Enabled := false;
     end;
   end;
@@ -445,6 +451,7 @@ end;
 constructor TCardsManager.Create;
 begin
   FCardsList := TStringList.Create;
+  FShouldShow := true;
 end;
 
 procedure TCardsManager.EditTable(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType);
@@ -466,6 +473,16 @@ begin
   end;
 end;
 
+procedure TCardsManager.OkCloseLast;
+var
+  Card: TRecordCard;
+begin
+  with FCardsList do begin
+    Card := Objects[Count - 1] as TRecordCard;
+    Card.btnOkClick(Card.btnOk);
+  end;
+end;
+
 procedure TCardsManager.CMInsertRecord(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType);
 begin
   FCardsList.AddObject(IntToStr(APrimaryKey), TRecordCard.Create(ATable, APrimaryKey, AActionType));
@@ -473,7 +490,7 @@ begin
     OnOkClick := @CardOkClicked;
     OnCardClose := @CardClosed;
     OnRequestRefreshCards := @RefreshValuesInCards;
-    Show;
+    if FShouldShow then Show;
   end;
 end;
 
@@ -487,7 +504,7 @@ begin
     OnOkClick := @CardOkClicked;
     OnCardClose := @CardClosed;
     OnRequestRefreshCards := @RefreshValuesInCards;
-    Show;
+    if FShouldShow then Show;
   end;
 end;
 
@@ -500,7 +517,7 @@ begin
         OnOkClick := @CardOkClicked;
         OnCardClose := @CardClosed;
         OnRequestRefreshCards := @RefreshValuesInCards;
-        Show;
+        if FShouldShow then Show;
       end;
     end
     else
@@ -518,7 +535,7 @@ begin
         OnOkClick := @CardOkClicked;
         OnCardClose := @CardClosed;
         OnRequestRefreshCards := @RefreshValuesInCards;
-        Show;
+        if FShouldShow then Show;
       end;
     end
     else

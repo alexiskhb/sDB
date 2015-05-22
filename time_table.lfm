@@ -29,6 +29,7 @@ object TimeTable: TTimeTable
       Top = 8
       Width = 116
       AutoSize = False
+      DragMode = dmAutomatic
       ItemHeight = 0
       OnChange = cbbChange
       Style = csDropDownList
@@ -134,6 +135,7 @@ object TimeTable: TTimeTable
       BorderStyle = bsNone
       ItemHeight = 0
       MultiSelect = True
+      OnClickCheck = clbVisibleFieldsClickCheck
       OnMouseWheelDown = clbVisibleFieldsMouseWheelDown
       OnMouseWheelUp = clbVisibleFieldsMouseWheelUp
       ParentFont = False
@@ -202,9 +204,9 @@ object TimeTable: TTimeTable
     ResizeAnchor = akRight
   end
   object StringGrid1: TStringGrid
-    Left = 128
+    Left = 152
     Height = 100
-    Top = 96
+    Top = 112
     Width = 200
     TabOrder = 3
     Visible = False
@@ -406,6 +408,10 @@ object TimeTable: TTimeTable
         AutoCheck = True
         Caption = 'Сворачивать пустые столбцы'
         OnClick = miEmptyColsClick
+      end
+      object miExpandOnDrag: TMenuItem
+        AutoCheck = True
+        Caption = 'Растягивать при перетаскивании'
       end
     end
   end

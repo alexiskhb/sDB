@@ -31,6 +31,29 @@ type
   { TTimeTable }
 
   TTimeTable = class(TForm)
+  private
+    FTable: TDBTable;
+    FShowAsList: TNotifyEvent;
+    FCellContents: TCellContentsForm;
+    FFilters: array of TQueryFilter;
+    FRecords: array of array of array of TCellIdentifier;
+    IsRightPnlExtended: boolean;
+    IsColEmpty: array of boolean;
+    IsRowEmpty: array of boolean;
+    horzids, vertids: array of integer;
+    FStringsBuffer: TStringList;
+    FOnInsert: TNotifyEvent;
+    FOnUpdate: TNotifyEvent;
+    FOnDelete: TNotifyEvent;
+    FDragID: integer;
+    FCheckedCount: integer;
+  public
+    property OnInsert: TNotifyEvent read FOnInsert write FOnInsert;
+    property OnUpdate: TNotifyEvent read FOnUpdate write FOnUpdate;
+    property OnDelete: TNotifyEvent read FOnDelete write FOnDelete;
+    property OnShowAsListClick: TNotifyEvent read FShowAsList write FShowAsList;
+    constructor Create(ATable: TDBTable);
+  published
     btnApply: TBitBtn;
     btnAddFilter: TButton;
     cbbHorz: TComboBox;
@@ -41,6 +64,7 @@ type
     lbVert: TLabel;
     lbHorz: TLabel;
     MainMenu: TMainMenu;
+    miExpandOnDrag: TMenuItem;
     miEmptyRows: TMenuItem;
     miEmptyCols: TMenuItem;
     miOptions: TMenuItem;
@@ -56,6 +80,7 @@ type
     SQLQuery: TSQLQuery;
     StringGrid1: TStringGrid;
     procedure btnAddFilterClick(Sender: TObject);
+    procedure clbVisibleFieldsClickCheck(Sender: TObject);
     procedure DestroyFilterClick(Sender: TObject);
     procedure AddConditionsToQuery;
     procedure btnApplyClick(Sender: TObject);
@@ -82,30 +107,14 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure sgTableDblClick(Sender: TObject);
     procedure RefreshTable;
+    procedure sgTableStartDrag(Sender: TObject; var DragObject: TDragObject);
+    procedure sgTableDragDrop(Sender, Source: TObject; X, Y: Integer);
+    procedure sgTableDragOver(Sender, Source: TObject; X, Y: Integer;
+      State: TDragState; var Accept: Boolean);
     class procedure RefreshTables;
     class procedure DestroyTimeTable(ATag: integer);
     class procedure FormSetFocus(ATag: integer);
     class function FormExists(ATag: integer): boolean;
-  private
-    FTable: TDBTable;
-    FShowAsList: TNotifyEvent;
-    FCellContents: TCellContentsForm;
-    FFilters: array of TQueryFilter;
-    FRecords: array of array of array of TCellIdentifier;
-    IsRightPnlExtended: boolean;
-    IsColEmpty: array of boolean;
-    IsRowEmpty: array of boolean;
-    horzids, vertids: array of integer;
-    FStringsBuffer: TStringList;
-    FOnInsert: TNotifyEvent;
-    FOnUpdate: TNotifyEvent;
-    FOnDelete: TNotifyEvent;
-  public
-    property OnInsert: TNotifyEvent read FOnInsert write FOnInsert;
-    property OnUpdate: TNotifyEvent read FOnUpdate write FOnUpdate;
-    property OnDelete: TNotifyEvent read FOnDelete write FOnDelete;
-    property OnShowAsListClick: TNotifyEvent read FShowAsList write FShowAsList;
-    constructor Create(ATable: TDBTable);
   end;
 
   TTimeTableDynArray = array of TTimeTable;
@@ -199,6 +208,47 @@ begin
   Result := TimeTables[ATag] <> nil;
 end;
 
+procedure TTimeTable.sgTableStartDrag(Sender: TObject;
+  var DragObject: TDragObject);
+var
+  CurCol, CurRow: integer;
+begin
+  sgTable.MouseToCell(ScreenToClient(Mouse.CursorPos).X, ScreenToClient(Mouse.CursorPos).Y, CurCol, CurRow);
+end;
+
+procedure TTimeTable.sgTableDragDrop(Sender, Source: TObject; X, Y: Integer);
+var
+  CurCol, CurRow: integer;
+  Field1, Field2: TDBField;
+  ID1, ID2: integer;
+  Shift: TShiftState;
+begin
+  if FDragID = -1 then exit;
+  with sgTable do
+    MouseToCell(ScreenToClient(Mouse.CursorPos).X, ScreenToClient(Mouse.CursorPos).Y, CurCol, CurRow);
+  if (CurCol = 0) or (CurRow = 0) then exit;
+  Shift := GetKeyShiftState;
+  Field1 := cbbHorz.Items.Objects[cbbHorz.ItemIndex] as TDBField;
+  Field2 := cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField;
+  ID1 := horzids[CurCol];
+  ID2 := vertids[CurRow];
+  with CardsManager do begin
+    if not (ssCtrl in Shift) then
+      ShouldShow := false;
+    EditTable(FTable, FDragID, atUpdate, Field1, Field2, ID1, ID2);
+    if not (ssCtrl in Shift) then
+      OkCloseLast;
+    ShouldShow := true;
+  end;
+  if miExpandOnDrag.Checked then sgTable.ExpandCell(CurCol, CurRow);
+end;
+
+procedure TTimeTable.sgTableDragOver(Sender, Source: TObject; X,
+  Y: Integer; State: TDragState; var Accept: Boolean);
+begin
+  if FDragID = -1 then sgTable.DragDrop(Self, 0, 0);
+end;
+
 class procedure TTimeTable.RefreshTables;
 var
   i: integer;
@@ -214,19 +264,13 @@ var
   CurCol, CurRow: longint;
   Point: TPoint;
   Rect: TRect;
-  CellRow: integer;
   RecordNum: integer;
-  CheckedCount: integer;
   i: integer;
   GlyphButton: TGlyphButton;
   Field1, Field2: TDBField;
-  ID, ID1, ID2: integer;
+  RecID, ID1, ID2: integer;
 begin
   RecordNum := -1;
-  CheckedCount := 0;
-  for i := 0 to clbVisibleFields.Count - 1 do
-    if clbVisibleFields.Checked[i] then inc(CheckedCount);
-
   with sgTable do begin
     Point := ScreenToClient(Mouse.CursorPos);
     MouseToCell(Point.X, Point.Y, CurCol, CurRow);
@@ -236,38 +280,40 @@ begin
 
     if (CurCol > 0) and (CurRow > 0) then
       if CellStringsAssigned(CurCol, CurRow) then
-        GlyphButton := Button(Rect, Point, sgTable.CellStrings[CurRow, CurCol].Count, CheckedCount + 1, RecordNum)
+        GlyphButton := Button(Rect, Point, sgTable.CellStrings[CurRow, CurCol].Count, FCheckedCount + 1, RecordNum)
       else
-        GlyphButton := Button(Rect, Point, 0, CheckedCount + 1, RecordNum);
+        GlyphButton := Button(Rect, Point, 0, FCheckedCount + 1, RecordNum);
 
     Field1 := cbbHorz.Items.Objects[cbbHorz.ItemIndex] as TDBField;
     Field2 := cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField;
     if RecordNum <> -1 then
-      ID := FRecords[CurRow, CurCol, RecordNum].id;
+      RecID := FRecords[CurRow, CurCol, RecordNum].id;
+    if not Assigned(sgTable.CellStrings[CurRow, CurCol]) then
+      RecID := -1;
     ID1 := horzids[CurCol];
     ID2 := vertids[CurRow];
 
     case GlyphButton of
       gbNone:;
       gbDelete: if MessageDlg('Удалить запись?', mtConfirmation, mbOKCancel, 0) = 1 then begin
-        CardsManager.EditTable(FTable, ID, atDelete);
+        CardsManager.EditTable(FTable, RecID, atDelete);
         RefreshTable;
       end;
-      gbEdit: CardsManager.EditTable(FTable, ID, atUpdate, Field1, Field2, ID1, ID2);
+      gbEdit: CardsManager.EditTable(FTable, RecID, atUpdate, Field1, Field2, ID1, ID2);
       gbAdd: CardsManager.EditTable(FTable, NextID, atInsert, Field1, Field2, ID1, ID2);
       gbExpand: ExpandCell(CurCol, CurRow);
     end;
   end;
+  FDragID := RecID;
+  if GlyphButton <> gbNone then FDragID := -1;
 end;
 
 procedure TTimeTable.sgTableDblClick(Sender: TObject);
 var
   CurCol, CurRow: integer;
   Point: TPoint;
-  CheckedCount: integer;
   i: integer;
 begin
-  CheckedCount := 0;
   with sgTable do begin
     Point := ScreenToClient(Mouse.CursorPos);
     MouseToCell(Point.X, Point.Y, CurCol, CurRow);
@@ -281,11 +327,8 @@ begin
     if CurCol = 0 then
       if IsRowEmpty[CurRow] then
         RowHeights[CurRow] := Canvas.TextHeight('A')*2
-      else begin
-        for i := 0 to clbVisibleFields.Count - 1 do
-          if clbVisibleFields.Checked[i] then inc(CheckedCount);
-        RowHeights[CurRow] := Canvas.TextHeight('A')*(CheckedCount + 1);
-      end;
+      else
+        RowHeights[CurRow] := Canvas.TextHeight('A')*(FCheckedCount + 1);
 
     if (CurRow = 0) and (CurCol = 0) then begin
       ColWidths[CurCol] := NarrowColumnWidth;
@@ -317,20 +360,28 @@ begin
     SetLength(CellStrings, 1, 1);
     Parent := Self;
     Align := alClient;
-    Options := Options + [goRowSizing, goColSizing, goThumbTracking, goFixedColSizing, goCellHints];
+    Options := Options
+      + [goRowSizing, goColSizing, goThumbTracking, goFixedColSizing, goCellHints]
+      - [goRangeSelect];
+    DragMode := dmAutomatic;
     DefaultColWidth := DefaultColumnWidth;
     OnDrawCell := @GridDrawCell;
     ColWidths[0] := NarrowColumnWidth;
     RowHeights[0] := Canvas.TextHeight('A')*2;
     ShowHint := true;
     Visible := false;
+    DragCursor := crDrag;
     OnGetCellHint := @sgTableGetCellHint;
     OnMouseMove := @sgTableMouseMove;
     OnMouseDown := @sgTableMouseDown;
     OnDblClick := @sgTableDblClick;
+    OnStartDrag := @sgTableStartDrag;
+    OnDragDrop := @sgTableDragDrop;
+    OnDragOver := @sgTableDragOver;
   end;
 
   IsRightPnlExtended := false;
+  clbVisibleFieldsClickCheck(clbVisibleFields);
   clbVisibleFields.Height := clbVisibleFields.Count*24;
 end;
 
@@ -372,6 +423,8 @@ begin
 end;
 
 procedure TTimeTable.btnApplyClick(Sender: TObject);
+var
+  i: integer;
 begin
   sgTable.Reset;
   sgTable.Visible := true;
@@ -379,8 +432,6 @@ begin
     cbbHorz.Items.Objects[cbbHorz.ItemIndex] as TDBField,
     cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField);
   pnlControlsRight.Width := DefaultRightPanelWidth;
-  miEmptyRowsClick(miEmptyRows);
-  miEmptyColsClick(miEmptyCols);
 end;
 
 procedure TTimeTable.AddFieldsToLists(ATable: TDBTable);
@@ -404,10 +455,9 @@ procedure TTimeTable.FillTable(Horz, Vert: TDBField);
 var
   x, y, i, j, k: integer;
   Field: TDBField;
-  CheckedCount, ColsCount, RowsCount: integer;
+  ColsCount, RowsCount: integer;
   count: integer;
 begin
-  CheckedCount := 0;
 
   with SQLQuery do begin
     Close;
@@ -514,15 +564,14 @@ begin
   end;
   IsColEmpty[0] := false;
   IsRowEmpty[0] := false;
-
-  for i := 0 to clbVisibleFields.Count - 1 do
-    if clbVisibleFields.Checked[i] then inc(CheckedCount);
-  with sgTable do begin
-    DefaultRowHeight := (CheckedCount + 1)*Canvas.TextHeight('A');
-    RowHeights[0] := 30;
-  end;
   sgTable.RowCount := RowsCount + 1;
   sgTable.ColCount := ColsCount + 1;
+  with sgTable do begin
+    DefaultRowHeight := (FCheckedCount + 1)*Canvas.TextHeight('A');
+    RowHeights[0] := 30;
+  end;
+  miEmptyRowsClick(miEmptyRows);
+  miEmptyColsClick(miEmptyCols);
 end;
 
 procedure TTimeTable.FormDestroy(Sender: TObject);
@@ -575,13 +624,16 @@ var
   i: integer;
 begin
   if miEmptyCols.Checked then begin
-    for i := 0 to sgTable.ColCount - 1 do
+    for i := 1 to sgTable.ColCount - 1 do
       if IsColEmpty[i] then
         sgTable.ColWidths[i] := 0;
     end else begin
-      for i := 0 to sgTable.ColCount - 1 do
+      for i := 1 to sgTable.ColCount - 1 do
         if IsColEmpty[i] then
-          sgTable.ColWidths[i] := NarrowColumnWidth;
+          sgTable.ColWidths[i] := NarrowColumnWidth
+        else
+          if sgTable.ColWidths[i] = NarrowColumnWidth then
+            sgTable.ColWidths[i] := DefaultColumnWidth;
     end;
 end;
 
@@ -596,7 +648,10 @@ begin
   end else begin
     for i := 0 to sgTable.RowCount - 1 do
       if IsRowEmpty[i] then
-        sgTable.RowHeights[i] := sgTable.Canvas.TextHeight('A')*2;
+        sgTable.RowHeights[i] := sgTable.Canvas.TextHeight('A')*2
+      else
+        if sgTable.RowHeights[i] = sgTable.Canvas.TextHeight('A')*2 then
+            sgTable.RowHeights[i] := (FCheckedCount + 1)*sgTable.Canvas.TextHeight('A');
   end;
 end;
 
@@ -656,6 +711,15 @@ begin
   end;
 
   pnlControlsRight.Width := ExtendedRigthPanelWidth;
+end;
+
+procedure TTimeTable.clbVisibleFieldsClickCheck(Sender: TObject);
+var
+  i: integer;
+begin
+  FCheckedCount := 0;
+  for i := 0 to clbVisibleFields.Count - 1 do
+    if clbVisibleFields.Checked[i] then inc(FCheckedCount);
 end;
 
 procedure TTimeTable.DestroyFilterClick(Sender: TObject);
