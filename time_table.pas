@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   StdCtrls, CheckLst, Grids, Buttons, Menus, metadata, connection_transaction,
-  sqldb, types, query_filter, cell_contents, record_cards;
+  sqldb, types, query_filter, cell_contents, record_cards, sf_export;
 
 type
 
@@ -20,7 +20,7 @@ type
 
   TMyStringGrid = class(TStringGrid)
   public
-    CellStrings: array of array of TStringList;
+    CellStrings: TDblStrinListDynArray;
     function CellStringsAssigned(ACol, ARow: integer): boolean;
     function Button(ARect: TRect; APoint: TPoint; RowsCount: integer;
       RowsInSpanCount: integer; var RecordNum: integer): TGlyphButton;
@@ -54,6 +54,8 @@ type
     property OnShowAsListClick: TNotifyEvent read FShowAsList write FShowAsList;
     constructor Create(ATable: TDBTable);
   published
+    miSaveAs: TMenuItem;
+    SaveDialog: TSaveDialog;
     btnApply: TBitBtn;
     btnAddFilter: TButton;
     cbbHorz: TComboBox;
@@ -79,6 +81,7 @@ type
     sgTable: TMyStringGrid;
     SQLQuery: TSQLQuery;
     StringGrid1: TStringGrid;
+    procedure miSaveAsClick(Sender: TObject);
     procedure btnAddFilterClick(Sender: TObject);
     procedure clbVisibleFieldsClickCheck(Sender: TObject);
     procedure DestroyFilterClick(Sender: TObject);
@@ -345,6 +348,13 @@ begin
       FCellContents.Show;
     end;
   end;
+end;
+
+procedure TTimeTable.miSaveAsClick(Sender: TObject);
+begin
+  if SaveDialog.Execute then
+    Export_ODS(FTable, sgTable.CellStrings, sgTable.ColCount,
+    sgTable.RowCount, FCheckedCount, SaveDialog.FileName, SaveDialog.FilterIndex);
 end;
 
 constructor TTimeTable.Create(ATable: TDBTable);

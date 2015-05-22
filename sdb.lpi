@@ -41,7 +41,7 @@
         <PackageName Value="LCL"/>
       </Item4>
     </RequiredPackages>
-    <Units Count="12">
+    <Units Count="13">
       <Unit0>
         <Filename Value="sdb.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -127,6 +127,11 @@
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="cell_contents"/>
       </Unit11>
+      <Unit12>
+        <Filename Value="sf_export.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="sf_export"/>
+      </Unit12>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -136,7 +141,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="."/>
+      <OtherUnitFiles Value=".;fpspreadsheet-1.4.3"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>

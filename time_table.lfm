@@ -396,6 +396,10 @@ object TimeTable: TTimeTable
         Caption = 'Как список'
         OnClick = miShowAsListClick
       end
+      object miSaveAs: TMenuItem
+        Caption = 'Сохранить как...'
+        OnClick = miSaveAsClick
+      end
     end
     object miOptions: TMenuItem
       Caption = 'Опции'
@@ -414,5 +418,11 @@ object TimeTable: TTimeTable
         Caption = 'Растягивать при перетаскивании'
       end
     end
+  end
+  object SaveDialog: TSaveDialog
+    Title = 'Сохранить таблицу как'
+    Filter = 'MSExcel (*.xlsx)|*.xlsx|Open/LibreOffice (*.ods)|*.ods'
+    left = 160
+    top = 48
   end
 end
