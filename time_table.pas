@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  StdCtrls, CheckLst, Grids, Buttons, Menus, metadata, connection_transaction,
+  StdCtrls, CheckLst, Grids, Buttons, Menus, ActnList, metadata,
   sqldb, types, query_filter, cell_contents, record_cards, sf_export;
 
 type
@@ -35,7 +35,6 @@ type
     FTable: TDBTable;
     FShowAsList: TNotifyEvent;
     FCellContents: TCellContentsForm;
-    FFilters: array of TQueryFilter;
     FRecords: array of array of array of TCellIdentifier;
     IsRightPnlExtended: boolean;
     IsColEmpty: array of boolean;
@@ -47,11 +46,16 @@ type
     FOnDelete: TNotifyEvent;
     FDragID: integer;
     FCheckedCount: integer;
+    FReadOnly: boolean;
+    FFilterPopup: TNotifyEvent;
   public
+    Filters: TQueryFilterDynArray;
     property OnInsert: TNotifyEvent read FOnInsert write FOnInsert;
     property OnUpdate: TNotifyEvent read FOnUpdate write FOnUpdate;
     property OnDelete: TNotifyEvent read FOnDelete write FOnDelete;
+    property Table: TDBTable read FTable;
     property OnShowAsListClick: TNotifyEvent read FShowAsList write FShowAsList;
+    property OnFilterPopup: TNotifyEvent read FFilterPopup write FFilterPopup;
     constructor Create(ATable: TDBTable);
   published
     miSaveAs: TMenuItem;
@@ -81,8 +85,14 @@ type
     sgTable: TMyStringGrid;
     SQLQuery: TSQLQuery;
     StringGrid1: TStringGrid;
+    PopupCaption: TMenuItem;
+    pmCopyFiltersFrom: TPopupMenu;
+    procedure pmCopyFiltersFromClick(Sender: TObject);
+    procedure pmCopyFiltersFromPopup(Sender: TObject);
+    procedure lbFiltersClick(Sender: TObject);
     procedure miSaveAsClick(Sender: TObject);
     procedure btnAddFilterClick(Sender: TObject);
+    procedure FilterChangeData(Sender: TObject);
     procedure clbVisibleFieldsClickCheck(Sender: TObject);
     procedure DestroyFilterClick(Sender: TObject);
     procedure AddConditionsToQuery;
@@ -99,7 +109,7 @@ type
     procedure FormShow(Sender: TObject);
     procedure GridDrawCell(Sender: TObject; aCol, aRow: Integer;
       aRect: TRect; aState: TGridDrawState);
-    procedure lbFiltersClick(Sender: TObject);
+    procedure lbFiltersPanelClick(Sender: TObject);
     procedure miEmptyColsClick(Sender: TObject);
     procedure miEmptyRowsClick(Sender: TObject);
     procedure miShowAsListClick(Sender: TObject);
@@ -154,8 +164,7 @@ end;
 function TMyStringGrid.Button(ARect: TRect; APoint: TPoint; RowsCount: integer;
   RowsInSpanCount: integer; var RecordNum: integer): TGlyphButton;
 var
-  RowNum, ColNum: integer;
-  X, Y, Ht, Wh, CellRowHeight, CellColWidth: integer;
+  X, Y, Ht, Wh, CellRowHeight: integer;
   i: integer;
 begin
   X := APoint.X - ARect.Left;
@@ -226,7 +235,8 @@ var
   ID1, ID2: integer;
   Shift: TShiftState;
 begin
-  if FDragID = -1 then exit;
+  //showmessage(inttostr(fdragid));
+  if (FDragID = -1) or (FReadOnly) then exit;
   with sgTable do
     MouseToCell(ScreenToClient(Mouse.CursorPos).X, ScreenToClient(Mouse.CursorPos).Y, CurCol, CurRow);
   if (CurCol = 0) or (CurRow = 0) then exit;
@@ -268,12 +278,12 @@ var
   Point: TPoint;
   Rect: TRect;
   RecordNum: integer;
-  i: integer;
   GlyphButton: TGlyphButton;
   Field1, Field2: TDBField;
   RecID, ID1, ID2: integer;
 begin
   RecordNum := -1;
+  if FReadOnly then exit;;
   with sgTable do begin
     Point := ScreenToClient(Mouse.CursorPos);
     MouseToCell(Point.X, Point.Y, CurCol, CurRow);
@@ -315,7 +325,6 @@ procedure TTimeTable.sgTableDblClick(Sender: TObject);
 var
   CurCol, CurRow: integer;
   Point: TPoint;
-  i: integer;
 begin
   with sgTable do begin
     Point := ScreenToClient(Mouse.CursorPos);
@@ -353,8 +362,33 @@ end;
 procedure TTimeTable.miSaveAsClick(Sender: TObject);
 begin
   if SaveDialog.Execute then
-    Export_ODS(FTable, sgTable.CellStrings, sgTable.ColCount,
+    ExportToSpreadsheet(FTable, sgTable.CellStrings, sgTable.ColCount,
     sgTable.RowCount, FCheckedCount, SaveDialog.FileName, SaveDialog.FilterIndex);
+end;
+
+procedure TTimeTable.lbFiltersClick(Sender: TObject);
+begin
+  pmCopyFiltersFrom.PopUp;
+end;
+
+procedure TTimeTable.pmCopyFiltersFromPopup(Sender: TObject);
+begin
+  FFilterPopup(pmCopyFiltersFrom);
+end;
+
+procedure TTimeTable.pmCopyFiltersFromClick(Sender: TObject);
+var
+  i: integer;
+begin
+  for i := 0 to Length(Filters) - 1 do begin
+    Filters[i].OnDestroy := @DestroyFilterClick;
+    Filters[i].OnFilterAdd := @btnAddFilterClick;
+    Filters[i].OnChangeData := @FilterChangeData;
+    Filters[i].Tag := i;
+    Filters[i].Top := i * (Filters[i].Height + 2);
+  end;
+  pnlControlsRight.Width := ExtendedRigthPanelWidth;
+  btnApply.Enabled := true;
 end;
 
 constructor TTimeTable.Create(ATable: TDBTable);
@@ -390,6 +424,7 @@ begin
     OnDragOver := @sgTableDragOver;
   end;
 
+  FReadOnly := clbVisibleFields.Count < 2;
   IsRightPnlExtended := false;
   clbVisibleFieldsClickCheck(clbVisibleFields);
   clbVisibleFields.Height := clbVisibleFields.Count*24;
@@ -417,6 +452,7 @@ begin
         clbVisibleFields.Items.Move(i, i + 1);
         clbVisibleFields.Selected[i + 1] := true;
       end;
+  btnApply.Enabled := true;
 end;
 
 procedure TTimeTable.clbVisibleFieldsMouseWheelUp(Sender: TObject;
@@ -430,11 +466,10 @@ begin
         clbVisibleFields.Items.Move(i, i - 1);
         clbVisibleFields.Selected[i - 1] := true;
       end;
+  btnApply.Enabled := true;
 end;
 
 procedure TTimeTable.btnApplyClick(Sender: TObject);
-var
-  i: integer;
 begin
   sgTable.Reset;
   sgTable.Visible := true;
@@ -442,6 +477,7 @@ begin
     cbbHorz.Items.Objects[cbbHorz.ItemIndex] as TDBField,
     cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField);
   pnlControlsRight.Width := DefaultRightPanelWidth;
+  btnApply.Enabled := false;
 end;
 
 procedure TTimeTable.AddFieldsToLists(ATable: TDBTable);
@@ -592,6 +628,9 @@ end;
 procedure TTimeTable.FormShow(Sender: TObject);
 begin
   miShowAsList.Tag := Self.Tag;
+  cbbVert.ItemIndex := 0 mod clbVisibleFields.Count;
+  cbbHorz.ItemIndex := 1 mod clbVisibleFields.Count;
+  btnApplyClick(btnApply);
 end;
 
 procedure TTimeTable.GridDrawCell(Sender: TObject; aCol, aRow: Integer;
@@ -603,7 +642,7 @@ var
 begin
   with sgTable do begin
     MouseToCell(ScreenToClient(Mouse.CursorPos).X, ScreenToClient(Mouse.CursorPos).Y, CurCol, CurRow);
-    ShouldShow := (CurCol = aCol) and (CurRow = aRow);
+    ShouldShow := (CurCol = aCol) and (CurRow = aRow) and (not FReadOnly);
     if CellStringsAssigned(aCol, aRow) then begin
       for i := 0 to CellStrings[aRow, aCol].Count - 1 do begin
         Canvas.TextOut(aRect.Left, aRect.Top + i*Canvas.TextHeight('A'), CellStrings[aRow, aCol].Strings[i]);
@@ -620,7 +659,7 @@ begin
   end;
 end;
 
-procedure TTimeTable.lbFiltersClick(Sender: TObject);
+procedure TTimeTable.lbFiltersPanelClick(Sender: TObject);
 begin
   if IsRightPnlExtended then
     pnlControlsRight.Width := DefaultRightPanelWidth
@@ -691,10 +730,15 @@ begin
     for i := 0 to High(CellStrings) do
       for j := 0 to High(CellStrings[i]) do
         if Assigned(CellStrings[i, j]) then
-          CellStrings[i, j].Clear;
+          FreeAndNil(CellStrings[i, j]);
   FillTable(
     cbbHorz.Items.Objects[cbbHorz.ItemIndex] as TDBField,
     cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField);
+end;
+
+procedure TTimeTable.FilterChangeData(Sender: TObject);
+begin
+  btnApply.Enabled := true;
 end;
 
 procedure TTimeTable.btnAddFilterClick(Sender: TObject);
@@ -704,20 +748,21 @@ begin
   VPos := (Sender as TButton).Tag;
 
   if VPos = -1 then
-    VPos := Length(FFilters) - 1;
+    VPos := Length(Filters) - 1;
 
-  SetLength(FFilters, Length(FFilters) + 1);
+  SetLength(Filters, Length(Filters) + 1);
 
-  for i := Length(FFilters) - 1 downto VPos + 1 do
-    FFilters[i] := FFilters[i - 1];
+  for i := Length(Filters) - 1 downto VPos + 1 do
+    Filters[i] := Filters[i - 1];
 
-  FFilters[VPos + 1] := TQueryFilter.Create(FTable, VPos + 1, sbxFilters);
-  FFilters[VPos + 1].OnDestroy := @DestroyFilterClick;
-  FFilters[VPos + 1].OnFilterAdd := @btnAddFilterClick;
+  Filters[VPos + 1] := TQueryFilter.Create(FTable, VPos + 1, sbxFilters);
+  Filters[VPos + 1].OnDestroy := @DestroyFilterClick;
+  Filters[VPos + 1].OnFilterAdd := @btnAddFilterClick;
+  Filters[VPos + 1].OnChangeData := @FilterChangeData;
 
-  for i := 0 to Length(FFilters) - 1 do begin
-    FFilters[i].Tag := i;
-    FFilters[i].Top := i * (FFilters[i].Height + 2);
+  for i := 0 to Length(Filters) - 1 do begin
+    Filters[i].Tag := i;
+    Filters[i].Top := i * (Filters[i].Height + 2);
   end;
 
   pnlControlsRight.Width := ExtendedRigthPanelWidth;
@@ -730,6 +775,7 @@ begin
   FCheckedCount := 0;
   for i := 0 to clbVisibleFields.Count - 1 do
     if clbVisibleFields.Checked[i] then inc(FCheckedCount);
+  btnApply.Enabled := true;
 end;
 
 procedure TTimeTable.DestroyFilterClick(Sender: TObject);
@@ -738,20 +784,21 @@ var
 begin
   VPos := (Sender as TButton).Tag;
 
-  FFilters[VPos].Destroy;
+  Filters[VPos].Destroy;
 
-  for i := VPos to Length(FFilters) - 2 do
-    FFilters[i] := FFilters[i + 1];
+  for i := VPos to Length(Filters) - 2 do
+    Filters[i] := Filters[i + 1];
 
-  SetLength(FFilters, Length(FFilters) - 1);
+  SetLength(Filters, Length(Filters) - 1);
 
-  for i := 0 to Length(FFilters) - 1 do begin
-    FFilters[i].Tag := i;
-    FFilters[i].Top := i * (FFilters[i].Height + 2);
+  for i := 0 to Length(Filters) - 1 do begin
+    Filters[i].Tag := i;
+    Filters[i].Top := i * (Filters[i].Height + 2);
   end;
 
-  if Length(FFilters) = 0 then
+  if Length(Filters) = 0 then
     pnlControlsRight.Width := DefaultRightPanelWidth;
+  FilterChangeData(Sender);
 end;
 
 procedure TTimeTable.AddConditionsToQuery;
@@ -761,19 +808,19 @@ begin
   SQLQuery.SQL.Append('where 1 = 1');
 
   with SQLQuery do
-    for i := 0 to Length(FFilters) - 1 do
-      with FFilters[i] do
-        if Assigned(FFilters[i]) and Assigned(ConstantEditor) then
+    for i := 0 to Length(Filters) - 1 do
+      with Filters[i] do
+        if Assigned(Filters[i]) and Assigned(ConstantEditor) then
           if (ConstantEditor.Visible) then begin
             SQL.Append('and ' + ChosenField.TableOwner.Name + '.' + ChosenField.Name);
-            SQL.Append(Operation + ' :' + ChosenField.TableOwner.Name + ChosenField.Name + IntToStr(i));
+            SQL.Append(Operation.Code + ' :' + ChosenField.TableOwner.Name + ChosenField.Name + IntToStr(i));
           end else
             SQL.Append('or 1 = 1');
 
   k := 0;
-  for i := 0 to Length(FFilters) - 1 do
-    with FFilters[i] do
-      if Assigned(FFilters[i]) and Assigned(ConstantEditor) and
+  for i := 0 to Length(Filters) - 1 do
+    with Filters[i] do
+      if Assigned(Filters[i]) and Assigned(ConstantEditor) and
       (ConstantEditor.Visible) then
         with SQLQuery do begin
           Params[k].Value := Value;

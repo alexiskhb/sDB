@@ -61,6 +61,7 @@ type
     property ValueID: integer read FValueID write SetValueID;
     property Caption: string read GetCaption;
     property Tag: integer read FTag write FTag;
+    constructor Create(ADisplayedField: TDBField; APos: integer; ACard: TForm);
   end;
 
   TEditCellEdit = class (TCellEdit)
@@ -88,11 +89,6 @@ type
 	{ TRecordCard }
 
   TRecordCard = class(TForm)
-  published
-    btnCancel: TBitBtn;
-    btnOk: TBitBtn;
-    procedure btnCancelClick(Sender: TObject);
-    procedure btnOkClick(Sender: TObject);
   private
     FCellEdits: array of TCellEdit;
     FActionType: TActionType;
@@ -114,6 +110,12 @@ type
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure CellEditValueChange(Sender: TObject);
     constructor Create(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType);
+  published
+    btnCancel: TBitBtn;
+    btnOk: TBitBtn;
+    cbNoClose: TCheckBox;
+    procedure btnCancelClick(Sender: TObject);
+    procedure btnOkClick(Sender: TObject);
   end;
 
   TFixedRecordCard = class(TRecordCard)
@@ -161,7 +163,7 @@ begin
 
   FRequestRefreshCards(FTable);
   FOkClick(Sender);
-  if EditResult = 0 then Close
+  if (EditResult = 0) and (not cbNoClose.Checked) then Close
   else Visible := true;
 end;
 
@@ -224,6 +226,7 @@ begin
   Height := CellEditPanelHeight * (1 + Length(FCellEdits));
   btnCancel.Top := Height - CellEditPanelHeight div 2 - btnCancel.Height div 2;
   btnOk.Top := btnCancel.Top;
+  cbNoClose.Top := btnOk.Top - cbNoClose.Height;
   BorderStyle := bsSingle;
 end;
 
@@ -251,6 +254,7 @@ var
 begin
   inherited Create(ATable, APrimaryKey, AActionType);
   Caption := ATable.Caption + ': изменить запись';
+  cbNoClose.Visible := false;
 
   ConTran.CommonSQLQuery.Close;
   SetSQLQuery(ATable, ConTran.CommonSQLQuery);
@@ -295,11 +299,8 @@ begin
   CloseAction := caFree;
 end;
 
-constructor TEditCellEdit.Create(ADisplayedField: TDBField; APos: integer; ACard: TForm);
+constructor TCellEdit.Create(ADisplayedField: TDBField; APos: integer; ACard: TForm);
 begin
-  FDisplayedField := ADisplayedField;
-  FReferringField := ADisplayedField;
-
   pnlCellEdit := TPanel.Create(ACard);
   with pnlCellEdit do begin
     Parent := ACard;
@@ -317,6 +318,14 @@ begin
     Width := 4 * ACard.Width div 16;
     Caption := ADisplayedField.Caption;
   end;
+end;
+
+constructor TEditCellEdit.Create(ADisplayedField: TDBField; APos: integer; ACard: TForm);
+begin
+  inherited Create(ADisplayedField, APos, ACard);
+
+  FDisplayedField := ADisplayedField;
+  FReferringField := ADisplayedField;
 
   CellEditor := TEdit.Create(pnlCellEdit);
   with CellEditor do begin
@@ -346,26 +355,10 @@ end;
 
 constructor TComboCellEdit.Create(ADisplayedField, AReferringField: TDBField; APos: integer; ACard: TForm);
 begin
+  inherited Create(ADisplayedField, APos, ACard);
+
   FDisplayedField := ADisplayedField;
   FReferringField := AReferringField;
-
-  pnlCellEdit := TPanel.Create(ACard);
-  with pnlCellEdit do begin
-    Parent := ACard;
-    Height := CellEditPanelHeight;
-    Align := alTop;
-    Top := APos * Height;
-  end;
-
-  lbTitle := TLabel.Create(pnlCellEdit);
-  with lbTitle do begin
-    Parent := pnlCellEdit;
-    AutoSize := false;
-    Top := pnlCellEdit.Height div 2 - Height;
-    Left := ACard.Width div 32;
-    Width := 4 * ACard.Width div 16;
-    Caption := ADisplayedField.Caption;
-  end;
 
   cbbValues := TComboBox.Create(pnlCellEdit);
   with cbbValues do begin

@@ -108,7 +108,9 @@
       <Unit9>
         <Filename Value="query_filter.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="FiltersPanel"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
         <UnitName Value="query_filter"/>
       </Unit9>
       <Unit10>

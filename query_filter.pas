@@ -23,7 +23,17 @@ type
     property Caption: string read FCaption;
     property Code: string read FCode;
     constructor Create(aCaption, aCode: string);
-	end;
+  end;
+
+  TFilter = record
+    ChosenField: TDBField;
+    Operation: TRelOperation;
+    Value: string;
+  end;
+
+  TQueryFilter = class;
+
+  TQueryFilterDynArray = array of TQueryFilter;
 
   TQueryFilter = class
   private
@@ -42,26 +52,32 @@ type
     procedure SetFilterTop(Value: integer);
     procedure SetFilterHeight(Value: integer);
     procedure SetFilterTag(Value: integer);
+    procedure SetOperation(Value: TRelOperation);
+    procedure SetField(Value: TDBField);
+    procedure SetValue(Value: Variant);
     function GetField: TDBField;
     function GetValue: Variant;
-    function GetOperation: string;
+    function GetOperation: TRelOperation;
   public
     ConstantEditor: TCustomEdit;
-    property ChosenField: TDBField read GetField;
+    property ChosenField: TDBField read GetField write SetField;
     property Tag: integer read FTag write SetFilterTag;
     property OnDestroy: TNotifyEvent read FDestroying write FDestroying;
     property OnChangeData: TNotifyEvent read FChangingData write FChangingData;
     property OnFilterAdd: TNotifyEvent read FAddingFilter write FAddingFilter;
     property Top: integer read FTop write SetFilterTop;
     property Height: integer read FHeight write SetFilterHeight;
-    property Value: variant read GetValue;
-    property Operation: string read GetOperation;
+    property Value: variant read GetValue write SetValue;
+    property Operation: TRelOperation read GetOperation write SetOperation;
     procedure ChosenFieldChange(Sender: TObject);
-    procedure DeleteFilterClick(Sender: TObject; MouseButton: TMouseButton; ShiftState: TShiftState; X, Y: longint);
+    procedure DeleteFilterClick(Sender: TObject; MouseButton: TMouseButton;
+      ShiftState: TShiftState; X, Y: longint);
     procedure AddFieldsForChoose(ATable: TDBTable);
     procedure EditChange(Sender: TObject);
     procedure OperationChange(Sender: TObject);
     procedure AddFilterClick(Sender: TObject);
+    class procedure CopyFilters(AToTable: TDBTable; var AFrom, ATo:
+      TQueryFilterDynArray; AToPanel: TCustomControl);
     constructor Create(ATable: TDBTable; AIndex: integer; APanel: TCustomControl);
     destructor Destroy; override;
   end;
@@ -104,9 +120,7 @@ begin
     AutoSize := false;
     Height := btnDeleteFilter.Height + 2;
     Style := csDropDownList;
-    //-------------
     AddFieldsForChoose(FTable);
-    //-------------
     AddItem('ИЛИ', nil);
     OnChange := @ChosenFieldChange;
   end;
@@ -160,6 +174,9 @@ begin
     FreeAndNil(ConstantEditor);
     FreeAndNil(cbbOperations);
   end;
+
+  btnAddFilter.Left := VSender.Left + VSender.Width + 1;
+  if VSender.ItemIndex < 0 then exit;
 
   if Assigned(VSender.Items.Objects[VSender.ItemIndex]) then
     tempft := ((VSender.Items.Objects[VSender.ItemIndex]) as TDBField).FieldType
@@ -257,16 +274,33 @@ begin
 end;
 
 function TQueryFilter.GetField: TDBField;
+var
+  Field: TDBField;
 begin
+  if cbbFields.ItemIndex < 0 then exit(nil);
   if Assigned(cbbFields.Items.Objects[cbbFields.ItemIndex] as TDBField) then
-    Result := (cbbFields.Items.Objects[cbbFields.ItemIndex] as TDBField)
+    Result := cbbFields.Items.Objects[cbbFields.ItemIndex] as TDBField
   else
     Result := nil;
 end;
 
-function TQueryFilter.GetOperation: string;
+procedure TQueryFilter.SetField(Value: TDBField);
 begin
-  Result := (cbbOperations.Items.Objects[cbbOperations.ItemIndex] as TRelOperation).Code;
+  if Value = nil then exit;
+  with cbbFields do
+    ItemIndex := Items.IndexOfObject(Value);
+  ChosenFieldChange(cbbFields);
+end;
+
+function TQueryFilter.GetOperation: TRelOperation;
+begin
+  Result := cbbOperations.Items.Objects[cbbOperations.ItemIndex] as TRelOperation;
+end;
+
+procedure TQueryFilter.SetOperation(Value: TRelOperation);
+begin
+  with cbbOperations do
+    ItemIndex := Items.IndexOfObject(Value);
 end;
 
 function TQueryFilter.GetValue: Variant;
@@ -275,6 +309,36 @@ begin
     Result := (ConstantEditor as TSpinEdit).Value
   else
     Result := ConstantEditor.Text;
+end;
+
+procedure TQueryFilter.SetValue(Value: Variant);
+begin
+  ConstantEditor.Text := Value;
+end;
+
+class procedure TQueryFilter.CopyFilters(AToTable: TDBTable; var AFrom, ATo:
+  TQueryFilterDynArray; AToPanel: TCustomControl);
+var
+  i: integer;
+begin
+  for i := 0 to Length(ATo) - 1 do
+    ATo[i].Destroy;
+  SetLength(ATo, Length(AFrom));
+
+  for i := 0 to Length(ATo) - 1 do
+    ATo[i] := TQueryFilter.Create(AToTable, i, AToPanel);
+
+  for i := 0 to Length(AFrom) - 1 do begin
+    ATo[i].ChosenField := AFrom[i].ChosenField;
+    if Assigned(ATo[i].ChosenField) then begin
+      ATo[i].Operation := AFrom[i].Operation;
+      ATo[i].Value := AFrom[i].Value;
+    end else
+      if AFrom[i].cbbFields.ItemIndex = AFrom[i].cbbFields.Items.Count - 1 then begin
+        ATo[i].cbbFields.ItemIndex := ATo[i].cbbFields.Items.Count - 1;
+        ATo[i].ChosenFieldChange(ATo[i].cbbFields);
+      end;
+  end;
 end;
 
 destructor TQueryFilter.Destroy;

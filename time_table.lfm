@@ -1,7 +1,7 @@
 object TimeTable: TTimeTable
-  Left = 404
+  Left = 383
   Height = 554
-  Top = 130
+  Top = 161
   Width = 928
   Caption = 'timetable'
   ClientHeight = 554
@@ -160,6 +160,7 @@ object TimeTable: TTimeTable
       ClientHeight = 28
       ClientWidth = 160
       TabOrder = 2
+      OnDblClick = lbFiltersPanelClick
       object lbFilters: TLabel
         Left = 66
         Height = 26
@@ -424,5 +425,15 @@ object TimeTable: TTimeTable
     Filter = 'MSExcel (*.xlsx)|*.xlsx|Open/LibreOffice (*.ods)|*.ods'
     left = 160
     top = 48
+  end
+  object pmCopyFiltersFrom: TPopupMenu
+    OnPopup = pmCopyFiltersFromPopup
+    left = 200
+    top = 48
+    object PopupCaption: TMenuItem
+      Caption = 'Скопировать из:'
+      Enabled = False
+      Visible = False
+    end
   end
 end

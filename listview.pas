@@ -16,6 +16,17 @@ type
   { TDBTableForm }
 
   TDBTableForm = class(TForm)
+  private
+    FFieldsOrder: TStringList;
+    OrderIsDesc: boolean;
+    FTable: TDBTable;
+    FCurPos: integer;
+    FShowAsTable: TNotifyEvent;
+  public
+    Filters: TQueryFilterDynArray;
+    property OnShowAsTableClick: TNotifyEvent read FShowAsTable write FShowAsTable;
+    constructor Create(ATable: TDBTable);
+  published
     btnEditRecord: TBitBtn;
     btnInsertRecord: TBitBtn;
     btnDeleteRecord: TBitBtn;
@@ -63,16 +74,6 @@ type
     class procedure FormSetFocus(ATag: integer);
     class procedure RefreshLists;
     class function FormExists(ATag: integer): boolean;
-  private
-    FFilters: array of TQueryFilter;
-    FFieldsOrder: TStringList;
-    OrderIsDesc: boolean;
-    FTable: TDBTable;
-    FCurPos: integer;
-    FShowAsTable: TNotifyEvent;
-  public
-    property OnShowAsTableClick: TNotifyEvent read FShowAsTable write FShowAsTable;
-    constructor Create(ATable: TDBTable);
   end;
 
   TDBTableFormDynArray = array of TDBTableForm;
@@ -263,10 +264,10 @@ procedure TDBTableForm.miResetClick(Sender: TObject);
 var
   i: integer;
 begin
-  for i := 0 to High(FFilters) do
-    if Assigned(FFilters[i]) then
-      FFilters[i].Destroy;
-  SetLength(FFilters, 0);
+  for i := 0 to High(Filters) do
+    if Assigned(Filters[i]) then
+      Filters[i].Destroy;
+  SetLength(Filters, 0);
   SQLQuery.Close;
   SetSQLQuery(DBTables[Self.Tag], SQLQuery);
   ResetGridTitles;
@@ -307,19 +308,19 @@ begin
   SQLQuery.SQL.Append('where 1 = 1');
 
   with SQLQuery do
-    for i := 0 to Length(FFilters) - 1 do
-      with FFilters[i] do
-        if Assigned(FFilters[i]) and Assigned(ConstantEditor) then
+    for i := 0 to Length(Filters) - 1 do
+      with Filters[i] do
+        if Assigned(Filters[i]) and Assigned(ConstantEditor) then
           if (ConstantEditor.Visible) then begin
             SQL.Append('and ' + ChosenField.TableOwner.Name + '.' + ChosenField.Name);
-            SQL.Append(Operation + ' :' + ChosenField.TableOwner.Name + ChosenField.Name + IntToStr(i));
+            SQL.Append(Operation.Code + ' :' + ChosenField.TableOwner.Name + ChosenField.Name + IntToStr(i));
           end else
             SQL.Append('or 1 = 1');
 
   k := 0;
-  for i := 0 to Length(FFilters) - 1 do
-    with FFilters[i] do
-      if Assigned(FFilters[i]) and Assigned(ConstantEditor) and
+  for i := 0 to Length(Filters) - 1 do
+    with Filters[i] do
+      if Assigned(Filters[i]) and Assigned(ConstantEditor) and
       (ConstantEditor.Visible) then
         with SQLQuery do begin
           Params[k].Value := Value;
@@ -342,20 +343,20 @@ var
 begin
   VPos := (Sender as TButton).Tag;
 
-  FFilters[VPos].Destroy;
+  Filters[VPos].Destroy;
 
-  for i := VPos to Length(FFilters) - 2 do
-    FFilters[i] := FFilters[i + 1];
+  for i := VPos to Length(Filters) - 2 do
+    Filters[i] := Filters[i + 1];
 
-  SetLength(FFilters, Length(FFilters) - 1);
+  SetLength(Filters, Length(Filters) - 1);
 
-  for i := 0 to Length(FFilters) - 1 do begin
-    FFilters[i].Tag := i;
-    FFilters[i].Top := i * (FFilters[i].Height + 2);
+  for i := 0 to Length(Filters) - 1 do begin
+    Filters[i].Tag := i;
+    Filters[i].Top := i * (Filters[i].Height + 2);
   end;
 
   sbxFilters.Constraints.MaxHeight := 3 * Height div 4;
-  sbxFilters.Height := Length(FFilters) * (FilterHeight + 2);
+  sbxFilters.Height := Length(Filters) * (FilterHeight + 2);
 end;
 
 procedure TDBTableForm.FilterDataChanged(Sender: TObject);
@@ -381,25 +382,25 @@ begin
   VPos := (Sender as TButton).Tag;
 
   if VPos = -1 then
-    VPos := Length(FFilters) - 1;
+    VPos := Length(Filters) - 1;
 
-  SetLength(FFilters, Length(FFilters) + 1);
+  SetLength(Filters, Length(Filters) + 1);
 
-  for i := Length(FFilters) - 1 downto VPos + 1 do
-    FFilters[i] := FFilters[i - 1];
+  for i := Length(Filters) - 1 downto VPos + 1 do
+    Filters[i] := Filters[i - 1];
 
-  FFilters[VPos + 1] := TQueryFilter.Create(FTable, VPos + 1, sbxFilters);
-  FFilters[VPos + 1].OnDestroy := @DestroyFilterClick;
-  FFilters[VPos + 1].OnChangeData := @FilterDataChanged;
-  FFilters[VPos + 1].OnFilterAdd := @btnAddFilterClick;
+  Filters[VPos + 1] := TQueryFilter.Create(FTable, VPos + 1, sbxFilters);
+  Filters[VPos + 1].OnDestroy := @DestroyFilterClick;
+  Filters[VPos + 1].OnChangeData := @FilterDataChanged;
+  Filters[VPos + 1].OnFilterAdd := @btnAddFilterClick;
 
-  for i := 0 to Length(FFilters) - 1 do begin
-    FFilters[i].Tag := i;
-    FFilters[i].Top := i * (FFilters[i].Height + 2);
+  for i := 0 to Length(Filters) - 1 do begin
+    Filters[i].Tag := i;
+    Filters[i].Top := i * (Filters[i].Height + 2);
   end;
 
   sbxFilters.Constraints.MaxHeight := 3 * Height div 4;
-  sbxFilters.Height := Length(FFilters) * (FilterHeight + 2);
+  sbxFilters.Height := Length(Filters) * (FilterHeight + 2);
 end;
 
 procedure TDBTableForm.btnEditRecordClick(Sender: TObject);

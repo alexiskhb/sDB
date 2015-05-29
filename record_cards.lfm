@@ -1,7 +1,7 @@
 object RecordCard: TRecordCard
-  Left = 519
+  Left = 538
   Height = 132
-  Top = 415
+  Top = 335
   Width = 478
   Anchors = [akTop, akRight]
   Caption = 'RecordCard'
@@ -11,7 +11,7 @@ object RecordCard: TRecordCard
   object btnCancel: TBitBtn
     Left = 88
     Height = 30
-    Top = 78
+    Top = 88
     Width = 115
     Anchors = [akLeft, akBottom]
     Cancel = True
@@ -19,12 +19,12 @@ object RecordCard: TRecordCard
     Kind = bkCancel
     ModalResult = 2
     OnClick = btnCancelClick
-    TabOrder = 0
+    TabOrder = 1
   end
   object btnOk: TBitBtn
     Left = 272
     Height = 30
-    Top = 78
+    Top = 88
     Width = 102
     Anchors = [akLeft, akBottom]
     Default = True
@@ -32,6 +32,14 @@ object RecordCard: TRecordCard
     Kind = bkOK
     ModalResult = 1
     OnClick = btnOkClick
-    TabOrder = 1
+    TabOrder = 2
+  end
+  object cbNoClose: TCheckBox
+    Left = 208
+    Height = 24
+    Top = 72
+    Width = 256
+    Caption = 'Не закрывать после применения'
+    TabOrder = 0
   end
 end

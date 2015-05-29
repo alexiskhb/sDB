@@ -8,7 +8,7 @@ uses
   connection_transaction, Classes, SysUtils, sqldb, DB, IBConnection, FileUtil,
   SynHighlighterSQL, SynEdit, Forms, Controls, Graphics, Dialogs,
   DBGrids, StdCtrls, ExtCtrls, Menus, Buttons, DBCtrls, FormConnect,
-  metadata, listview, aboutsdb, time_table, record_cards;
+  metadata, listview, aboutsdb, time_table, record_cards, query_filter;
 
 type
 
@@ -46,9 +46,8 @@ type
     procedure ShowDBTable(Sender: TObject);
     procedure ShowTimeTable(Sender: TObject);
     procedure RecordCardOkClick(Sender: TObject);
-  public
-    miLists: array of TMenuItem;
-    miTables: array of TMenuItem;
+    procedure TableFiltersPopup(Sender: TObject);
+    procedure TableFiltersPopupClick(Sender: TObject);
   end;
 
 var
@@ -69,6 +68,8 @@ end;
 procedure TMainForm.FormCreate(Sender: TObject);
 var
   i: integer;
+  miLists: array of TMenuItem;
+  miTables: array of TMenuItem;
 begin
   SetLength(miLists, Length(DBTables));
   SetLength(miTables, Length(DBTables));
@@ -143,6 +144,7 @@ begin
     TimeTables[MI.Tag] := TTimeTable.Create(DBTables[MI.Tag]);
     TimeTables[MI.Tag].Tag := MI.Tag;
     TimeTables[MI.Tag].OnShowAsListClick := @ShowDBTable;
+    TimeTables[MI.Tag].OnFilterPopup := @TableFiltersPopup;
     TimeTables[MI.Tag].Show;
   end;
 end;
@@ -186,5 +188,55 @@ begin
   TTimeTable.RefreshTables;
 end;
 
+procedure TMainForm.TableFiltersPopup(Sender: TObject);
+var
+  i: integer;
+  PopMenu: TPopupMenu;
+  MenuItem: TMenuItem;
+  TimeTable: TTimeTable;
+begin
+  PopMenu := Sender as TPopupMenu;
+  TimeTable := PopMenu.Owner as TTimeTable;
+  PopMenu.Items.Clear;
+  for i := 0 to Length(DBTables) - 1 do begin
+    MenuItem := TMenuItem.Create(Self);
+    MenuItem.Caption := DBTables[i].Caption + ' (список)';
+    MenuItem.Visible := TDBTableForm.FormExists(i);
+    MenuItem.OnClick := @TableFiltersPopupClick;
+    MenuItem.Tag := i;
+    PopMenu.Items.Add(MenuItem);
+  end;
+  for i := 0 to Length(DBTables) - 1 do begin
+    MenuItem := TMenuItem.Create(Self);
+    MenuItem.Caption := DBTables[i].Caption + ' (таблица)';
+    MenuItem.Visible := TTimeTable.FormExists(i) and (TimeTable <> TimeTables[i]);
+    MenuItem.OnClick := @TableFiltersPopupClick;
+    MenuItem.Tag := i + Length(DBTables);
+    PopMenu.Items.Add(MenuItem);
+  end;
+end;
+
+procedure TMainForm.TableFiltersPopupClick(Sender: TObject);
+var
+  MenuItem: TMenuItem;
+  FiltersFrom: TQueryFilterDynArray;
+  TimeTable: TTimeTable;
+begin
+  MenuItem := Sender as TMenuItem;
+  if MenuItem.Tag < Length(DBTables) then
+    FiltersFrom := DBTableForms[MenuItem.Tag].Filters
+  else
+    FiltersFrom := TimeTables[MenuItem.Tag mod Length(DBTables)].Filters;
+  TimeTable := (MenuItem.Parent.Owner as TPopupMenu).Owner as TTimeTable;
+  TQueryFilter.CopyFilters(
+    TimeTable.Table, FiltersFrom, TimeTable.Filters, TimeTable.sbxFilters);
+  TimeTable.pmCopyFiltersFromClick(Sender);
+end;
+
 end.
+
+
+
+
+
 
