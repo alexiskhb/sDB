@@ -129,6 +129,7 @@ begin
     DBTableForms[MI.Tag] := TDBTableForm.Create(DBTables[MI.Tag]);
     DBTableForms[MI.Tag].Tag := MI.Tag;
     DBTableForms[MI.Tag].OnShowAsTableClick := @ShowTimeTable;
+    DBTableForms[MI.Tag].OnFilterPopup := @TableFiltersPopup;
     DBTableForms[MI.Tag].Show;
   end;
 end;
@@ -194,14 +195,18 @@ var
   PopMenu: TPopupMenu;
   MenuItem: TMenuItem;
   TimeTable: TTimeTable;
+  DBTableForm: TDBTableForm;
 begin
   PopMenu := Sender as TPopupMenu;
-  TimeTable := PopMenu.Owner as TTimeTable;
+  if PopMenu.Owner.ClassType = TTimeTable then
+    TimeTable := PopMenu.Owner as TTimeTable
+  else
+    DBTableForm := PopMenu.Owner as TDBTableForm;
   PopMenu.Items.Clear;
   for i := 0 to Length(DBTables) - 1 do begin
     MenuItem := TMenuItem.Create(Self);
     MenuItem.Caption := DBTables[i].Caption + ' (список)';
-    MenuItem.Visible := TDBTableForm.FormExists(i);
+    MenuItem.Visible := TDBTableForm.FormExists(i) and (DBTableForm <> DBTableForms[i]);
     MenuItem.OnClick := @TableFiltersPopupClick;
     MenuItem.Tag := i;
     PopMenu.Items.Add(MenuItem);
@@ -221,16 +226,27 @@ var
   MenuItem: TMenuItem;
   FiltersFrom: TQueryFilterDynArray;
   TimeTable: TTimeTable;
+  DBTableForm: TDBTableForm;
+  PopMenu: TPopupMenu;
 begin
   MenuItem := Sender as TMenuItem;
+  PopMenu := MenuItem.Parent.Owner as TPopupMenu;
   if MenuItem.Tag < Length(DBTables) then
     FiltersFrom := DBTableForms[MenuItem.Tag].Filters
   else
     FiltersFrom := TimeTables[MenuItem.Tag mod Length(DBTables)].Filters;
-  TimeTable := (MenuItem.Parent.Owner as TPopupMenu).Owner as TTimeTable;
-  TQueryFilter.CopyFilters(
-    TimeTable.Table, FiltersFrom, TimeTable.Filters, TimeTable.sbxFilters);
-  TimeTable.pmCopyFiltersFromClick(Sender);
+
+  if PopMenu.Owner.ClassType = TTimeTable then begin
+    TimeTable := (MenuItem.Parent.Owner as TPopupMenu).Owner as TTimeTable;
+    TQueryFilter.CopyFilters(
+      TimeTable.Table, FiltersFrom, TimeTable.Filters, TimeTable.sbxFilters);
+    TimeTable.pmCopyFiltersFromClick(Sender);
+  end else begin
+    DBTableForm := (MenuItem.Parent.Owner as TPopupMenu).Owner as TDBTableForm;
+    TQueryFilter.CopyFilters(
+      DBTableForm.Table, FiltersFrom, DBTableForm.Filters, DBTableForm.sbxFilters);
+    DBTableForm.pmCopyFiltersClick(Sender);
+  end;
 end;
 
 end.

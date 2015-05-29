@@ -22,9 +22,12 @@ type
     FTable: TDBTable;
     FCurPos: integer;
     FShowAsTable: TNotifyEvent;
+    FFilterPopup: TNotifyEvent;
   public
     Filters: TQueryFilterDynArray;
+    property Table: TDBTable read FTable;
     property OnShowAsTableClick: TNotifyEvent read FShowAsTable write FShowAsTable;
+    property OnFilterPopup: TNotifyEvent read FFilterPopup write FFilterPopup;
     constructor Create(ATable: TDBTable);
   published
     btnEditRecord: TBitBtn;
@@ -37,7 +40,6 @@ type
     miReset: TMenuItem;
     SQLQuery: TSQLQuery;
     btnAddFilter: TButton;
-    btnFilter: TSpeedButton;
     sbxFilters: TScrollBox;
     pnlControls: TPanel;
     Splitter: TSplitter;
@@ -46,6 +48,12 @@ type
     MainMenu: TMainMenu;
     miCloseTable: TMenuItem;
     RecordCard: TRecordCard;
+    btnFilter: TBitBtn;
+    lbFilters: TLabel;
+    pmCopyFilters: TPopupMenu;
+    procedure pmCopyFiltersClick(Sender: TObject);
+    procedure lbFiltersClick(Sender: TObject);
+    procedure pmCopyFiltersPopup(Sender: TObject);
     procedure btnEditRecordClick(Sender: TObject);
     procedure DBGridColumnMoved(Sender: TObject; FromIndex, ToIndex: Integer);
     procedure DBGridDblClick(Sender: TObject);
@@ -109,6 +117,31 @@ begin
   for i := 0 to High(DBTableForms) do
     if Assigned(DBTableForms[i]) then
       DBTableForms[i].RefreshTable;
+end;
+
+procedure TDBTableForm.lbFiltersClick(Sender: TObject);
+begin
+  pmCopyFilters.PopUp;
+end;
+
+procedure TDBTableForm.pmCopyFiltersPopup(Sender: TObject);
+begin
+  FFilterPopup(pmCopyFilters);
+end;
+
+procedure TDBTableForm.pmCopyFiltersClick(Sender: TObject);
+var
+  i: integer;
+begin
+  for i := 0 to Length(Filters) - 1 do begin
+    Filters[i].OnDestroy := @DestroyFilterClick;
+    Filters[i].OnFilterAdd := @btnAddFilterClick;
+    Filters[i].OnChangeData := @FilterDataChanged;
+    Filters[i].Tag := i;
+    Filters[i].Top := i * (Filters[i].Height + 2);
+  end;
+  sbxFilters.Height := (Length(Filters) * FilterHeight) mod (3 * FilterHeight);
+  btnFilter.Enabled := true;
 end;
 
 constructor TDBTableForm.Create(ATable: TDBTable);
@@ -288,7 +321,7 @@ end;
 
 procedure TDBTableForm.btnFilterClick(Sender: TObject);
 begin
-  (Sender as TSpeedButton).Enabled := false;
+  (Sender as TBitBtn).Enabled := false;
   SQLQuery.Close;
   SetSQLQuery(DBTables[Self.Tag], SQLQuery);
   AddConditionsToQuery;

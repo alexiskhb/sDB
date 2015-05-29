@@ -218,12 +218,12 @@ object TimeTable: TTimeTable
     Transaction = ConTran.DBTransaction
     Params = <>
     DataSource = ConTran.CommonDS
-    left = 16
+    left = 40
     top = 48
   end
   object ImageList: TImageList
-    left = 64
-    top = 48
+    left = 40
+    top = 112
     Bitmap = {
       4C69050000001000000010000000FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
       FF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFFFF00FFFF
@@ -389,8 +389,8 @@ object TimeTable: TTimeTable
     }
   end
   object MainMenu: TMainMenu
-    left = 112
-    top = 48
+    left = 40
+    top = 176
     object miTable: TMenuItem
       Caption = 'Таблица'
       object miShowAsList: TMenuItem
@@ -423,13 +423,13 @@ object TimeTable: TTimeTable
   object SaveDialog: TSaveDialog
     Title = 'Сохранить таблицу как'
     Filter = 'MSExcel (*.xlsx)|*.xlsx|Open/LibreOffice (*.ods)|*.ods'
-    left = 160
-    top = 48
+    left = 40
+    top = 240
   end
-  object pmCopyFiltersFrom: TPopupMenu
+  object pmCopyFilters: TPopupMenu
     OnPopup = pmCopyFiltersFromPopup
-    left = 200
-    top = 48
+    left = 40
+    top = 304
     object PopupCaption: TMenuItem
       Caption = 'Скопировать из:'
       Enabled = False

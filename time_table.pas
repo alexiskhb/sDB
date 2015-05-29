@@ -86,7 +86,7 @@ type
     SQLQuery: TSQLQuery;
     StringGrid1: TStringGrid;
     PopupCaption: TMenuItem;
-    pmCopyFiltersFrom: TPopupMenu;
+    pmCopyFilters: TPopupMenu;
     procedure pmCopyFiltersFromClick(Sender: TObject);
     procedure pmCopyFiltersFromPopup(Sender: TObject);
     procedure lbFiltersClick(Sender: TObject);
@@ -368,12 +368,12 @@ end;
 
 procedure TTimeTable.lbFiltersClick(Sender: TObject);
 begin
-  pmCopyFiltersFrom.PopUp;
+  pmCopyFilters.PopUp;
 end;
 
 procedure TTimeTable.pmCopyFiltersFromPopup(Sender: TObject);
 begin
-  FFilterPopup(pmCopyFiltersFrom);
+  FFilterPopup(pmCopyFilters);
 end;
 
 procedure TTimeTable.pmCopyFiltersFromClick(Sender: TObject);
@@ -388,6 +388,8 @@ begin
     Filters[i].Top := i * (Filters[i].Height + 2);
   end;
   pnlControlsRight.Width := ExtendedRigthPanelWidth;
+  if Length(Filters) = 0 then
+    pnlControlsRight.Width := DefaultRightPanelWidth;
   btnApply.Enabled := true;
 end;
 
