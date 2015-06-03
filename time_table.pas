@@ -87,6 +87,7 @@ type
     StringGrid1: TStringGrid;
     PopupCaption: TMenuItem;
     pmCopyFilters: TPopupMenu;
+    procedure sgTableClick(Sender: TObject);
     procedure pmCopyFiltersFromClick(Sender: TObject);
     procedure pmCopyFiltersFromPopup(Sender: TObject);
     procedure lbFiltersClick(Sender: TObject);
@@ -200,7 +201,8 @@ end;
 
 procedure TMyStringGrid.ExpandCell(ACol, ARow: integer);
 begin
-  RowHeights[ARow] := Canvas.TextHeight('A') * CellStrings[ARow, ACol].Count;
+  if Canvas.TextHeight('A') * CellStrings[ARow, ACol].Count > RowHeights[ARow] then
+    RowHeights[ARow] := Canvas.TextHeight('A') * CellStrings[ARow, ACol].Count;
 end;
 
 class procedure TTimeTable.DestroyTimeTable(ATag: integer);
@@ -279,8 +281,7 @@ var
   Rect: TRect;
   RecordNum: integer;
   GlyphButton: TGlyphButton;
-  Field1, Field2: TDBField;
-  RecID, ID1, ID2: integer;
+  RecID: integer;
 begin
   RecordNum := -1;
   if FReadOnly then exit;;
@@ -288,34 +289,16 @@ begin
     Point := ScreenToClient(Mouse.CursorPos);
     MouseToCell(Point.X, Point.Y, CurCol, CurRow);
     Rect := CellRect(CurCol, CurRow);
-
     if (CurCol = 0) or (CurRow = 0) then exit;
-
     if (CurCol > 0) and (CurRow > 0) then
       if CellStringsAssigned(CurCol, CurRow) then
         GlyphButton := Button(Rect, Point, sgTable.CellStrings[CurRow, CurCol].Count, FCheckedCount + 1, RecordNum)
       else
         GlyphButton := Button(Rect, Point, 0, FCheckedCount + 1, RecordNum);
-
-    Field1 := cbbHorz.Items.Objects[cbbHorz.ItemIndex] as TDBField;
-    Field2 := cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField;
     if RecordNum <> -1 then
       RecID := FRecords[CurRow, CurCol, RecordNum].id;
     if not Assigned(sgTable.CellStrings[CurRow, CurCol]) then
       RecID := -1;
-    ID1 := horzids[CurCol];
-    ID2 := vertids[CurRow];
-
-    case GlyphButton of
-      gbNone:;
-      gbDelete: if MessageDlg('Удалить запись?', mtConfirmation, mbOKCancel, 0) = 1 then begin
-        CardsManager.EditTable(FTable, RecID, atDelete);
-        RefreshTable;
-      end;
-      gbEdit: CardsManager.EditTable(FTable, RecID, atUpdate, Field1, Field2, ID1, ID2);
-      gbAdd: CardsManager.EditTable(FTable, NextID, atInsert, Field1, Field2, ID1, ID2);
-      gbExpand: ExpandCell(CurCol, CurRow);
-    end;
   end;
   FDragID := RecID;
   if GlyphButton <> gbNone then FDragID := -1;
@@ -393,6 +376,55 @@ begin
   btnApply.Enabled := true;
 end;
 
+procedure TTimeTable.sgTableClick(Sender: TObject);
+var
+  CurCol, CurRow: longint;
+  Point: TPoint;
+  Rect: TRect;
+  RecordNum: integer;
+  GlyphButton: TGlyphButton;
+  Field1, Field2: TDBField;
+  RecID, ID1, ID2: integer;
+begin
+  RecordNum := -1;
+  if FReadOnly then exit;
+  with sgTable do begin
+    Point := ScreenToClient(Mouse.CursorPos);
+    MouseToCell(Point.X, Point.Y, CurCol, CurRow);
+    Rect := CellRect(CurCol, CurRow);
+
+    if (CurCol = 0) or (CurRow = 0) then exit;
+
+    if (CurCol > 0) and (CurRow > 0) then
+      if CellStringsAssigned(CurCol, CurRow) then
+        GlyphButton := Button(Rect, Point, sgTable.CellStrings[CurRow, CurCol].Count, FCheckedCount + 1, RecordNum)
+      else
+        GlyphButton := Button(Rect, Point, 0, FCheckedCount + 1, RecordNum);
+
+    Field1 := cbbHorz.Items.Objects[cbbHorz.ItemIndex] as TDBField;
+    Field2 := cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField;
+    if RecordNum <> -1 then
+      RecID := FRecords[CurRow, CurCol, RecordNum].id;
+    if not Assigned(sgTable.CellStrings[CurRow, CurCol]) then
+      RecID := -1;
+    ID1 := horzids[CurCol];
+    ID2 := vertids[CurRow];
+
+    case GlyphButton of
+      gbNone:;
+      gbDelete: if MessageDlg('Удалить запись?', mtConfirmation, mbOKCancel, 0) = 1 then begin
+        CardsManager.EditTable(FTable, RecID, atDelete);
+        RefreshTable;
+      end;
+      gbEdit: CardsManager.EditTable(FTable, RecID, atUpdate, Field1, Field2, ID1, ID2);
+      gbAdd: CardsManager.EditTable(FTable, NextID, atInsert, Field1, Field2, ID1, ID2);
+      gbExpand: ExpandCell(CurCol, CurRow);
+    end;
+  end;
+  //FDragID := RecID;
+  //if GlyphButton <> gbNone then FDragID := -1;
+end;
+
 constructor TTimeTable.Create(ATable: TDBTable);
 begin
   inherited Create(Application);
@@ -424,6 +456,7 @@ begin
     OnStartDrag := @sgTableStartDrag;
     OnDragDrop := @sgTableDragDrop;
     OnDragOver := @sgTableDragOver;
+    OnClick := @sgTableClick;
   end;
 
   FReadOnly := clbVisibleFields.Count < 2;
@@ -610,6 +643,7 @@ begin
       end;
     end;
   end;
+
   IsColEmpty[0] := false;
   IsRowEmpty[0] := false;
   sgTable.RowCount := RowsCount + 1;

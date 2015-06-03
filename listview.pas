@@ -159,7 +159,6 @@ begin
 
   with DataSource do begin
     DataSet := SQLQuery;
-    DataSet.EnableControls;
   end;
 
   FFieldsOrder := TStringList.Create;
