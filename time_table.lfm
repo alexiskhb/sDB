@@ -458,6 +458,10 @@ object TimeTable: TTimeTable
         Caption = 'Показать...'
         OnClick = miShowClick
       end
+      object miWatch: TMenuItem
+        AutoCheck = True
+        Caption = 'Отображать постоянно'
+      end
     end
   end
   object SaveDialog: TSaveDialog

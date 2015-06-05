@@ -13,10 +13,6 @@ type
 
   TGlyphButton = (gbNone, gbDelete, gbEdit, gbAdd, gbExpand, gbConflict);
 
-  TCellIdentifier = record
-    id: integer;
-  end;
-
   TMyStringGrid = class(TStringGrid)
   public
     CellStrings: TDblStrinListDynArray;
@@ -30,6 +26,7 @@ type
   { TTimeTable }
 
   TTimeTable = class(TForm)
+    miWatch: TMenuItem;
     miShow: TMenuItem;
     miConflicts: TMenuItem;
     procedure miConflictsClick(Sender: TObject);
@@ -432,17 +429,13 @@ begin
       gbConflict: ShowConflicts(CurCol, CurRow, RecordNum, RecID);
     end;
   end;
-  //FDragID := RecID;
-  //if GlyphButton <> gbNone then FDragID := -1;
 end;
 
 procedure TTimeTable.ShowConflicts(ACol, ARow, ARecNum, RecordID: integer);
 begin
   with ConflictsCheckForm do begin
-
-
-
-
+    ListBox1.ItemIndex := ListBox1.Items.IndexOfObject(TObject(Pointer(Integer(RecordID))));
+    Show;
   end;
 end;
 
@@ -597,6 +590,7 @@ begin
     IsColEmpty[i] := true;
   for i := 1 to High(IsRowEmpty) do
     IsRowEmpty[i] := true;
+  ConflictsCheckForm.ListBox1.Clear;
 
   SetLength(FRecords[0], ColsCount + 1, 1);
   with SQLQuery do begin
@@ -659,12 +653,12 @@ begin
             Field := clbVisibleFields.Items.Objects[i] as TDBField;
             sgTable.CellStrings[y, x].Append(FieldByName(Field.TableOwner.Name + Field.Name).Value);
         end;
+        FRecords[y, x, High(FRecords[y, x])].id := FieldByName(FTable.Name + 'id').AsInteger;
         with ConflictsCheckForm do begin
           CheckTeacher(FieldByName('teachersid').Value, FieldByName('lessonsid').Value, x, y);
           CheckGroup(FieldByName('groupsid').Value, FieldByName('lessonsid').Value, x, y);
           CheckClassroom(FieldByName('classroomsid').Value, FieldByName('lessonsid').Value, x, y);
 	end;
-	FRecords[y, x, High(FRecords[y, x])].id := FieldByName(FTable.Name + 'id').AsInteger;
         Next; inc(count); inc(k);
         IsColEmpty[x] := false;
         IsRowEmpty[y] := false;
@@ -680,6 +674,12 @@ begin
     end;
   end;
 
+  for x := 1 to ColsCount do
+    for y := 1 to RowsCount do
+      for i := 0 to Length(FRecords[y, x]) - 1 do
+        if ConflictsCheckForm.Conflicted(x, y, i) then
+            ConflictsCheckForm.AddConfRecord(x, y, i, FRecords[y, x, i].id);
+
   IsColEmpty[0] := false;
   IsRowEmpty[0] := false;
   sgTable.RowCount := RowsCount + 1;
@@ -690,6 +690,7 @@ begin
   end;
   miEmptyRowsClick(miEmptyRows);
   miEmptyColsClick(miEmptyCols);
+  ConflictsCheckForm.Records := FRecords;
 end;
 
 procedure TTimeTable.FormDestroy(Sender: TObject);
@@ -726,7 +727,7 @@ begin
             if ConflictsCheckForm.Conflicted(aCol, aRow, k) then
               ImageList.Draw(Canvas, aRect.Left + 65, aRect.Top + i*Canvas.TextHeight('A') + 1, 5, True);
             end;
-          if ConflictsCheckForm.Conflicted(aCol, aRow, k) and (1 = 0) then
+          if ConflictsCheckForm.Conflicted(aCol, aRow, k) and miWatch.Checked then
             ImageList.Draw(Canvas, aRect.Left + 65, aRect.Top + i*Canvas.TextHeight('A') + 1, 5, True);
           inc(k);
         end;

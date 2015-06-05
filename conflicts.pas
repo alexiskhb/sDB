@@ -10,6 +10,14 @@ uses
 
 type
 
+  T3DPoint = record
+    X, Y, Z: integer;
+  end;
+
+  TCellIdentifier = record
+    id: integer;
+  end;
+
   TCellConflicts = record
     TeachersConf: array of array of boolean;
     GroupsConf: array of array of boolean;
@@ -31,8 +39,10 @@ type
     FTeachersInCell: TStringList;
     FGroupsInCell: TStringList;
     FClassroomsInCell: TStringList;
+    FRecordCell: array of T3DPoint;
   public
     SQLQuery: TSQLQuery;
+    Records: array of array of array of TCellIdentifier;
     CellConflicts: array of array of TCellConflicts;
     procedure CheckTeacher(TeacherID, RecordID: Variant; x, y: integer);
     procedure CheckGroup(GroupID, RecordID: Variant; x, y: integer);
@@ -40,6 +50,7 @@ type
     procedure CheckTeachersCourses();
     procedure CheckGroupsCourses();
     procedure SetCurrentCellConflictColors(X, Y: integer);
+    procedure AddConfRecord(x, y, z, RecordID: integer);
     function Conflicted(aCol, aRow, Z: integer): boolean;
     procedure Clear;
   end;
@@ -60,8 +71,35 @@ end;
 
 procedure TConflictsCheckForm.ListBox1SelectionChange(Sender: TObject;
   User: boolean);
+var
+  i, x, y, z, N: integer;
 begin
-
+  ListBox2.Clear;
+  x := FRecordCell[ListBox1.ItemIndex].X;
+  y := FRecordCell[ListBox1.ItemIndex].Y;
+  z := FRecordCell[ListBox1.ItemIndex].Z;
+  N := Length(CellConflicts[y, x].TeachersConf);
+  ListBox2.AddItem('Не поделили преподавателя:', nil);
+  for i := 0 to N - 1 do
+    if (z <> i) and CellConflicts[y, x].TeachersConf[z, i] then
+      ListBox2.AddItem(IntToStr(Records[y, x, i].id), TObject(Pointer(Integer(Records[y, x, i].id))));
+  ListBox2.AddItem('Не поделили группу:', nil);
+  for i := 0 to N - 1 do
+    if (z <> i) and CellConflicts[y, x].GroupsConf[z, i] then
+      ListBox2.AddItem(IntToStr(Records[y, x, i].id), TObject(Pointer(Integer(Records[y, x, i].id))));
+  ListBox2.AddItem('Не поделили аудиторию:', nil);
+  for i := 0 to N - 1 do
+    if (z <> i) and CellConflicts[y, x].ClassroomsConf[z, i] then
+      ListBox2.AddItem(IntToStr(Records[y, x, i].id), TObject(Pointer(Integer(Records[y, x, i].id))));
+  i := 0;
+  while i < ListBox2.Count do begin
+    if ListBox2.Items.Objects[i] = nil then
+      if (i = ListBox2.Count - 1) or (ListBox2.Items.Objects[i + 1] = nil) then begin
+        ListBox2.Items.Delete(i);
+        dec(i);
+      end;
+    inc(i);
+  end;
 end;
 
 procedure TConflictsCheckForm.FormClose(Sender: TObject;
@@ -75,6 +113,7 @@ begin
   FTeachersInCell.Clear;
   FGroupsInCell.Clear;
   FClassroomsInCell.Clear;
+  SetLength(FRecordCell, 0);
 end;
 
 procedure TConflictsCheckForm.CheckTeacher(TeacherID, RecordID: Variant; x, y: integer);
@@ -153,6 +192,15 @@ end;
 procedure TConflictsCheckForm.SetCurrentCellConflictColors(X, Y: integer);
 begin
 
+end;
+
+procedure TConflictsCheckForm.AddConfRecord(x, y, z, RecordID: integer);
+begin
+  ListBox1.AddItem(inttostr(RecordID), TObject(Pointer(Integer(RecordID))));
+  SetLength(FRecordCell, Length(FRecordCell) + 1);
+  FRecordCell[High(FRecordCell)].X := x;
+  FRecordCell[High(FRecordCell)].Y := y;
+  FRecordCell[High(FRecordCell)].Z := z;
 end;
 
 function TConflictsCheckForm.Conflicted(aCol, aRow, Z: integer): boolean;
