@@ -7,7 +7,8 @@ uses {$IFDEF UNIX} {$IFDEF UseCThreads}
   Interfaces, // this includes the LCL widgetset
   Forms, connection_transaction, DBMain, FormConnect, metadata, aboutsdb,
 	listview, record_cards, edit_database, query_filter,
-time_table, cell_contents, sf_export { you can add units after this };
+time_table, cell_contents, sf_export, 
+conflicts { you can add units after this };
 
 {$R *.res}
 
@@ -18,5 +19,6 @@ begin
   Application.CreateForm(TConTran, ConTran);
   Application.CreateForm(TConnectForm, ConnectForm);
   Application.CreateForm(TAboutProg, AboutProg);
+  Application.CreateForm(TConflictsCheckForm, ConflictsCheckForm);
   Application.Run;
 end.

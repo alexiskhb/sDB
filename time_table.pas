@@ -7,15 +7,14 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   StdCtrls, CheckLst, Grids, Buttons, Menus, ActnList, metadata,
-  sqldb, types, query_filter, cell_contents, record_cards, sf_export;
+  sqldb, types, query_filter, cell_contents, record_cards, sf_export, conflicts;
 
 type
 
-  TGlyphButton = (gbNone, gbDelete, gbEdit, gbAdd, gbExpand);
+  TGlyphButton = (gbNone, gbDelete, gbEdit, gbAdd, gbExpand, gbConflict);
 
   TCellIdentifier = record
     id: integer;
-    index: integer;
   end;
 
   TMyStringGrid = class(TStringGrid)
@@ -31,6 +30,10 @@ type
   { TTimeTable }
 
   TTimeTable = class(TForm)
+    miShow: TMenuItem;
+    miConflicts: TMenuItem;
+    procedure miConflictsClick(Sender: TObject);
+    procedure miShowClick(Sender: TObject);
   private
     FTable: TDBTable;
     FShowAsList: TNotifyEvent;
@@ -87,6 +90,7 @@ type
     StringGrid1: TStringGrid;
     PopupCaption: TMenuItem;
     pmCopyFilters: TPopupMenu;
+    procedure ShowConflicts(ACol, ARow, ARecNum, RecordID: integer);
     procedure sgTableClick(Sender: TObject);
     procedure pmCopyFiltersFromClick(Sender: TObject);
     procedure pmCopyFiltersFromPopup(Sender: TObject);
@@ -186,6 +190,8 @@ begin
        (Y <= 16) and (Y >= 0) and (i < RowsCount div RowsInSpanCount) then exit(gbDelete);
     if (X <= 49) and (X >= 33) and
        (Y <= 16) and (Y >= 0) and (i < RowsCount div RowsInSpanCount) then exit(gbEdit);
+    if (X <= 81) and (X >= 65) and
+       (Y <= 16) and (Y >= 0) and (i < RowsCount div RowsInSpanCount) then exit(gbConflict);
     Y := Y - RowsInSpanCount*CellRowHeight;
     inc(i);
   end;
@@ -195,8 +201,10 @@ end;
 
 function TMyStringGrid.CellStringsAssigned(ACol, ARow: integer): boolean;
 begin
-  Result := (aRow < Length(CellStrings)) and (aCol < Length(CellStrings[aRow])) and
-      Assigned(CellStrings[aRow, aCol]);
+  Result :=
+    (aRow < Length(CellStrings)) and
+    (aCol < Length(CellStrings[aRow])) and
+    Assigned(CellStrings[aRow, aCol]);
 end;
 
 procedure TMyStringGrid.ExpandCell(ACol, ARow: integer);
@@ -295,8 +303,10 @@ begin
         GlyphButton := Button(Rect, Point, sgTable.CellStrings[CurRow, CurCol].Count, FCheckedCount + 1, RecordNum)
       else
         GlyphButton := Button(Rect, Point, 0, FCheckedCount + 1, RecordNum);
-    if RecordNum <> -1 then
-      RecID := FRecords[CurRow, CurCol, RecordNum].id;
+    if (RecordNum <> -1) and (RecordNum < Length(FRecords[CurRow, CurCol])) then
+      RecID := FRecords[CurRow, CurCol, RecordNum].id
+    else
+      RecID := -1;
     if not Assigned(sgTable.CellStrings[CurRow, CurCol]) then
       RecID := -1;
   end;
@@ -419,10 +429,31 @@ begin
       gbEdit: CardsManager.EditTable(FTable, RecID, atUpdate, Field1, Field2, ID1, ID2);
       gbAdd: CardsManager.EditTable(FTable, NextID, atInsert, Field1, Field2, ID1, ID2);
       gbExpand: ExpandCell(CurCol, CurRow);
+      gbConflict: ShowConflicts(CurCol, CurRow, RecordNum, RecID);
     end;
   end;
   //FDragID := RecID;
   //if GlyphButton <> gbNone then FDragID := -1;
+end;
+
+procedure TTimeTable.ShowConflicts(ACol, ARow, ARecNum, RecordID: integer);
+begin
+  with ConflictsCheckForm do begin
+
+
+
+
+  end;
+end;
+
+procedure TTimeTable.miConflictsClick(Sender: TObject);
+begin
+  ConflictsCheckForm.Show;
+end;
+
+procedure TTimeTable.miShowClick(Sender: TObject);
+begin
+  ConflictsCheckForm.Show;
 end;
 
 constructor TTimeTable.Create(ATable: TDBTable);
@@ -459,6 +490,7 @@ begin
     OnClick := @sgTableClick;
   end;
 
+  ConflictsCheckForm.SQLQuery := SQLQuery;
   FReadOnly := clbVisibleFields.Count < 2;
   IsRightPnlExtended := false;
   clbVisibleFieldsClickCheck(clbVisibleFields);
@@ -556,6 +588,8 @@ begin
   SetLength(vertids, RowsCount + 1);
   SetLength(FRecords, 0);
   SetLength(FRecords, RowsCount + 1, ColsCount + 1, 0);
+  SetLength(ConflictsCheckForm.CellConflicts, 0);
+  SetLength(ConflictsCheckForm.CellConflicts, RowsCount + 1, ColsCount + 1);
   SetLength(sgTable.CellStrings, RowsCount + 1, ColsCount + 1);
   SetLength(IsColEmpty, ColsCount + 1);
   SetLength(IsRowEmpty, RowsCount + 1);
@@ -609,36 +643,38 @@ begin
       ', ' + Horz.SortField.TableOwner.Name + Horz.SortField.Name +
       ', ' + FTable.Name + 'id' + ' asc');
     Open; First;
-  end;
-
-  y := 0; k := 1;
-  count := 0;
-  with SQLQuery do begin
-    First;
+    y := 0; k := 1;
+    count := 0;
+    x := 1;
     while not EOF do begin
-      inc(y);
-      x := 1;
-      while not EOF do begin
-        if
-        (FieldByName(Horz.TableOwner.Name + 'id').AsInteger = horzids[x]) and
-        (FieldByName(Vert.TableOwner.Name + 'id').AsInteger = vertids[y]) then begin
-          SetLength(FRecords[y, x], Length(FRecords[y, x]) + 1);
-          if not Assigned(sgTable.CellStrings[y, x]) then
-            sgTable.CellStrings[y, x] := TStringList.Create;
-          sgTable.CellStrings[y, x].Append(' ');
-          for i := 0 to clbVisibleFields.Count - 1 do begin
-            if not clbVisibleFields.Checked[i] then continue;
-              Field := clbVisibleFields.Items.Objects[i] as TDBField;
-              sgTable.CellStrings[y, x].Append(FieldByName(Field.TableOwner.Name + Field.Name).Value);
-          end;
-          FRecords[y, x, High(FRecords[y, x])].id := FieldByName(FTable.Name + 'id').AsInteger;
-          FRecords[y, x, High(FRecords[y, x])].index := k;
-          Next; inc(count); inc(k);
-          IsColEmpty[x] := false;
-          IsRowEmpty[y] := false;
-        end else begin
-          inc(x);
-          if x > ColsCount then break;
+      if
+      (FieldByName(Horz.TableOwner.Name + 'id').AsInteger = horzids[x]) and
+      (FieldByName(Vert.TableOwner.Name + 'id').AsInteger = vertids[y]) then begin
+        SetLength(FRecords[y, x], Length(FRecords[y, x]) + 1);
+        if not Assigned(sgTable.CellStrings[y, x]) then
+          sgTable.CellStrings[y, x] := TStringList.Create;
+        sgTable.CellStrings[y, x].Append(' ');
+        for i := 0 to clbVisibleFields.Count - 1 do begin
+          if not clbVisibleFields.Checked[i] then continue;
+            Field := clbVisibleFields.Items.Objects[i] as TDBField;
+            sgTable.CellStrings[y, x].Append(FieldByName(Field.TableOwner.Name + Field.Name).Value);
+        end;
+        with ConflictsCheckForm do begin
+          CheckTeacher(FieldByName('teachersid').Value, FieldByName('lessonsid').Value, x, y);
+          CheckGroup(FieldByName('groupsid').Value, FieldByName('lessonsid').Value, x, y);
+          CheckClassroom(FieldByName('classroomsid').Value, FieldByName('lessonsid').Value, x, y);
+	end;
+	FRecords[y, x, High(FRecords[y, x])].id := FieldByName(FTable.Name + 'id').AsInteger;
+        Next; inc(count); inc(k);
+        IsColEmpty[x] := false;
+        IsRowEmpty[y] := false;
+      end else begin
+        inc(x);
+        ConflictsCheckForm.Clear;
+        if x > ColsCount then begin
+          inc(y);
+          x := 1;
+          continue;
         end;
       end;
     end;
@@ -672,23 +708,32 @@ end;
 procedure TTimeTable.GridDrawCell(Sender: TObject; aCol, aRow: Integer;
   aRect: TRect; aState: TGridDrawState);
 var
-  i: integer;
+  i, k: integer;
   ShouldShow: boolean;
   CurCol, CurRow: integer;
 begin
+  k := 0;
   with sgTable do begin
     MouseToCell(ScreenToClient(Mouse.CursorPos).X, ScreenToClient(Mouse.CursorPos).Y, CurCol, CurRow);
     ShouldShow := (CurCol = aCol) and (CurRow = aRow) and (not FReadOnly);
     if CellStringsAssigned(aCol, aRow) then begin
       for i := 0 to CellStrings[aRow, aCol].Count - 1 do begin
         Canvas.TextOut(aRect.Left, aRect.Top + i*Canvas.TextHeight('A'), CellStrings[aRow, aCol].Strings[i]);
-        if (CellStrings[aRow, aCol].Strings[i] = ' ') and ShouldShow then begin
-          ImageList.Draw(Canvas, aRect.Left + 1, aRect.Top + i*Canvas.TextHeight('A') + 1, 2, True);
-          ImageList.Draw(Canvas, aRect.Left + 33, aRect.Top + i*Canvas.TextHeight('A') + 1, 1, True);
+        if (CellStrings[aRow, aCol].Strings[i] = ' ') then begin
+          if ShouldShow then begin
+            ImageList.Draw(Canvas, aRect.Left + 1, aRect.Top + i*Canvas.TextHeight('A') + 1, 2, True);
+            ImageList.Draw(Canvas, aRect.Left + 33, aRect.Top + i*Canvas.TextHeight('A') + 1, 1, True);
+            if ConflictsCheckForm.Conflicted(aCol, aRow, k) then
+              ImageList.Draw(Canvas, aRect.Left + 65, aRect.Top + i*Canvas.TextHeight('A') + 1, 5, True);
+            end;
+          if ConflictsCheckForm.Conflicted(aCol, aRow, k) and (1 = 0) then
+            ImageList.Draw(Canvas, aRect.Left + 65, aRect.Top + i*Canvas.TextHeight('A') + 1, 5, True);
+          inc(k);
         end;
       end;
       if CellStrings[aRow, aCol].Count*Canvas.TextHeight('A') > aRect.Bottom - aRect.Top then
         ImageList.Draw(Canvas, aRect.Left + ColWidths[aCol] - 16, aRect.Top + RowHeights[aRow] - 16, 3, True);
+
     end;
     if (aCol > 0) and (aRow > 0) and ShouldShow then
       ImageList.Draw(Canvas, aRect.Left + ColWidths[aCol] - 16, aRect.Top, 0, True);
