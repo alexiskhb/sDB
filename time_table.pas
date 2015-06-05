@@ -484,6 +484,9 @@ begin
   end;
 
   ConflictsCheckForm.SQLQuery := SQLQuery;
+  ConflictsCheckForm.Table := FTable;
+  ConflictsCheckForm.CheckList := clbVisibleFields;
+
   FReadOnly := clbVisibleFields.Count < 2;
   IsRightPnlExtended := false;
   clbVisibleFieldsClickCheck(clbVisibleFields);
