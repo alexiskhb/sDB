@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
-  ValEdit, ExtCtrls, db, sqldb, metadata, CheckLst;
+  ValEdit, ExtCtrls, db, sqldb, metadata, CheckLst, record_cards;
 
 type
 
@@ -27,14 +27,15 @@ type
   { TConflictsCheckForm }
 
   TConflictsCheckForm = class(TForm)
-    ListBox1: TListBox;
-    ListBox2: TListBox;
-    Panel1: TPanel;
-    Panel2: TPanel;
-    Splitter1: TSplitter;
+    LeftListBox: TListBox;
+    RightListBox: TListBox;
+    LeftPanel: TPanel;
+    RightPanel: TPanel;
+    Splitter: TSplitter;
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
-    procedure ListBox1SelectionChange(Sender: TObject; User: boolean);
+    procedure LeftListBoxSelectionChange(Sender: TObject; User: boolean);
+    procedure ListBoxDblClick(Sender: TObject);
   private
     FTeachersInCell: TStringList;
     FGroupsInCell: TStringList;
@@ -72,37 +73,50 @@ begin
   FClassroomsInCell := TStringList.Create;
 end;
 
-procedure TConflictsCheckForm.ListBox1SelectionChange(Sender: TObject;
+procedure TConflictsCheckForm.LeftListBoxSelectionChange(Sender: TObject;
   User: boolean);
 var
   i, x, y, z, N: integer;
 begin
-  ListBox2.Clear;
-  x := FRecordCell[ListBox1.ItemIndex].X;
-  y := FRecordCell[ListBox1.ItemIndex].Y;
-  z := FRecordCell[ListBox1.ItemIndex].Z;
+  RightListBox.Clear;
+  x := FRecordCell[LeftListBox.ItemIndex].X;
+  y := FRecordCell[LeftListBox.ItemIndex].Y;
+  z := FRecordCell[LeftListBox.ItemIndex].Z;
   N := Length(CellConflicts[y, x].TeachersConf);
-  ListBox2.AddItem('Не поделили преподавателя:', nil);
+  RightListBox.AddItem('Не поделили преподавателя:', nil);
   for i := 0 to N - 1 do
     if (z <> i) and CellConflicts[y, x].TeachersConf[z, i] then
-      ListBox2.AddItem(GetRecord(Records[y, x, i].id), TObject(Pointer(Integer(Records[y, x, i].id))));
-  ListBox2.AddItem('Не поделили группу:', nil);
+      RightListBox.AddItem(GetRecord(Records[y, x, i].id), TObject(Pointer(Integer(Records[y, x, i].id))));
+  RightListBox.AddItem('Не поделили группу:', nil);
   for i := 0 to N - 1 do
     if (z <> i) and CellConflicts[y, x].GroupsConf[z, i] then
-      ListBox2.AddItem(GetRecord(Records[y, x, i].id), TObject(Pointer(Integer(Records[y, x, i].id))));
-  ListBox2.AddItem('Не поделили аудиторию:', nil);
+      RightListBox.AddItem(GetRecord(Records[y, x, i].id), TObject(Pointer(Integer(Records[y, x, i].id))));
+  RightListBox.AddItem('Не поделили аудиторию:', nil);
   for i := 0 to N - 1 do
     if (z <> i) and CellConflicts[y, x].ClassroomsConf[z, i] then
-      ListBox2.AddItem(GetRecord(Records[y, x, i].id), TObject(Pointer(Integer(Records[y, x, i].id))));
+      RightListBox.AddItem(GetRecord(Records[y, x, i].id), TObject(Pointer(Integer(Records[y, x, i].id))));
   i := 0;
-  while i < ListBox2.Count do begin
-    if ListBox2.Items.Objects[i] = nil then
-      if (i = ListBox2.Count - 1) or (ListBox2.Items.Objects[i + 1] = nil) then begin
-        ListBox2.Items.Delete(i);
+  while i < RightListBox.Count do begin
+    if RightListBox.Items.Objects[i] = nil then
+      if (i = RightListBox.Count - 1) or (RightListBox.Items.Objects[i + 1] = nil) then begin
+        RightListBox.Items.Delete(i);
         dec(i);
       end;
     inc(i);
   end;
+end;
+
+procedure TConflictsCheckForm.ListBoxDblClick(Sender: TObject);
+var
+  ListBox: TListBox;
+  Posit, x, y, z: integer;
+begin
+  ListBox := Sender as TListBox;
+  Posit := LeftListBox.Items.IndexOfObject(ListBox.Items.Objects[ListBox.ItemIndex]);
+  x := FRecordCell[Posit].X;
+  y := FRecordCell[Posit].Y;
+  z := FRecordCell[Posit].Z;
+  CardsManager.EditTable(Table, Records[y, x, z].id, atUpdate);
 end;
 
 procedure TConflictsCheckForm.FormClose(Sender: TObject;
@@ -199,7 +213,7 @@ end;
 
 procedure TConflictsCheckForm.AddConfRecord(x, y, z, RecordID: integer);
 begin
-  ListBox1.AddItem(GetRecord(RecordID), TObject(Pointer(Integer(RecordID))));
+  LeftListBox.AddItem(GetRecord(RecordID), TObject(Pointer(Integer(RecordID))));
   SetLength(FRecordCell, Length(FRecordCell) + 1);
   FRecordCell[High(FRecordCell)].X := x;
   FRecordCell[High(FRecordCell)].Y := y;
@@ -217,7 +231,7 @@ begin
   for i := 0 to CheckList.Count - 1 do begin
     if not CheckList.Checked[i] then continue;
     Field := CheckList.Items.Objects[i] as TDBField;
-    res := res + SQLQuery.FieldByName(Field.TableOwner.Name + Field.Name).Value + ' ';
+    res := res + SQLQuery.FieldByName(Field.TableOwner.Name + Field.Name).Value + '  ';
   end;
   exit(res);
 end;

@@ -434,7 +434,7 @@ end;
 procedure TTimeTable.ShowConflicts(ACol, ARow, ARecNum, RecordID: integer);
 begin
   with ConflictsCheckForm do begin
-    ListBox1.ItemIndex := ListBox1.Items.IndexOfObject(TObject(Pointer(Integer(RecordID))));
+    LeftListBox.ItemIndex := LeftListBox.Items.IndexOfObject(TObject(Pointer(Integer(RecordID))));
     Show;
   end;
 end;
@@ -593,7 +593,7 @@ begin
     IsColEmpty[i] := true;
   for i := 1 to High(IsRowEmpty) do
     IsRowEmpty[i] := true;
-  ConflictsCheckForm.ListBox1.Clear;
+  ConflictsCheckForm.LeftListBox.Clear;
 
   SetLength(FRecords[0], ColsCount + 1, 1);
   with SQLQuery do begin
