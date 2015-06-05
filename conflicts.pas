@@ -52,7 +52,6 @@ type
     procedure CheckClassroom(ClassroomID, RecordID: Variant; x, y: integer);
     procedure CheckTeachersCourses();
     procedure CheckGroupsCourses();
-    procedure SetCurrentCellConflictColors(X, Y: integer);
     procedure AddConfRecord(x, y, z, RecordID: integer);
     function GetRecord(RecordID: integer): string;
     function Conflicted(aCol, aRow, Z: integer): boolean;
@@ -79,10 +78,13 @@ var
   i, x, y, z, N: integer;
 begin
   RightListBox.Clear;
+  if LeftListBox.ItemIndex < 0 then showmessage('qwew');
   x := FRecordCell[LeftListBox.ItemIndex].X;
   y := FRecordCell[LeftListBox.ItemIndex].Y;
   z := FRecordCell[LeftListBox.ItemIndex].Z;
   N := Length(CellConflicts[y, x].TeachersConf);
+  RightListBox.AddItem(GetRecord(Records[y, x, z].id), TObject(Pointer(Integer(Records[y, x, z].id))));
+  RightListBox.AddItem('', nil);
   RightListBox.AddItem('Не поделили преподавателя:', nil);
   for i := 0 to N - 1 do
     if (z <> i) and CellConflicts[y, x].TeachersConf[z, i] then
@@ -98,10 +100,11 @@ begin
   i := 0;
   while i < RightListBox.Count do begin
     if RightListBox.Items.Objects[i] = nil then
-      if (i = RightListBox.Count - 1) or (RightListBox.Items.Objects[i + 1] = nil) then begin
-        RightListBox.Items.Delete(i);
-        dec(i);
-      end;
+      if (i = RightListBox.Count - 1) or (RightListBox.Items.Objects[i + 1] = nil) then
+        if RightListBox.Items.Strings[i] <> '' then begin
+          RightListBox.Items.Delete(i);
+          dec(i);
+        end;
     inc(i);
   end;
 end;
@@ -112,6 +115,7 @@ var
   Posit, x, y, z: integer;
 begin
   ListBox := Sender as TListBox;
+  if ListBox.Items.Objects[ListBox.ItemIndex] = nil then exit;
   Posit := LeftListBox.Items.IndexOfObject(ListBox.Items.Objects[ListBox.ItemIndex]);
   x := FRecordCell[Posit].X;
   y := FRecordCell[Posit].Y;
@@ -202,11 +206,6 @@ begin
 end;
 
 procedure TConflictsCheckForm.CheckGroupsCourses();
-begin
-
-end;
-
-procedure TConflictsCheckForm.SetCurrentCellConflictColors(X, Y: integer);
 begin
 
 end;

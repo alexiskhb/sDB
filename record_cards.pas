@@ -124,6 +124,9 @@ type
   end;
 
   TEditRecordCard = class(TRecordCard)
+    btnDeleteThisRecord: TButton;
+    procedure btnDeleteThisRecordMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
   public
     constructor Create(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType);
   end;
@@ -268,6 +271,17 @@ begin
       FCellEdits[i].lbOldValue.Caption := 'Было: ' + FCellEdits[i].Caption;
     end;
   end;
+  btnDeleteThisRecord := TButton.Create(Self);
+  with btnDeleteThisRecord do begin
+    Parent := Self;
+    Height := 25;
+    Width := 52;
+    Font.Size := 9;
+    Caption := 'Удалить';
+    OnMouseUp := @btnDeleteThisRecordMouseUp;
+    Top := Self.Height - Height - 2;
+    Left := 2;
+  end;
 end;
 
 constructor TFixedEditRecordCard.Create(ATable: TDBTable; APrimaryKey: integer; AActionType: TActionType;
@@ -291,6 +305,13 @@ end;
 procedure TRecordCard.CellEditValueChange(Sender: TObject);
 begin
   FValuesList.Strings[FValuesList.IndexOfObject((Sender as TCellEdit).ReferringField)] := (Sender as TCellEdit).Value;
+end;
+
+procedure TEditRecordCard.btnDeleteThisRecordMouseUp(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  if MessageDlg('Удалить запись?', mtConfirmation, mbOKCancel, 0) = 1 then
+    CardsManager.EditTable(FTable, FPrimaryKey, atDelete);
 end;
 
 procedure TRecordCard.FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -547,11 +568,12 @@ begin
         (Objects[IndexOf(IntToStr(APrimaryKey))] as TEditRecordCard).Close;
       RefreshValuesInCards(ATable);
     end;
+  if Assigned(FRefreshTablesRequest) then FRefreshTablesRequest(Self);
 end;
 
 procedure TCardsManager.CardOkClicked(Sender: TObject);
 begin
-  if Assigned (FRefreshTablesRequest) then FRefreshTablesRequest(Sender);
+  if Assigned(FRefreshTablesRequest) then FRefreshTablesRequest(Sender);
 end;
 
 procedure TCardsManager.CardClosed(Sender: TObject);

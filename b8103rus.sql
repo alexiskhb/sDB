@@ -37,15 +37,13 @@ CREATE TABLE pairs(
 CREATE TABLE groups_courses(
 	id integer primary key,
 	group_id integer references groups(id),
-	course_id integer references courses(id),
-  constraint unique_g_c_relation unique (group_id, course_id)
+	course_id integer references courses(id)
 	);
 	
 CREATE TABLE teachers_courses(
 	id integer primary key,
 	teacher_id integer references teachers(id),
-	course_id integer references courses(id),
-  constraint unique_t_c_relation unique (teacher_id, course_id)
+	course_id integer references courses(id)
 	);
 
 CREATE TABLE lessons(
@@ -55,8 +53,7 @@ CREATE TABLE lessons(
 	group_id integer references groups(id), 
 	course_id integer references courses(id),
 	class_id integer references classrooms(id),
-	teacher_id integer references teachers(id),
-  constraint unique_lessons unique (pair_id, weekday_id, group_id, course_id, class_id, teacher_id)
+	teacher_id integer references teachers(id)
 	);
 
 INSERT INTO teachers VALUES (100, 'Жуплев Антон Сергеевич');
