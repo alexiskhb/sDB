@@ -19,6 +19,7 @@ type
     FCaption: string;
     FWidth: integer;
     FPrimaryKey: boolean;
+    FSecondary: boolean;
     FTableRef: TDBTable;
     FFieldRef: TDBField;
     FOwner: TDBTable;
@@ -35,6 +36,7 @@ type
     property SortField: TDBField read FSortField write FSortField;
     property VarCharLimit: integer read FVarCharLimit;
     property TableOwner: TDBTable read FOwner;
+    property Secondary: boolean read FSecondary write FSecondary;
     procedure RowsTo(AComboBox: TComboBox);
     constructor Create(AOwner: TDBTable; AName, ACaption, ATableRef, AFieldRef: string;
     AWidth: integer; AFieldType: TFieldType; APrimaryKey: boolean; AVarCharLimit: integer); overload;
@@ -214,6 +216,7 @@ begin
   FOwner := AOwner;
   FSortField := Self;
   FVarCharLimit := AVarCharLimit;
+  FSecondary := false;
   FTableRef := (DBTablesList.Objects[DBTablesList.IndexOf(ATableRef)] as TDBTable);
   FFieldRef := (FTableRef.FFieldsList.Objects[FTableRef.FFieldsList.IndexOf(AFieldRef)] as TDBField);
 end;
@@ -227,6 +230,7 @@ begin
   FFieldType := AFieldType;
   FPrimaryKey := APrimaryKey;
   FSortField := Self;
+  FSecondary := false;
   FOwner := AOwner;
   FVarCharLimit := AVarCharLimit;
 end;
@@ -247,6 +251,7 @@ initialization
   DBTables[1].AddField('id', 'Г. ИД', 40, ftInteger, false, 0);
   DBTables[1].AddField('name', 'Группа', 100, ftString, true, 50);
   DBTables[1].AddField('st_number', 'Количество', 60, ftInteger, true, 0);
+  DBTables[1].Fields[2].Secondary := true;
 
   TDBTable.Add('courses', 'Дисциплины');
   DBTables[2].AddField('id', 'ИД', 40, ftInteger, false, 0);
@@ -261,6 +266,7 @@ initialization
   DBTables[4].AddField('id', 'ИД', 40, ftInteger, false, 0);
   DBTables[4].AddField('classroom', 'Аудитория', 100, ftString, true, 50);
   DBTables[4].AddField('capacity', 'Вместимость', 60, ftInteger, true, 0);
+  DBTables[4].Fields[2].Secondary := true;
 
   TDBTable.Add('weekdays', 'Дни недели');
   DBTables[5].AddField('id', 'День', 40, ftInteger, false, 0);

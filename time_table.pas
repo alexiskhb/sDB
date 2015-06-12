@@ -7,7 +7,8 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   StdCtrls, CheckLst, Grids, Buttons, Menus, ActnList, metadata,
-  sqldb, types, query_filter, cell_contents, record_cards, sf_export, conflicts;
+  sqldb, types, query_filter, cell_contents, record_cards, sf_export, conflicts,
+  ComCtrls;
 
 type
 
@@ -39,6 +40,7 @@ type
     IsRightPnlExtended: boolean;
     IsColEmpty: array of boolean;
     IsRowEmpty: array of boolean;
+    IsTimeTable: boolean;
     horzids, vertids: array of integer;
     FStringsBuffer: TStringList;
     FOnInsert: TNotifyEvent;
@@ -432,10 +434,13 @@ begin
 end;
 
 procedure TTimeTable.ShowConflicts(ACol, ARow, ARecNum, RecordID: integer);
+var
+  Node: TTreeNode;
 begin
   with ConflictsCheckForm do begin
-    //LeftListBox.ItemIndex := LeftListBox.Items.IndexOfObject(TObject(Pointer(Integer(RecordID))));
     Show;
+    Node := LeftTreeView.Items.FindNodeWithData(Pointer(RecordID));
+    LeftTreeView.Items.SelectOnlyThis(Node);
   end;
 end;
 
@@ -456,6 +461,7 @@ begin
   Caption := ATable.Caption;
   AddFieldsToLists(ATable);
   FStringsBuffer := TStringList.Create;
+  IsTimeTable := ATable = DBTimeTable;
 
   sgTable := TMyStringGrid.Create(Self);
   with sgTable do begin
@@ -545,7 +551,7 @@ var
 begin
   with ATable do
     for i := 0 to High(Fields) do begin
-      if Fields[i].Visible then begin
+      if Fields[i].Visible and not Fields[i].Secondary then begin
         cbbHorz.AddItem(Fields[i].Caption, Fields[i]);
         cbbVert.AddItem(Fields[i].Caption, Fields[i]);
         clbVisibleFields.AddItem(Fields[i].Caption, Fields[i]);
@@ -562,7 +568,6 @@ var
   Field: TDBField;
   ColsCount, RowsCount: integer;
 begin
-
   with SQLQuery do begin
     Close;
     SQL.Text := 'select count(*) as ColsCount from ' + Horz.TableOwner.Name;
@@ -586,7 +591,7 @@ begin
     IsColEmpty[i] := true;
   for i := 1 to High(IsRowEmpty) do
     IsRowEmpty[i] := true;
-  //ConflictsCheckForm.LeftListBox.Clear;
+  ConflictsCheckForm.Refresh;
 
   SetLength(FRecords[0], ColsCount + 1, 1);
   with SQLQuery do begin
@@ -649,6 +654,7 @@ begin
             sgTable.CellStrings[y, x].Append(FieldByName(Field.TableOwner.Name + Field.Name).Value);
         end;
         FRecords[y, x, High(FRecords[y, x])].id := FieldByName(FTable.Name + 'id').AsInteger;
+        FRecords[y, x, High(FRecords[y, x])].IsConf := ConflictsCheckForm.IsRecConf(FRecords[y, x, High(FRecords[y, x])].id);
         Next; inc(k);
         IsColEmpty[x] := false;
         IsRowEmpty[y] := false;
@@ -706,11 +712,11 @@ begin
           if ShouldShow then begin
             ImageList.Draw(Canvas, aRect.Left + 1, aRect.Top + i*Canvas.TextHeight('A') + 1, 2, True);
             ImageList.Draw(Canvas, aRect.Left + 33, aRect.Top + i*Canvas.TextHeight('A') + 1, 1, True);
-            //if miConflicts.Visible and ConflictsCheckForm.Conflicted(aCol, aRow, k) then
-              //ImageList.Draw(Canvas, aRect.Left + 65, aRect.Top + i*Canvas.TextHeight('A') + 1, 5, True);
+            if FRecords[aRow, aCol, k].IsConf then
+              ImageList.Draw(Canvas, aRect.Left + 65, aRect.Top + i*Canvas.TextHeight('A') + 1, 5, True);
             end;
-          //if miConflicts.Visible and ConflictsCheckForm.Conflicted(aCol, aRow, k) and miWatch.Checked then
-            //ImageList.Draw(Canvas, aRect.Left + 65, aRect.Top + i*Canvas.TextHeight('A') + 1, 5, True);
+          if FRecords[aRow, aCol, k].IsConf and miWatch.Checked then
+            ImageList.Draw(Canvas, aRect.Left + 65, aRect.Top + i*Canvas.TextHeight('A') + 1, 5, True);
           inc(k);
         end;
       end;

@@ -1,7 +1,7 @@
 object DBTableForm: TDBTableForm
-  Left = 552
+  Left = 555
   Height = 388
-  Top = 302
+  Top = 286
   Width = 551
   Caption = 'DBTableForm'
   ClientHeight = 388
