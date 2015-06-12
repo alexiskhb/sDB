@@ -12,81 +12,84 @@ uses
 type
 
   TConflict = class;
+  TConflictClass = class of TConflict;
 
   TConflict = class
   private
     RecordID: integer;
     ConflictID: array of TConflict;
-    ConflictType: TClass;
+    ConflictType: TConflictClass;
   public
-    class procedure Check(ATreeView: TTreeView);
-    constructor Create(ARecordID: integer; AConflictType: TClass);
+    class procedure Check(LeftTree, RightTree: TTreeView);
+    constructor Create(ARecordID: integer; AConflictType: TConflictClass);
   end;
 
   TTeacherConflict = class(TConflict)
+  private
+    class var FCaption: string;
   public
-    class procedure Check(ATreeView: TTreeView);
-    constructor Create(ARecordID: integer);
+    class procedure Check(LeftTree, RightTree: TTreeView);
+    class property Caption: string read FCaption write FCaption;
   end;
 
   TGroupConflict = class(TConflict)
+  private
+    class var FCaption: string;
   public
-    class procedure Check(ATreeView: TTreeView);
+    class property Caption: string read FCaption write FCaption;
+    class procedure Check(LeftTree, RightTree: TTreeView);
   end;
 
   TClassroomConflict = class(TConflict)
+  private
+    class var FCaption: string;
   public
-    class procedure Check(ATreeView: TTreeView);
+    class property Caption: string read FCaption write FCaption;
+    class procedure Check(LeftTree, RightTree: TTreeView);
   end;
 
   TCapacityConflict = class(TConflict)
+  private
+    class var FCaption: string;
   public
-    class procedure Check(ATreeView: TTreeView);
+    class property Caption: string read FCaption write FCaption;
+    class procedure Check(LeftTree, RightTree: TTreeView);
   end;
 
   TTeacherCourseConflict = class(TConflict)
+  private
+    class var FCaption: string;
   public
+    class property Caption: string read FCaption write FCaption;
     class procedure Check(ParentNode: TTreeNode);
   end;
 
   TGroupCourseConflict = class(TConflict)
+  private
+    class var FCaption: string;
   public
+    class property Caption: string read FCaption write FCaption;
     class procedure Check(ParentNode: TTreeNode);
-  end;
-
-  T3Point = record
-    X, Y, Z: integer;
   end;
 
   TCellIdentifier = record
     id: integer;
   end;
 
-  TCellConflicts = record
-    TeachersConf: array of array of boolean;
-    GroupsConf: array of array of boolean;
-    ClassroomsConf: array of array of boolean;
-  end;
-
   { TConflictsCheckForm }
 
   TConflictsCheckForm = class(TForm)
-    LeftListBox: TListBox;
     LeftPanel: TPanel;
     RightPanel: TPanel;
     Splitter: TSplitter;
-    TreeView1: TTreeView;
+    RightTreeView: TTreeView;
+    LeftTreeView: TTreeView;
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
-    procedure LeftListBoxSelectionChange(Sender: TObject; User: boolean);
-    procedure ListBoxDblClick(Sender: TObject);
-    procedure TreeView1DblClick(Sender: TObject);
-  private
-    FTeachersInCell: TStringList;
-    FGroupsInCell: TStringList;
-    FClassroomsInCell: TStringList;
-    FRecordCell: array of T3Point;
+    procedure LeftTreeViewDblClick(Sender: TObject);
+    procedure RightTreeViewDblClick(Sender: TObject);
+    procedure RightTreeViewSelectionChanged(Sender: TObject);
   public
     procedure AddConfRecord(x, y, z, RecordID: integer);
     function GetRecord(RecordID: integer): string;
@@ -101,27 +104,26 @@ implementation
 
 {$R *.lfm}
 
-class procedure TConflict.Check(ATreeView: TTreeView);
+class procedure TConflict.Check(LeftTree, RightTree: TTreeView);
 var
   StringList: TStringList;
 begin
   StringList := TStringList.Create;
-  ATreeView.Items.Clear;
-  TTeacherConflict.Check(ATreeView);
-  TGroupConflict.Check(ATreeView);
-  TClassroomConflict.Check(ATreeView);
-  TCapacityConflict.Check(ATreeView);
-
+  RightTree.Items.Clear;
+  TTeacherConflict.Check(LeftTree, RightTree);
+  TGroupConflict.Check(LeftTree, RightTree);
+  TClassroomConflict.Check(LeftTree, RightTree);
+  TCapacityConflict.Check(LeftTree, RightTree);
 end;
 
-constructor TConflict.Create(ARecordID: integer; AConflictType: TClass);
+constructor TConflict.Create(ARecordID: integer; AConflictType: TConflictClass);
 begin
   RecordID := ARecordID;
   ConflictType := AConflictType;
 end;
 
 procedure DuplicateRowsQuery(Query: TSQLQuery; StringList, ConfObjects: TStringList;
-  ConfType: TClass; Field1, Field2, Field3: string);
+  ConfType: TConflictClass; Field1, Field2, Field3: string);
 var
   i, j: integer;
   Conf: TConflict;
@@ -129,23 +131,23 @@ begin
   Query.Close;
   with Query.SQL do begin
     Clear;
-   Append('WITH sel AS');
-   Append('( SELECT COUNT(*) AS cnt');
-   Append(', l.' + Field1 + ' AS sel' + Field1);
-   Append(', l.' + Field2 + ' AS sel' + Field2);
-   Append(', l.' + Field3 + ' AS sel' + Field3);
-   Append('FROM lessons l');
-   Append('GROUP BY l.' + Field1 + ', l.' + Field2 + ', l.' + Field3);
-   Append('HAVING COUNT(*) > 1');
-   Append(') SELECT l.id AS lid');
-   Append(', l.' + Field1 + ' AS l' + Field1);
-   Append(', l.' + Field2 + ' AS l' + Field2);
-   Append(', l.' + Field3 + ' AS l' + Field3);
-   Append('FROM lessons l RIGHT JOIN sel ON');
-   Append('l.' + Field1+ ' = sel' + Field1 + ' AND');
-   Append('l.' + Field2+ ' = sel' + Field2 + ' AND');
-   Append('l.' + Field3+ ' = sel' + Field3);
-   Append('ORDER BY l.' + Field1 + ', l.' + Field2 + ', l.' + Field3);
+    Append('WITH sel AS');
+    Append('( SELECT COUNT(*) AS cnt');
+    Append(', l.' + Field1 + ' AS sel' + Field1);
+    Append(', l.' + Field2 + ' AS sel' + Field2);
+    Append(', l.' + Field3 + ' AS sel' + Field3);
+    Append('FROM lessons l');
+    Append('GROUP BY l.' + Field1 + ', l.' + Field2 + ', l.' + Field3);
+    Append('HAVING COUNT(*) > 1');
+    Append(') SELECT l.id AS lid');
+    Append(', l.' + Field1 + ' AS l' + Field1);
+    Append(', l.' + Field2 + ' AS l' + Field2);
+    Append(', l.' + Field3 + ' AS l' + Field3);
+    Append('FROM lessons l RIGHT JOIN sel ON');
+    Append('l.' + Field1+ ' = sel' + Field1 + ' AND');
+    Append('l.' + Field2+ ' = sel' + Field2 + ' AND');
+    Append('l.' + Field3+ ' = sel' + Field3);
+    Append('ORDER BY l.' + Field1 + ', l.' + Field2 + ', l.' + Field3);
     if ConfType = TCapacityConflict then begin
       Strings[1] := '( SELECT SUM(g.st_number) AS stsum';
       Strings[7] := 'JOIN groups g ON g.id = l.group_id';
@@ -183,23 +185,29 @@ begin
 	end;
 end;
 
-procedure AddToTree(ATreeView: TTreeView; AParentNode: TTreeNode;
+procedure AddToTree(LeftTree, RightTree: TTreeView; AParentNode: TTreeNode;
   ConfObjects: TStringList);
 var
   i, j: integer;
-  Node: TTreeNode;
+  Node, LeftNode: TTreeNode;
   Conf: TConflict;
 begin
-  with ConfObjects do
+  with ConfObjects do begin
     for i := 0 to ConfObjects.Count - 1 do begin
       Conf := Objects[i] as TConflict;
-      Node := ATreeView.Items.AddChildObject(AParentNode, IntToStr(Conf.RecordID), Conf);
+      Node := RightTree.Items.AddChildObject(AParentNode, IntToStr(Conf.RecordID), Conf);
       for j := 0 to Length(Conf.ConflictID) - 1 do
-        ATreeView.Items.AddChildObject(Node, IntToStr(Conf.ConflictID[j].RecordID), Conf.ConflictID[j]);
+        RightTree.Items.AddChildObject(Node, IntToStr(Conf.ConflictID[j].RecordID), Conf.ConflictID[j]);
+
+      LeftNode := LeftTree.Items.FindNodeWithData(Pointer(Conf.RecordID));
+      if LeftNode = nil then
+        LeftNode := LeftTree.Items.AddObject(TTreeNode.Create(LeftTree.Items), IntToStr(Conf.RecordID), Pointer(Conf.RecordID));
+      LeftTree.Items.AddChildObject(LeftNode, Conf.ConflictType.ClassName, Node);
     end;
+  end;
 end;
 
-class procedure TTeacherConflict.Check(ATreeView: TTreeView);
+class procedure TTeacherConflict.Check(LeftTree, RightTree: TTreeView);
 var
   Query: TSQLQuery;
   StringList: TStringList;
@@ -212,16 +220,11 @@ begin
   DuplicateRowsQuery(
     Query, StringList, ConfObjects, TTeacherConflict,
     'weekday_id', 'pair_id', 'teacher_id');
-  Node := ATreeView.Items.Add(TTreeNode.Create(ATreeView.Items), 'ПРЕПОДЫ');
-  AddToTree(ATreeView, Node, ConfObjects);
+  Node := RightTree.Items.Add(TTreeNode.Create(RightTree.Items), TTeacherConflict.Caption);
+  AddToTree(LeftTree, RightTree, Node, ConfObjects);
 end;
 
-constructor TTeacherConflict.Create(ARecordID: integer);
-begin
-  inherited Create(ARecordID, Self.ClassType);
-end;
-
-class procedure TGroupConflict.Check(ATreeView: TTreeView);
+class procedure TGroupConflict.Check(LeftTree, RightTree: TTreeView);
 var
   Query: TSQLQuery;
   StringList: TStringList;
@@ -234,11 +237,11 @@ begin
   DuplicateRowsQuery(
     Query, StringList, ConfObjects, TGroupConflict,
     'weekday_id', 'pair_id', 'group_id');
-  Node := ATreeView.Items.Add(TTreeNode.Create(ATreeView.Items), 'ГРУППЫ');
-  AddToTree(ATreeView, Node, ConfObjects);
+  Node := RightTree.Items.Add(TTreeNode.Create(RightTree.Items), TGroupConflict.Caption);
+  AddToTree(LeftTree, RightTree, Node, ConfObjects);
 end;
 
-class procedure TClassroomConflict.Check(ATreeView: TTreeView);
+class procedure TClassroomConflict.Check(LeftTree, RightTree: TTreeView);
 var
   Query: TSQLQuery;
   StringList: TStringList;
@@ -251,11 +254,11 @@ begin
   DuplicateRowsQuery(
     Query, StringList, ConfObjects, TClassroomConflict,
     'weekday_id', 'pair_id', 'class_id');
-  Node := ATreeView.Items.Add(TTreeNode.Create(ATreeView.Items), 'АУДИТОРИИ');
-  AddToTree(ATreeView, Node, ConfObjects);
+  Node := RightTree.Items.Add(TTreeNode.Create(RightTree.Items), TClassroomConflict.Caption);
+  AddToTree(LeftTree, RightTree, Node, ConfObjects);
 end;
 
-class procedure TCapacityConflict.Check(ATreeView: TTreeView);
+class procedure TCapacityConflict.Check(LeftTree, RightTree: TTreeView);
 var
   Query: TSQLQuery;
   StringList: TStringList;
@@ -268,8 +271,8 @@ begin
   DuplicateRowsQuery(
     Query, StringList, ConfObjects, TCapacityConflict,
     'weekday_id', 'pair_id', 'class_id');
-  Node := ATreeView.Items.Add(TTreeNode.Create(ATreeView.Items), 'ВМЕСТИМОСТЬ');
-  AddToTree(ATreeView, Node, ConfObjects);
+  Node := RightTree.Items.Add(TTreeNode.Create(RightTree.Items), TCapacityConflict.Caption);
+  AddToTree(LeftTree, RightTree, Node, ConfObjects);
 end;
 
 class procedure TTeacherCourseConflict.Check(ParentNode: TTreeNode);
@@ -284,30 +287,29 @@ end;
 
 procedure TConflictsCheckForm.FormCreate(Sender: TObject);
 begin
-  FTeachersInCell := TStringList.Create;
-  FGroupsInCell := TStringList.Create;
-  FClassroomsInCell := TStringList.Create;
+
 end;
 
 procedure TConflictsCheckForm.FormShow(Sender: TObject);
 begin
-  TConflict.Check(TreeView1);
+  TConflict.Check(LeftTreeView, RightTreeView);
 end;
 
-procedure TConflictsCheckForm.LeftListBoxSelectionChange(Sender: TObject;
-  User: boolean);
+procedure TConflictsCheckForm.LeftTreeViewDblClick(Sender: TObject);
 var
-  i, x, y, z, N: integer;
+  Node: TTreeNode;
+  RightNode: TTreeNode;
 begin
-
+  Node := LeftTreeView.Selected;
+  if Node.GetFirstChild <> nil then begin
+    CardsManager.EditTable(DBTimeTable, Integer(Node.Data), atUpdate);
+  end else begin
+    RightNode := TObject(Node.Data) as TTreeNode;
+    RightTreeView.Items.SelectOnlyThis(RightNode);
+  end;
 end;
 
-procedure TConflictsCheckForm.ListBoxDblClick(Sender: TObject);
-begin
-
-end;
-
-procedure TConflictsCheckForm.TreeView1DblClick(Sender: TObject);
+procedure TConflictsCheckForm.RightTreeViewDblClick(Sender: TObject);
 var
   Tree: TTreeView;
   Conf: TConflict;
@@ -315,7 +317,18 @@ begin
   Tree := Sender as TTreeView;
   Conf := TObject(Tree.Selected.Data) as TConflict;
   if Conf = nil then exit;
-  CardsManager.EditTable(DBTimeTable, Conf.RecordID, atUpdate)
+  CardsManager.EditTable(DBTimeTable, Conf.RecordID, atUpdate);
+end;
+
+procedure TConflictsCheckForm.RightTreeViewSelectionChanged(Sender: TObject);
+var
+  Node: TTreeNode;
+  LeftNode: TTreeNode;
+begin
+  Node := RightTreeView.Selected;
+  if Node.Data = nil then exit;
+  LeftNode := LeftTreeView.Items.FindNodeWithData(Pointer((TObject(Node.Data) as TConflict).RecordID));
+  LeftTreeView.Items.SelectOnlyThis(LeftNode);
 end;
 
 procedure TConflictsCheckForm.FormClose(Sender: TObject;
@@ -354,6 +367,11 @@ begin
 end;
 
 initialization
+
+  TTeacherConflict.Caption := 'ПРЕПОДАВАТЕЛИ';
+  TGroupConflict.Caption := 'ГРУППЫ';
+  TClassroomConflict.Caption := 'АУДИТОРИИ';
+  TCapacityConflict.Caption := 'ВМЕСТИМОСТЬ';
 
 end.
 

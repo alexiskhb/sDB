@@ -434,7 +434,7 @@ end;
 procedure TTimeTable.ShowConflicts(ACol, ARow, ARecNum, RecordID: integer);
 begin
   with ConflictsCheckForm do begin
-    LeftListBox.ItemIndex := LeftListBox.Items.IndexOfObject(TObject(Pointer(Integer(RecordID))));
+    //LeftListBox.ItemIndex := LeftListBox.Items.IndexOfObject(TObject(Pointer(Integer(RecordID))));
     Show;
   end;
 end;
@@ -586,7 +586,7 @@ begin
     IsColEmpty[i] := true;
   for i := 1 to High(IsRowEmpty) do
     IsRowEmpty[i] := true;
-  ConflictsCheckForm.LeftListBox.Clear;
+  //ConflictsCheckForm.LeftListBox.Clear;
 
   SetLength(FRecords[0], ColsCount + 1, 1);
   with SQLQuery do begin
@@ -796,12 +796,12 @@ begin
       for j := 0 to High(CellStrings[i]) do
         if Assigned(CellStrings[i, j]) then
           FreeAndNil(CellStrings[i, j]);
-  if ConflictsCheckForm.LeftListBox.ItemIndex >= 0 then
-    TempID := ConflictsCheckForm.LeftListBox.Items.Objects[ConflictsCheckForm.LeftListBox.ItemIndex];
+  //if ConflictsCheckForm.LeftListBox.ItemIndex >= 0 then
+    //TempID := ConflictsCheckForm.LeftListBox.Items.Objects[ConflictsCheckForm.LeftListBox.ItemIndex];
   FillTable(
     cbbHorz.Items.Objects[cbbHorz.ItemIndex] as TDBField,
     cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField);
-  ConflictsCheckForm.LeftListBox.ItemIndex := ConflictsCheckForm.LeftListBox.Items.IndexOfObject(TempID);
+  //ConflictsCheckForm.LeftListBox.ItemIndex := ConflictsCheckForm.LeftListBox.Items.IndexOfObject(TempID);
 end;
 
 procedure TTimeTable.FilterChangeData(Sender: TObject);
