@@ -39,6 +39,8 @@ object ConflictsCheckForm: TConflictsCheckForm
       Align = alBottom
       ItemHeight = 0
       OnClickCheck = clbVisibleFieldsClickCheck
+      OnMouseWheelDown = clbVisibleFieldsMouseWheelDown
+      OnMouseWheelUp = clbVisibleFieldsMouseWheelUp
       TabOrder = 1
       TopIndex = -1
     end

@@ -441,6 +441,7 @@ begin
     Show;
     Node := LeftTreeView.Items.FindNodeWithData(Pointer(RecordID));
     LeftTreeView.Items.SelectOnlyThis(Node);
+    Node.Expand(true);
   end;
 end;
 
@@ -517,7 +518,6 @@ begin
         clbVisibleFields.Items.Move(i, i + 1);
         clbVisibleFields.Selected[i + 1] := true;
       end;
-  btnApply.Enabled := true;
 end;
 
 procedure TTimeTable.clbVisibleFieldsMouseWheelUp(Sender: TObject;
@@ -531,7 +531,6 @@ begin
         clbVisibleFields.Items.Move(i, i - 1);
         clbVisibleFields.Selected[i - 1] := true;
       end;
-  btnApply.Enabled := true;
 end;
 
 procedure TTimeTable.btnApplyClick(Sender: TObject);

@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
   ValEdit, ExtCtrls, db, sqldb, metadata, CheckLst, ComCtrls, record_cards,
-  connection_transaction;
+  connection_transaction, types;
 
 type
 
@@ -96,6 +96,10 @@ type
     procedure LeftTreeViewDblClick(Sender: TObject);
     procedure RightTreeViewDblClick(Sender: TObject);
     procedure RightTreeViewSelectionChanged(Sender: TObject);
+    procedure clbVisibleFieldsMouseWheelUp(Sender: TObject;
+      Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
+    procedure clbVisibleFieldsMouseWheelDown(Sender: TObject;
+      Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
   public
     function GetRecord(RecordID: integer): string;
     procedure AddFieldsToLists(ATable: TDBTable);
@@ -223,7 +227,17 @@ begin
 	end;
 end;
 
-procedure AddToTree(LeftTree, RightTree: TTreeView; AParentNode: TTreeNode;
+function ConflictCaption(ConfType: TConflictClass): string;
+begin
+  if ConfType = TTeacherConflict then Result := TTeacherConflict.Caption;
+  if ConfType = TGroupConflict then Result := TGroupConflict.Caption;
+  if ConfType = TClassroomConflict then Result := TClassroomConflict.Caption;
+  if ConfType = TCapacityConflict then Result := TCapacityConflict.Caption;
+  if ConfType = TTeacherCourseConflict then Result := TTeacherCourseConflict.Caption;
+  if ConfType = TGroupCourseConflict then Result := TGroupCourseConflict.Caption;
+end;
+
+procedure AddToTrees(LeftTree, RightTree: TTreeView; AParentNode: TTreeNode;
   ConfObjects: TStringList);
 var
   i, j: integer;
@@ -242,7 +256,10 @@ begin
         LeftNode :=
           LeftTree.Items.AddObject(TTreeNode.Create(LeftTree.Items),
           ConflictsCheckForm.GetRecord(Conf.RecordID), Pointer(Conf.RecordID));
-      LeftTree.Items.AddChildObject(LeftNode, Conf.ConflictType.ClassName, Node);
+      LeftTree.Items.AddChildObject(
+        LeftNode,
+        ConflictCaption(Conf.ConflictType),
+        Node);
     end;
   end;
 end;
@@ -261,7 +278,7 @@ begin
     Query, StringList, ConfObjects, TTeacherConflict,
     'weekday_id', 'pair_id', 'teacher_id');
   Node := RightTree.Items.Add(TTreeNode.Create(RightTree.Items), TTeacherConflict.Caption);
-  AddToTree(LeftTree, RightTree, Node, ConfObjects);
+  AddToTrees(LeftTree, RightTree, Node, ConfObjects);
 end;
 
 class procedure TGroupConflict.Check(LeftTree, RightTree: TTreeView);
@@ -278,7 +295,7 @@ begin
     Query, StringList, ConfObjects, TGroupConflict,
     'weekday_id', 'pair_id', 'group_id');
   Node := RightTree.Items.Add(TTreeNode.Create(RightTree.Items), TGroupConflict.Caption);
-  AddToTree(LeftTree, RightTree, Node, ConfObjects);
+  AddToTrees(LeftTree, RightTree, Node, ConfObjects);
 end;
 
 class procedure TClassroomConflict.Check(LeftTree, RightTree: TTreeView);
@@ -295,7 +312,7 @@ begin
     Query, StringList, ConfObjects, TClassroomConflict,
     'weekday_id', 'pair_id', 'class_id');
   Node := RightTree.Items.Add(TTreeNode.Create(RightTree.Items), TClassroomConflict.Caption);
-  AddToTree(LeftTree, RightTree, Node, ConfObjects);
+  AddToTrees(LeftTree, RightTree, Node, ConfObjects);
 end;
 
 class procedure TCapacityConflict.Check(LeftTree, RightTree: TTreeView);
@@ -312,7 +329,7 @@ begin
     Query, StringList, ConfObjects, TCapacityConflict,
     'weekday_id', 'pair_id', 'class_id');
   Node := RightTree.Items.Add(TTreeNode.Create(RightTree.Items), TCapacityConflict.Caption);
-  AddToTree(LeftTree, RightTree, Node, ConfObjects);
+  AddToTrees(LeftTree, RightTree, Node, ConfObjects);
 end;
 
 class procedure TTeacherCourseConflict.Check(LeftTree, RightTree: TTreeView);
@@ -329,7 +346,7 @@ begin
     Query, StringList, ConfObjects, TTeacherCourseConflict,
     'teacher_id', 'course_id', 'teachers_courses');
   Node := RightTree.Items.Add(TTreeNode.Create(RightTree.Items), TTeacherCourseConflict.Caption);
-  AddToTree(LeftTree, RightTree, Node, ConfObjects);
+  AddToTrees(LeftTree, RightTree, Node, ConfObjects);
 end;
 
 class procedure TGroupCourseConflict.Check(LeftTree, RightTree: TTreeView);
@@ -346,7 +363,7 @@ begin
     Query, StringList, ConfObjects, TGroupCourseConflict,
     'group_id', 'course_id', 'groups_courses');
   Node := RightTree.Items.Add(TTreeNode.Create(RightTree.Items), TGroupCourseConflict.Caption);
-  AddToTree(LeftTree, RightTree, Node, ConfObjects);
+  AddToTrees(LeftTree, RightTree, Node, ConfObjects);
 end;
 
 procedure TConflictsCheckForm.FormCreate(Sender: TObject);
@@ -370,6 +387,8 @@ begin
   end else begin
     RightNode := TObject(Node.Data) as TTreeNode;
     RightTreeView.Items.SelectOnlyThis(RightNode);
+    RightNode.Expand(true);
+    ActiveControl := RightTreeView;
   end;
 end;
 
@@ -393,6 +412,32 @@ begin
   if (Node = nil) or (Node.Data = nil) then exit;
   LeftNode := LeftTreeView.Items.FindNodeWithData(Pointer((TObject(Node.Data) as TConflict).RecordID));
   LeftTreeView.Items.SelectOnlyThis(LeftNode);
+end;
+
+procedure TConflictsCheckForm.clbVisibleFieldsMouseWheelDown(Sender: TObject;
+  Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
+var
+  i: integer;
+begin
+  for i := clbVisibleFields.Count - 1 downto 0 do
+    with clbVisibleFields do
+      if Selected[i] and (i < Count - 1) then begin
+        clbVisibleFields.Items.Move(i, i + 1);
+        clbVisibleFields.Selected[i + 1] := true;
+      end;
+end;
+
+procedure TConflictsCheckForm.clbVisibleFieldsMouseWheelUp(Sender: TObject;
+  Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
+var
+  i: integer;
+begin
+  for i := 0 to clbVisibleFields.Count - 1 do
+    with clbVisibleFields do
+      if Selected[i] and (i > 0) then begin
+        clbVisibleFields.Items.Move(i, i - 1);
+        clbVisibleFields.Selected[i - 1] := true;
+      end;
 end;
 
 procedure TConflictsCheckForm.FormClose(Sender: TObject;
