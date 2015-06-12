@@ -483,10 +483,6 @@ begin
     OnClick := @sgTableClick;
   end;
 
-  ConflictsCheckForm.SQLQuery := SQLQuery;
-  ConflictsCheckForm.Table := FTable;
-  ConflictsCheckForm.CheckList := clbVisibleFields;
-
   FReadOnly := clbVisibleFields.Count < 2;
   IsRightPnlExtended := false;
   clbVisibleFieldsClickCheck(clbVisibleFields);
@@ -565,15 +561,7 @@ var
   x, y, i, j, k: integer;
   Field: TDBField;
   ColsCount, RowsCount: integer;
-  count: integer;
-  HField, VField: TDBField;
 begin
-  HField := cbbHorz.Items.Objects[cbbHorz.ItemIndex] as TDBField;
-  VField := cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField;
-  miConflicts.Visible :=
-    ((HField <> nil) and (VField <> nil)) and
-    (HField.TableOwner.Name + HField.Name = 'weekdaysweekday') and
-    (VField.TableOwner.Name + VField.Name = 'pairsperiod');
 
   with SQLQuery do begin
     Close;
@@ -591,8 +579,6 @@ begin
   SetLength(vertids, RowsCount + 1);
   SetLength(FRecords, 0);
   SetLength(FRecords, RowsCount + 1, ColsCount + 1, 0);
-  SetLength(ConflictsCheckForm.CellConflicts, 0);
-  SetLength(ConflictsCheckForm.CellConflicts, RowsCount + 1, ColsCount + 1);
   SetLength(sgTable.CellStrings, RowsCount + 1, ColsCount + 1);
   SetLength(IsColEmpty, ColsCount + 1);
   SetLength(IsRowEmpty, RowsCount + 1);
@@ -648,7 +634,6 @@ begin
       ', ' + FTable.Name + 'id' + ' asc');
     Open; First;
     y := 0; k := 1;
-    count := 0;
     x := 1;
     while not EOF do begin
       if
@@ -664,18 +649,11 @@ begin
             sgTable.CellStrings[y, x].Append(FieldByName(Field.TableOwner.Name + Field.Name).Value);
         end;
         FRecords[y, x, High(FRecords[y, x])].id := FieldByName(FTable.Name + 'id').AsInteger;
-        if miConflicts.Visible then
-          with ConflictsCheckForm do begin
-            CheckTeacher(FieldByName('teachersid').Value, FieldByName('lessonsid').Value, x, y);
-            CheckGroup(FieldByName('groupsid').Value, FieldByName('lessonsid').Value, x, y);
-            CheckClassroom(FieldByName('classroomsid').Value, FieldByName('lessonsid').Value, x, y);
-          end;
-        Next; inc(count); inc(k);
+        Next; inc(k);
         IsColEmpty[x] := false;
         IsRowEmpty[y] := false;
       end else begin
         inc(x);
-        ConflictsCheckForm.Clear;
         if x > ColsCount then begin
           inc(y);
           x := 1;
@@ -684,13 +662,6 @@ begin
       end;
     end;
   end;
-
-  if miConflicts.Visible then
-    for x := 1 to ColsCount do
-      for y := 1 to RowsCount do
-        for i := 0 to Length(FRecords[y, x]) - 1 do
-          if ConflictsCheckForm.Conflicted(x, y, i) then
-            ConflictsCheckForm.AddConfRecord(x, y, i, FRecords[y, x, i].id);
 
   IsColEmpty[0] := false;
   IsRowEmpty[0] := false;
@@ -702,7 +673,6 @@ begin
   end;
   miEmptyRowsClick(miEmptyRows);
   miEmptyColsClick(miEmptyCols);
-  ConflictsCheckForm.Records := FRecords;
 end;
 
 procedure TTimeTable.FormDestroy(Sender: TObject);
@@ -736,11 +706,11 @@ begin
           if ShouldShow then begin
             ImageList.Draw(Canvas, aRect.Left + 1, aRect.Top + i*Canvas.TextHeight('A') + 1, 2, True);
             ImageList.Draw(Canvas, aRect.Left + 33, aRect.Top + i*Canvas.TextHeight('A') + 1, 1, True);
-            if miConflicts.Visible and ConflictsCheckForm.Conflicted(aCol, aRow, k) then
-              ImageList.Draw(Canvas, aRect.Left + 65, aRect.Top + i*Canvas.TextHeight('A') + 1, 5, True);
+            //if miConflicts.Visible and ConflictsCheckForm.Conflicted(aCol, aRow, k) then
+              //ImageList.Draw(Canvas, aRect.Left + 65, aRect.Top + i*Canvas.TextHeight('A') + 1, 5, True);
             end;
-          if miConflicts.Visible and ConflictsCheckForm.Conflicted(aCol, aRow, k) and miWatch.Checked then
-            ImageList.Draw(Canvas, aRect.Left + 65, aRect.Top + i*Canvas.TextHeight('A') + 1, 5, True);
+          //if miConflicts.Visible and ConflictsCheckForm.Conflicted(aCol, aRow, k) and miWatch.Checked then
+            //ImageList.Draw(Canvas, aRect.Left + 65, aRect.Top + i*Canvas.TextHeight('A') + 1, 5, True);
           inc(k);
         end;
       end;
@@ -831,7 +801,6 @@ begin
   FillTable(
     cbbHorz.Items.Objects[cbbHorz.ItemIndex] as TDBField,
     cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField);
-  ConflictsCheckForm.RightListBox.Clear;
   ConflictsCheckForm.LeftListBox.ItemIndex := ConflictsCheckForm.LeftListBox.Items.IndexOfObject(TempID);
 end;
 

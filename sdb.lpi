@@ -138,6 +138,7 @@
         <Filename Value="conflicts.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="ConflictsCheckForm"/>
+        <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="conflicts"/>
       </Unit13>

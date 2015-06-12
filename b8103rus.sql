@@ -11,7 +11,8 @@ CREATE TABLE teachers(
 
 CREATE TABLE groups(
 	id integer primary key,
-	name varchar(50) unique not null
+	name varchar(50) unique not null,
+	st_number integer
 	);
 
 CREATE TABLE courses(
@@ -21,7 +22,8 @@ CREATE TABLE courses(
 
 CREATE TABLE classrooms(
 	id integer primary key,
-	classroom varchar(50) unique not null
+	classroom varchar(50) unique not null,
+	capacity integer
 	);
 
 CREATE TABLE weekdays (
@@ -74,10 +76,10 @@ INSERT INTO teachers VALUES (114, 'Брижитский Роман Виктор�
 INSERT INTO teachers VALUES (115, 'Пинько Ирина Викторовна');
 INSERT INTO teachers VALUES (116, 'Кравцов Дмитрий Сергеевич');
 
-INSERT INTO groups VALUES (200, 'Б8103А1');
-INSERT INTO groups VALUES (201, 'Б8103А2');
-INSERT INTO groups VALUES (202, 'Б8203А1');
-INSERT INTO groups VALUES (203, 'Б8203А2');
+INSERT INTO groups VALUES (200, 'Б8103А1', 32);
+INSERT INTO groups VALUES (201, 'Б8103А2', 40);
+INSERT INTO groups VALUES (202, 'Б8203А1', 24);
+INSERT INTO groups VALUES (203, 'Б8203А2', 28);
 
 INSERT INTO courses VALUES (300, 'Алгебра и геометрия');
 INSERT INTO courses VALUES (301, 'Математический анализ');
@@ -97,21 +99,21 @@ INSERT INTO courses VALUES (314, 'ОБЖ');
 INSERT INTO courses VALUES (315, 'Экономическая теория');
 INSERT INTO courses VALUES (316, 'Биология');
 
-INSERT INTO classrooms VALUES (401, 'D734а');
-INSERT INTO classrooms VALUES (402, 'D734б');
-INSERT INTO classrooms VALUES (403, 'D743');
-INSERT INTO classrooms VALUES (404, 'D547');
-INSERT INTO classrooms VALUES (405, 'D542');
-INSERT INTO classrooms VALUES (406, 'D732');
-INSERT INTO classrooms VALUES (407, 'D738');
-INSERT INTO classrooms VALUES (408, 'D549');
-INSERT INTO classrooms VALUES (409, 'D409');
-INSERT INTO classrooms VALUES (410, 'D410');
-INSERT INTO classrooms VALUES (411, 'D411');
-INSERT INTO classrooms VALUES (412, 'D412');
-INSERT INTO classrooms VALUES (413, 'D413');
-INSERT INTO classrooms VALUES (414, 'D414');
-INSERT INTO classrooms VALUES (415, 'Спортивный корпус');
+INSERT INTO classrooms VALUES (401, 'D734а', 25);
+INSERT INTO classrooms VALUES (402, 'D734б', 25);
+INSERT INTO classrooms VALUES (403, 'D743', 30);
+INSERT INTO classrooms VALUES (404, 'D547', 30);
+INSERT INTO classrooms VALUES (405, 'D542', 100);
+INSERT INTO classrooms VALUES (406, 'D732', 50);
+INSERT INTO classrooms VALUES (407, 'D738', 200);
+INSERT INTO classrooms VALUES (408, 'D549', 25);
+INSERT INTO classrooms VALUES (409, 'D409', 30);
+INSERT INTO classrooms VALUES (410, 'D410', 30);
+INSERT INTO classrooms VALUES (411, 'D411', 100);
+INSERT INTO classrooms VALUES (412, 'D412', 30);
+INSERT INTO classrooms VALUES (413, 'D413', 30);
+INSERT INTO classrooms VALUES (414, 'D414', 200);
+INSERT INTO classrooms VALUES (415, 'Спортивный корпус', 500);
 
 INSERT INTO weekdays VALUES (501, 'Понедельник');
 INSERT INTO weekdays VALUES (502, 'Вторник');

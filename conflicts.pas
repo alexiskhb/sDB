@@ -6,11 +6,55 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
-  ValEdit, ExtCtrls, db, sqldb, metadata, CheckLst, record_cards;
+  ValEdit, ExtCtrls, db, sqldb, metadata, CheckLst, ComCtrls, record_cards,
+  connection_transaction;
 
 type
 
-  T3DPoint = record
+  TConflict = class;
+
+  TConflict = class
+  private
+    RecordID: integer;
+    ConflictID: array of TConflict;
+    ConflictType: TClass;
+  public
+    class procedure Check(ATreeView: TTreeView);
+    constructor Create(ARecordID: integer; AConflictType: TClass);
+  end;
+
+  TTeacherConflict = class(TConflict)
+  public
+    class procedure Check(ATreeView: TTreeView);
+    constructor Create(ARecordID: integer);
+  end;
+
+  TGroupConflict = class(TConflict)
+  public
+    class procedure Check(ATreeView: TTreeView);
+  end;
+
+  TClassroomConflict = class(TConflict)
+  public
+    class procedure Check(ATreeView: TTreeView);
+  end;
+
+  TCapacityConflict = class(TConflict)
+  public
+    class procedure Check(ATreeView: TTreeView);
+  end;
+
+  TTeacherCourseConflict = class(TConflict)
+  public
+    class procedure Check(ParentNode: TTreeNode);
+  end;
+
+  TGroupCourseConflict = class(TConflict)
+  public
+    class procedure Check(ParentNode: TTreeNode);
+  end;
+
+  T3Point = record
     X, Y, Z: integer;
   end;
 
@@ -28,30 +72,22 @@ type
 
   TConflictsCheckForm = class(TForm)
     LeftListBox: TListBox;
-    RightListBox: TListBox;
     LeftPanel: TPanel;
     RightPanel: TPanel;
     Splitter: TSplitter;
+    TreeView1: TTreeView;
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     procedure LeftListBoxSelectionChange(Sender: TObject; User: boolean);
     procedure ListBoxDblClick(Sender: TObject);
+    procedure TreeView1DblClick(Sender: TObject);
   private
     FTeachersInCell: TStringList;
     FGroupsInCell: TStringList;
     FClassroomsInCell: TStringList;
-    FRecordCell: array of T3DPoint;
+    FRecordCell: array of T3Point;
   public
-    SQLQuery: TSQLQuery;
-    Records: array of array of array of TCellIdentifier;
-    CellConflicts: array of array of TCellConflicts;
-    Table: TDBTable;
-    CheckList: TCheckListBox;
-    procedure CheckTeacher(TeacherID, RecordID: Variant; x, y: integer);
-    procedure CheckGroup(GroupID, RecordID: Variant; x, y: integer);
-    procedure CheckClassroom(ClassroomID, RecordID: Variant; x, y: integer);
-    procedure CheckTeachersCourses();
-    procedure CheckGroupsCourses();
     procedure AddConfRecord(x, y, z, RecordID: integer);
     function GetRecord(RecordID: integer): string;
     function Conflicted(aCol, aRow, Z: integer): boolean;
@@ -65,6 +101,187 @@ implementation
 
 {$R *.lfm}
 
+class procedure TConflict.Check(ATreeView: TTreeView);
+var
+  StringList: TStringList;
+begin
+  StringList := TStringList.Create;
+  ATreeView.Items.Clear;
+  TTeacherConflict.Check(ATreeView);
+  TGroupConflict.Check(ATreeView);
+  TClassroomConflict.Check(ATreeView);
+  TCapacityConflict.Check(ATreeView);
+
+end;
+
+constructor TConflict.Create(ARecordID: integer; AConflictType: TClass);
+begin
+  RecordID := ARecordID;
+  ConflictType := AConflictType;
+end;
+
+procedure DuplicateRowsQuery(Query: TSQLQuery; StringList, ConfObjects: TStringList;
+  ConfType: TClass; Field1, Field2, Field3: string);
+var
+  i, j: integer;
+  Conf: TConflict;
+begin
+  Query.Close;
+  with Query.SQL do begin
+    Clear;
+   Append('WITH sel AS');
+   Append('( SELECT COUNT(*) AS cnt');
+   Append(', l.' + Field1 + ' AS sel' + Field1);
+   Append(', l.' + Field2 + ' AS sel' + Field2);
+   Append(', l.' + Field3 + ' AS sel' + Field3);
+   Append('FROM lessons l');
+   Append('GROUP BY l.' + Field1 + ', l.' + Field2 + ', l.' + Field3);
+   Append('HAVING COUNT(*) > 1');
+   Append(') SELECT l.id AS lid');
+   Append(', l.' + Field1 + ' AS l' + Field1);
+   Append(', l.' + Field2 + ' AS l' + Field2);
+   Append(', l.' + Field3 + ' AS l' + Field3);
+   Append('FROM lessons l RIGHT JOIN sel ON');
+   Append('l.' + Field1+ ' = sel' + Field1 + ' AND');
+   Append('l.' + Field2+ ' = sel' + Field2 + ' AND');
+   Append('l.' + Field3+ ' = sel' + Field3);
+   Append('ORDER BY l.' + Field1 + ', l.' + Field2 + ', l.' + Field3);
+    if ConfType = TCapacityConflict then begin
+      Strings[1] := '( SELECT SUM(g.st_number) AS stsum';
+      Strings[7] := 'JOIN groups g ON g.id = l.group_id';
+      Strings[12] := 'FROM lessons l';
+      Exchange(6, 7);
+      Insert(13, 'JOIN classrooms c ON c.id = l.class_id JOIN sel ON');
+      Insert(17, 'AND c.capacity < stsum');
+    end;
+  end;
+
+  with Query do begin
+    Open; First;
+    while not EOF do begin
+      StringList.AddObject(
+        FieldByName('l' + Field1).AsString + '#' +
+        FieldByName('l' + Field2).AsString + '##' +
+        FieldByName('l' + Field3).AsString,
+        TObject(Pointer(Integer(FieldByName('lid').AsInteger))));
+      Next;
+    end;
+  end;
+
+  for i := 0 to StringList.Count - 1 do
+    ConfObjects.AddObject(
+      IntToStr(Integer(Pointer(StringList.Objects[i]))),
+      TConflict.Create(Integer(Pointer(StringList.Objects[i])), ConfType));
+
+  with StringList do
+    for i := 0 to Count - 1 do
+      for j := 0 to Count - 1 do
+        if (Strings[i] = Strings[j]) and (Objects[i] <> Objects[j]) then begin
+          Conf := ConfObjects.Objects[i] as TConflict;
+          SetLength(Conf.ConflictID, Length(Conf.ConflictID) + 1);
+          Conf.ConflictID[High(Conf.ConflictID)] := ConfObjects.Objects[j] as TConflict;
+	end;
+end;
+
+procedure AddToTree(ATreeView: TTreeView; AParentNode: TTreeNode;
+  ConfObjects: TStringList);
+var
+  i, j: integer;
+  Node: TTreeNode;
+  Conf: TConflict;
+begin
+  with ConfObjects do
+    for i := 0 to ConfObjects.Count - 1 do begin
+      Conf := Objects[i] as TConflict;
+      Node := ATreeView.Items.AddChildObject(AParentNode, IntToStr(Conf.RecordID), Conf);
+      for j := 0 to Length(Conf.ConflictID) - 1 do
+        ATreeView.Items.AddChildObject(Node, IntToStr(Conf.ConflictID[j].RecordID), Conf.ConflictID[j]);
+    end;
+end;
+
+class procedure TTeacherConflict.Check(ATreeView: TTreeView);
+var
+  Query: TSQLQuery;
+  StringList: TStringList;
+  ConfObjects: TStringList;
+  Node: TTreeNode;
+begin
+  StringList := TStringList.Create;
+  ConfObjects := TStringList.Create;
+  Query := ConTran.CommonSQLQuery;
+  DuplicateRowsQuery(
+    Query, StringList, ConfObjects, TTeacherConflict,
+    'weekday_id', 'pair_id', 'teacher_id');
+  Node := ATreeView.Items.Add(TTreeNode.Create(ATreeView.Items), 'ПРЕПОДЫ');
+  AddToTree(ATreeView, Node, ConfObjects);
+end;
+
+constructor TTeacherConflict.Create(ARecordID: integer);
+begin
+  inherited Create(ARecordID, Self.ClassType);
+end;
+
+class procedure TGroupConflict.Check(ATreeView: TTreeView);
+var
+  Query: TSQLQuery;
+  StringList: TStringList;
+  ConfObjects: TStringList;
+  Node: TTreeNode;
+begin
+  StringList := TStringList.Create;
+  ConfObjects := TStringList.Create;
+  Query := ConTran.CommonSQLQuery;
+  DuplicateRowsQuery(
+    Query, StringList, ConfObjects, TGroupConflict,
+    'weekday_id', 'pair_id', 'group_id');
+  Node := ATreeView.Items.Add(TTreeNode.Create(ATreeView.Items), 'ГРУППЫ');
+  AddToTree(ATreeView, Node, ConfObjects);
+end;
+
+class procedure TClassroomConflict.Check(ATreeView: TTreeView);
+var
+  Query: TSQLQuery;
+  StringList: TStringList;
+  ConfObjects: TStringList;
+  Node: TTreeNode;
+begin
+  StringList := TStringList.Create;
+  ConfObjects := TStringList.Create;
+  Query := ConTran.CommonSQLQuery;
+  DuplicateRowsQuery(
+    Query, StringList, ConfObjects, TClassroomConflict,
+    'weekday_id', 'pair_id', 'class_id');
+  Node := ATreeView.Items.Add(TTreeNode.Create(ATreeView.Items), 'АУДИТОРИИ');
+  AddToTree(ATreeView, Node, ConfObjects);
+end;
+
+class procedure TCapacityConflict.Check(ATreeView: TTreeView);
+var
+  Query: TSQLQuery;
+  StringList: TStringList;
+  ConfObjects: TStringList;
+  Node: TTreeNode;
+begin
+  StringList := TStringList.Create;
+  ConfObjects := TStringList.Create;
+  Query := ConTran.CommonSQLQuery;
+  DuplicateRowsQuery(
+    Query, StringList, ConfObjects, TCapacityConflict,
+    'weekday_id', 'pair_id', 'class_id');
+  Node := ATreeView.Items.Add(TTreeNode.Create(ATreeView.Items), 'ВМЕСТИМОСТЬ');
+  AddToTree(ATreeView, Node, ConfObjects);
+end;
+
+class procedure TTeacherCourseConflict.Check(ParentNode: TTreeNode);
+begin
+
+end;
+
+class procedure TGroupCourseConflict.Check(ParentNode: TTreeNode);
+begin
+
+end;
+
 procedure TConflictsCheckForm.FormCreate(Sender: TObject);
 begin
   FTeachersInCell := TStringList.Create;
@@ -72,55 +289,33 @@ begin
   FClassroomsInCell := TStringList.Create;
 end;
 
+procedure TConflictsCheckForm.FormShow(Sender: TObject);
+begin
+  TConflict.Check(TreeView1);
+end;
+
 procedure TConflictsCheckForm.LeftListBoxSelectionChange(Sender: TObject;
   User: boolean);
 var
   i, x, y, z, N: integer;
 begin
-  RightListBox.Clear;
-  if LeftListBox.ItemIndex < 0 then showmessage('qwew');
-  x := FRecordCell[LeftListBox.ItemIndex].X;
-  y := FRecordCell[LeftListBox.ItemIndex].Y;
-  z := FRecordCell[LeftListBox.ItemIndex].Z;
-  N := Length(CellConflicts[y, x].TeachersConf);
-  RightListBox.AddItem(GetRecord(Records[y, x, z].id), TObject(Pointer(Integer(Records[y, x, z].id))));
-  RightListBox.AddItem('', nil);
-  RightListBox.AddItem('Не поделили преподавателя:', nil);
-  for i := 0 to N - 1 do
-    if (z <> i) and CellConflicts[y, x].TeachersConf[z, i] then
-      RightListBox.AddItem(GetRecord(Records[y, x, i].id), TObject(Pointer(Integer(Records[y, x, i].id))));
-  RightListBox.AddItem('Не поделили группу:', nil);
-  for i := 0 to N - 1 do
-    if (z <> i) and CellConflicts[y, x].GroupsConf[z, i] then
-      RightListBox.AddItem(GetRecord(Records[y, x, i].id), TObject(Pointer(Integer(Records[y, x, i].id))));
-  RightListBox.AddItem('Не поделили аудиторию:', nil);
-  for i := 0 to N - 1 do
-    if (z <> i) and CellConflicts[y, x].ClassroomsConf[z, i] then
-      RightListBox.AddItem(GetRecord(Records[y, x, i].id), TObject(Pointer(Integer(Records[y, x, i].id))));
-  i := 0;
-  while i < RightListBox.Count do begin
-    if RightListBox.Items.Objects[i] = nil then
-      if (i = RightListBox.Count - 1) or (RightListBox.Items.Objects[i + 1] = nil) then
-        if RightListBox.Items.Strings[i] <> '' then begin
-          RightListBox.Items.Delete(i);
-          dec(i);
-        end;
-    inc(i);
-  end;
+
 end;
 
 procedure TConflictsCheckForm.ListBoxDblClick(Sender: TObject);
-var
-  ListBox: TListBox;
-  Posit, x, y, z: integer;
 begin
-  ListBox := Sender as TListBox;
-  if ListBox.Items.Objects[ListBox.ItemIndex] = nil then exit;
-  Posit := LeftListBox.Items.IndexOfObject(ListBox.Items.Objects[ListBox.ItemIndex]);
-  x := FRecordCell[Posit].X;
-  y := FRecordCell[Posit].Y;
-  z := FRecordCell[Posit].Z;
-  CardsManager.EditTable(Table, Records[y, x, z].id, atUpdate);
+
+end;
+
+procedure TConflictsCheckForm.TreeView1DblClick(Sender: TObject);
+var
+  Tree: TTreeView;
+  Conf: TConflict;
+begin
+  Tree := Sender as TTreeView;
+  Conf := TObject(Tree.Selected.Data) as TConflict;
+  if Conf = nil then exit;
+  CardsManager.EditTable(DBTimeTable, Conf.RecordID, atUpdate)
 end;
 
 procedure TConflictsCheckForm.FormClose(Sender: TObject;
@@ -131,115 +326,34 @@ end;
 
 procedure TConflictsCheckForm.Clear;
 begin
-  FTeachersInCell.Clear;
-  FGroupsInCell.Clear;
-  FClassroomsInCell.Clear;
-  SetLength(FRecordCell, 0);
-end;
-
-procedure TConflictsCheckForm.CheckTeacher(TeacherID, RecordID: Variant; x, y: integer);
-var
-  i: integer;
-begin
-  with FTeachersInCell do begin
-    SetLength(CellConflicts[y, x].TeachersConf, Count + 1, Count + 1);
-    CellConflicts[y, x].TeachersConf[Count, Count] := false;
-    for i := 0 to Count - 1 do
-      if Strings[i] = string(TeacherID) then begin
-        CellConflicts[y, x].TeachersConf[i, Count] := true;
-        CellConflicts[y, x].TeachersConf[Count, i] := true;
-        CellConflicts[y, x].TeachersConf[i, i] := true;
-        CellConflicts[y, x].TeachersConf[Count, Count] := true;
-      end else begin
-        CellConflicts[y, x].TeachersConf[i, Count] := false;
-        CellConflicts[y, x].TeachersConf[Count, i] := false;
-      end;
-    AddObject(TeacherID, TObject(Pointer(Integer(RecordID))));
-  end;
-end;
-
-procedure TConflictsCheckForm.CheckGroup(GroupID, RecordID: Variant; x, y: integer);
-var
-  i: integer;
-begin
-  with FGroupsInCell do begin
-    SetLength(CellConflicts[y, x].GroupsConf, Count + 1, Count + 1);
-    CellConflicts[y, x].GroupsConf[Count, Count] := false;
-    for i := 0 to Count - 1 do
-      if Strings[i] = string(GroupID) then begin
-        CellConflicts[y, x].GroupsConf[i, Count] := true;
-        CellConflicts[y, x].GroupsConf[Count, i] := true;
-        CellConflicts[y, x].GroupsConf[i, i] := true;
-        CellConflicts[y, x].GroupsConf[Count, Count] := true;
-      end else begin
-        CellConflicts[y, x].GroupsConf[i, Count] := false;
-        CellConflicts[y, x].GroupsConf[Count, i] := false;
-      end;
-    AddObject(GroupID, TObject(Pointer(Integer(RecordID))));
-  end;
-end;
-
-procedure TConflictsCheckForm.CheckClassroom(ClassroomID, RecordID: Variant; x, y: integer);
-var
-  i: integer;
-begin
-  with FClassroomsInCell do begin
-    SetLength(CellConflicts[y, x].ClassroomsConf, Count + 1, Count + 1);
-    CellConflicts[y, x].ClassroomsConf[Count, Count] := false;
-    for i := 0 to Count - 1 do
-      if Strings[i] = string(ClassroomID) then begin
-        CellConflicts[y, x].ClassroomsConf[i, Count] := true;
-        CellConflicts[y, x].ClassroomsConf[Count, i] := true;
-        CellConflicts[y, x].ClassroomsConf[i, i] := true;
-        CellConflicts[y, x].ClassroomsConf[Count, Count] := true;
-      end else begin
-        CellConflicts[y, x].ClassroomsConf[i, Count] := false;
-        CellConflicts[y, x].ClassroomsConf[Count, i] := false;
-      end;
-    AddObject(ClassroomID, TObject(Pointer(Integer(RecordID))));
-  end;
-end;
-
-procedure TConflictsCheckForm.CheckTeachersCourses();
-begin
-
-end;
-
-procedure TConflictsCheckForm.CheckGroupsCourses();
-begin
 
 end;
 
 procedure TConflictsCheckForm.AddConfRecord(x, y, z, RecordID: integer);
 begin
-  LeftListBox.AddItem(GetRecord(RecordID), TObject(Pointer(Integer(RecordID))));
-  SetLength(FRecordCell, Length(FRecordCell) + 1);
-  FRecordCell[High(FRecordCell)].X := x;
-  FRecordCell[High(FRecordCell)].Y := y;
-  FRecordCell[High(FRecordCell)].Z := z;
+
 end;
 
 function TConflictsCheckForm.GetRecord(RecordID: integer): string;
-var
-  i: integer;
-  res: string;
-  Field: TDBField;
+
 begin
-  res := ' ';
+  {res := ' ';
   SQLQuery.Locate(Table.Name + 'id', Variant(RecordId), []);
   for i := 0 to CheckList.Count - 1 do begin
     if not CheckList.Checked[i] then continue;
     Field := CheckList.Items.Objects[i] as TDBField;
     res := res + SQLQuery.FieldByName(Field.TableOwner.Name + Field.Name).Value + '  ';
   end;
-  exit(res);
+  exit(res);}
 end;
 
 function TConflictsCheckForm.Conflicted(aCol, aRow, Z: integer): boolean;
 begin
-  with CellConflicts[aRow, aCol] do
-    exit((Z < Length(TeachersConf)) and (TeachersConf[Z, Z] or GroupsConf[Z, Z] or ClassroomsConf[Z, Z]));
+  //with CellConflicts[aRow, aCol] do
+    //exit((Z < Length(TeachersConf)) and (TeachersConf[Z, Z] or GroupsConf[Z, Z] or ClassroomsConf[Z, Z]));
 end;
+
+initialization
 
 end.
 

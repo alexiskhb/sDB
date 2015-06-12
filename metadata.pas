@@ -70,6 +70,7 @@ type
 var
   DBTables: TDBTableDynArray;
   DBTablesList: TStringList;
+  DBTimeTable: TDBTable;
 
   procedure SetSQLQuery(ATable: TDBTable; SQLQuery: TSQLQuery);
   procedure AllQueryColumnsToList(ATable: TDBTable; var ASList: TStringList);
@@ -245,6 +246,7 @@ initialization
   TDBTable.Add('groups', 'Группы');
   DBTables[1].AddField('id', 'Г. ИД', 40, ftInteger, false, 0);
   DBTables[1].AddField('name', 'Группа', 100, ftString, true, 50);
+  DBTables[1].AddField('st_number', 'Количество', 60, ftInteger, true, 0);
 
   TDBTable.Add('courses', 'Дисциплины');
   DBTables[2].AddField('id', 'ИД', 40, ftInteger, false, 0);
@@ -258,6 +260,7 @@ initialization
   TDBTable.Add('classrooms', 'Аудитории');
   DBTables[4].AddField('id', 'ИД', 40, ftInteger, false, 0);
   DBTables[4].AddField('classroom', 'Аудитория', 100, ftString, true, 50);
+  DBTables[4].AddField('capacity', 'Вместимость', 60, ftInteger, true, 0);
 
   TDBTable.Add('weekdays', 'Дни недели');
   DBTables[5].AddField('id', 'День', 40, ftInteger, false, 0);
@@ -275,6 +278,7 @@ initialization
   DBTables[7].AddField('course_id', 'Ид. предмета', 'courses', 'id', 80, ftInteger, false, 0);
 
   TDBTable.Add('lessons', 'Расписание');
+  DBTimeTable := DBTables[8];
   DBTables[8].AddField('id', 'Ид. записи', 40, ftInteger, false, 0);
   DBTables[8].AddField('pair_id', 'Пара', 'pairs', 'id', 40, ftInteger, false, 0);
   DBTables[8].AddField('weekday_id', 'Ид. дня недели', 'weekdays', 'id', 70, ftInteger, false, 0);

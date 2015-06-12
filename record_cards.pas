@@ -303,8 +303,17 @@ begin
 end;
 
 procedure TRecordCard.CellEditValueChange(Sender: TObject);
+var
+  i: integer;
 begin
   FValuesList.Strings[FValuesList.IndexOfObject((Sender as TCellEdit).ReferringField)] := (Sender as TCellEdit).Value;
+  for i := 0 to Length(FCellEdits) - 1 do begin
+    if
+      (FCellEdits[i].ReferringField = (Sender as TCellEdit).ReferringField)
+      and (FCellEdits[i] <> (Sender as TCellEdit)) then
+        (FCellEdits[i] as TComboCellEdit).cbbValues.ItemIndex := (FCellEdits[i] as TComboCellEdit).cbbValues.Items.IndexOfObject(
+          (Sender as TComboCellEdit).cbbValues.Items.Objects[(Sender as TComboCellEdit).cbbValues.ItemIndex]);
+  end;
 end;
 
 procedure TEditRecordCard.btnDeleteThisRecordMouseUp(Sender: TObject; Button: TMouseButton;
@@ -408,6 +417,8 @@ begin
 end;
 
 procedure TComboCellEdit.cbbValuesChange(Sender: TObject);
+var
+  i: integer;
 begin
   if (Sender as TComboBox).ItemIndex >= 0 then
     FValue := Integer(Pointer((Sender as TComboBox).Items.Objects[(Sender as TComboBox).ItemIndex]));
