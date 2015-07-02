@@ -6,17 +6,17 @@ interface
 
 uses
   Classes, SysUtils, IBConnection, sqldb, db, FileUtil, Forms, Controls,
-	Graphics, Dialogs;
+  Graphics, Dialogs;
 
 type
 
   { TConTran }
 
   TConTran = class(TDataModule)
-	  CommonDS: TDataSource;
+    CommonDS: TDataSource;
     DBConnection: TIBConnection;
     DBTransaction: TSQLTransaction;
-		CommonSQLQuery: TSQLQuery;
+    CommonSQLQuery: TSQLQuery;
     procedure FormCreate(Sender: TObject);
   end;
 

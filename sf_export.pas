@@ -26,7 +26,7 @@ var
 begin
   DefColWidth[1] := 35;
   DefColWidth[2] := 20;
-  sfFormat[1] := sfExcel8;
+  sfFormat[1] := sfOpenDocument;
   sfFormat[2] := sfOpenDocument;
   Workbook := TsWorkbook.Create;
   Worksheet := Workbook.AddWorksheet(ATable.Caption);

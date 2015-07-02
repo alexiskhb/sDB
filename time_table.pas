@@ -27,11 +27,6 @@ type
   { TTimeTable }
 
   TTimeTable = class(TForm)
-    miWatch: TMenuItem;
-    miShow: TMenuItem;
-    miConflicts: TMenuItem;
-    procedure miConflictsClick(Sender: TObject);
-    procedure miShowClick(Sender: TObject);
   private
     FTable: TDBTable;
     FShowAsList: TNotifyEvent;
@@ -89,6 +84,14 @@ type
     StringGrid1: TStringGrid;
     PopupCaption: TMenuItem;
     pmCopyFilters: TPopupMenu;
+    miWatch: TMenuItem;
+    miShow: TMenuItem;
+    miConflicts: TMenuItem;
+    procedure SaveHTMLToStrings(StringList: TStringList);
+    procedure AppendDescription(StringList: TStringList);
+    procedure AppendCells(StringList: TStringList);
+    procedure miConflictsClick(Sender: TObject);
+    procedure miShowClick(Sender: TObject);
     procedure ShowConflicts(ACol, ARow, ARecNum, RecordID: integer);
     procedure sgTableClick(Sender: TObject);
     procedure pmCopyFiltersFromClick(Sender: TObject);
@@ -351,11 +354,113 @@ begin
   end;
 end;
 
-procedure TTimeTable.miSaveAsClick(Sender: TObject);
+procedure TTimeTable.AppendDescription(StringList: TStringList);
+var
+  i: integer;
+  FieldCaption: string;
 begin
-  if SaveDialog.Execute then
-    ExportToSpreadsheet(FTable, sgTable.CellStrings, sgTable.ColCount,
-    sgTable.RowCount, FCheckedCount, SaveDialog.FileName, SaveDialog.FilterIndex);
+  with StringList do begin
+    if btnApply.Enabled then
+      Append('Описание может не соответствовать содержимому таблицы' + '<br><br>');
+
+    if FCheckedCount > 0 then begin
+      Append('<li>' + 'Отображаемые поля:' + '</li>');
+      for i := 0 to clbVisibleFields.Count - 1 do
+        if clbVisibleFields.Checked[i] then
+          Append(clbVisibleFields.Items.Strings[i] + ' <br>');
+    end;
+
+    if Length(Filters) > 0 then begin
+      Append('<br><li>' + 'Фильты:' + ' </li>');
+      for i := 0 to High(Filters) do begin
+        FieldCaption := '';
+        if Assigned(Filters[i].ChosenField) then
+          FieldCaption := Filters[i].ChosenField.Caption
+        else if Assigned(Filters[i].ConstantEditor) then
+          FieldCaption := 'ИЛИ'
+        else continue;
+        Append(
+               FieldCaption + ' ' +
+               Filters[i].Operation.Caption + ' ' +
+               string(Filters[i].Value) + '<br>');
+      end;
+    end;
+
+    Append(
+             '<br><br>' +
+             cbbVert.Items[cbbVert.ItemIndex] + ' \ ' +
+             cbbHorz.Items[cbbHorz.ItemIndex]);
+  end;
+end;
+
+procedure TTimeTable.AppendCells(StringList: TStringList);
+var
+  i, j, k: integer;
+begin
+  with StringList, sgTable do begin
+    Append('<table>');
+    for i := 0 to RowCount - 1 do begin
+      Append('<tr>');
+      for j := 0 to ColCount - 1 do begin
+        Append('<td>');
+        if CellStringsAssigned(j, i) then
+          for k := 0 to CellStrings[i, j].Count - 1 do
+            Append(CellStrings[i, j].Strings[k] + ' <br>');
+        Append('</td>');
+      end;
+      Append('</tr>');
+    end;
+    Append('</table>');
+  end;
+end;
+
+procedure TTimeTable.SaveHTMLToStrings(StringList: TStringList);
+begin
+  with StringList do begin
+    Append('<html> <head> <meta charset="utf-8">');
+    Append('<style>');
+    Append('table { width: 1500px; height: 750px; border: 1px solid #000; border-collapse:collapse;}');
+    Append('td { border: 1px solid #000; padding: 5px; vertical-align: top; font-size: 16px}');
+    Append('</style>');
+    Append('</head>');
+    Append('<body>');
+    AppendDescription(StringList);
+    AppendCells(StringList);
+    Append('</body> </html>');
+  end;
+end;
+
+procedure TTimeTable.miSaveAsClick(Sender: TObject);
+var
+  Stream: TFileStream;
+  StringList: TStringList;
+begin
+  if SaveDialog.Execute then begin
+    case SaveDialog.FilterIndex of
+      1: begin
+           StringList:= TStringList.Create;
+           //try
+             //Stream := TFileStream.Create(Utf8ToAnsi(SaveDialog.FileName), fmOpenReadWrite);
+           //except
+             Stream := TFileStream.Create(Utf8ToAnsi(SaveDialog.FileName), fmCreate);
+           //end;
+           SaveHTMLToStrings(StringList);
+           StringList.SaveToStream(Stream);
+           StringList.Free;
+           Stream.Free;
+         end;
+      2: begin
+           ExportToSpreadsheet(
+                               FTable,
+                               sgTable.CellStrings,
+                               sgTable.ColCount,
+                               sgTable.RowCount,
+                               FCheckedCount,
+                               SaveDialog.FileName,
+                               1);
+         end;
+    end;
+  end;
 end;
 
 procedure TTimeTable.lbFiltersClick(Sender: TObject);

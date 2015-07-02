@@ -465,8 +465,10 @@ object TimeTable: TTimeTable
     end
   end
   object SaveDialog: TSaveDialog
+    Width = 989
+    Height = 630
     Title = 'Сохранить таблицу как'
-    Filter = 'MSExcel (*.xlsx)|*.xlsx|Open/LibreOffice (*.ods)|*.ods'
+    Filter = 'HTML(*.html)|*.html|Open/LibreOffice (*.ods)|*.ods'
     left = 40
     top = 240
   end

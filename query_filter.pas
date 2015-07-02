@@ -89,6 +89,7 @@ var
   Operations: array [Low(TRelationalOperation)..High(TRelationalOperation)] of TRelOperation;
   TypeOfEditor: array [Low(TFieldType)..High(TFieldType)] of TCustomEditClass;
   AvailableOperations: array [Low(TFieldType)..High(TFieldType)] of set of TRelationalOperation;
+  NoneOperation: TRelOperation;
 
 implementation
 
@@ -219,7 +220,9 @@ begin
   end;
 
   if tempft = ftUnknown then begin
+    ConstantEditor.Text := ' ';
     ConstantEditor.Visible := false;
+    cbbOperations.ItemIndex := -1;
     cbbOperations.Visible := false;
   end else
     btnAddFilter.Left := ConstantEditor.Left + ConstantEditor.Width + 1;
@@ -294,6 +297,8 @@ end;
 
 function TQueryFilter.GetOperation: TRelOperation;
 begin
+  if not Assigned(cbbOperations) or not cbbOperations.Visible then
+    exit(NoneOperation);
   Result := cbbOperations.Items.Objects[cbbOperations.ItemIndex] as TRelOperation;
 end;
 
@@ -305,6 +310,7 @@ end;
 
 function TQueryFilter.GetValue: Variant;
 begin
+  if (not Assigned(ConstantEditor)) or (not ConstantEditor.Visible) then exit(' ');
   if ((cbbFields.Items.Objects[cbbFields.ItemIndex]) as TDBField).FieldType = ftInteger then
     Result := (ConstantEditor as TSpinEdit).Value
   else
@@ -374,6 +380,7 @@ initialization
   Operations[roNotGreater] := TRelOperation.Create('<=', '  <= ');
   Operations[roNotLess] := TRelOperation.Create('>=', '  >= ');
   Operations[roStartsWith] := TRelOperation.Create('Начинается с', '  starts with ');
+  NoneOperation := TRelOperation.Create(' ', ' ');
 
 end.
 
