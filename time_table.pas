@@ -353,7 +353,11 @@ begin
 end;
 
 procedure TTimeTable.miSaveAsClick(Sender: TObject);
+var
+  HorzField, VertField: TDBField;
 begin
+  HorzField := cbbHorz.Items.Objects[cbbHorz.ItemIndex] as TDBField;
+  VertField := cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField;
   if not Assigned(FExportForm) then
     FExportForm := TExportForm.Create(
                                       Self,
@@ -361,13 +365,14 @@ begin
                                       sgTable.ColCount,
                                       sgTable.RowCount,
                                       clbVisibleFields,
-                                      cbbHorz.Items.Objects[cbbHorz.ItemIndex] as TDBField,
-                                      cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField,
+                                      HorzField,
+                                      VertField,
                                       Filters,
                                       btnApply,
                                       FCheckedCount,
                                       IsColEmpty,
                                       IsRowEmpty);
+  FExportForm.Caption := 'Экспорт: ' + VertField.Caption + ' \ ' + HorzField.Caption;
   FExportForm.Show;
 end;
 

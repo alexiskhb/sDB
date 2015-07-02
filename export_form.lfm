@@ -56,7 +56,7 @@ object ExportForm: TExportForm
     ItemIndex = 0
     Items.Strings = (
       'html'
-      'odt'
+      'xlsx'
     )
     TabOrder = 2
   end

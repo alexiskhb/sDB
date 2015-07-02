@@ -176,7 +176,7 @@
     </Other>
   </CompilerOptions>
   <Debugging>
-    <Exceptions Count="8">
+    <Exceptions Count="9">
       <Item1>
         <Name Value="EAbort"/>
       </Item1>
@@ -202,6 +202,9 @@
         <Name Value="EStringListError"/>
         <Enabled Value="False"/>
       </Item8>
+      <Item9>
+        <Name Value="EFCreateError"/>
+      </Item9>
     </Exceptions>
   </Debugging>
 </CONFIG>

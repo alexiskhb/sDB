@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  StdCtrls, sf_export, CheckLst, metadata, query_filter, Buttons;
+  StdCtrls, sf_export, CheckLst, metadata, query_filter, Buttons, fpspreadsheet;
 
 type
 
@@ -40,6 +40,8 @@ type
     procedure HTMLFillStringList(StringList: TStringList);
     procedure HTMLAppendDescription(StringList: TStringList);
     procedure HTMLAppendCells(StringList: TStringList);
+    procedure XLFillWorkbook(Workbook: TsWorkbook);
+    procedure XLAddDescription(DescrSheet: TsWorksheet);
     constructor Create(AParent: TForm; AStrings: TDblStrinListDynArray;
       AColsCount, ARowsCount: integer; ACheckList: TCheckListBox;
       AHorzField, AVertField: TDBField; AFilters: TQueryFilterDynArray; AbtnApply: TBitbtn;
@@ -68,32 +70,223 @@ procedure TExportForm.btnOkClick(Sender: TObject);
 var
   StringList: TStringList;
   Stream: TFileStream;
+  Workbook: TsWorkbook;
 begin
-
+  Stream := TFileStream.Create(Utf8ToAnsi(lbePath.Text), fmCreate);
   case rgFormat.ItemIndex of
-    0: begin
-         StringList := TStringList.Create;
-         Stream := TFileStream.Create(Utf8ToAnsi(lbePath.Text), fmCreate);
-         HTMLFillStringList(StringList);
-         StringList.SaveToStream(Stream);
-         StringList.Free;
-         Stream.Free;
-       end;
-    1: begin
-        ShowMessage('dsa');
-         //ExportToSpreadsheet(
-         //                    FTable,
-         //                    sgTable.CellStrings,
-         //                    sgTable.ColCount,
-         //                    sgTable.RowCount,
-         //                    FCheckedCount,
-         //                    SaveDialog.FileName,
-         //                    1);
-       end;
+    0:
+      begin
+        StringList := TStringList.Create;
+        HTMLFillStringList(StringList);
+        StringList.SaveToStream(Stream);
+        StringList.Free;
+      end;
+    1:
+      begin
+        Workbook := TsWorkbook.Create;
+        XLFillWorkbook(Workbook);
+        Workbook.WriteToStream(Stream, sfExcel8);
+        Workbook.Free;
+      end;
   end;
-
+  Stream.Free;
   Close;
 end;
+
+procedure TExportForm.XLFillWorkbook(Workbook: TsWorkbook);
+var
+  Worksheet: TsWorksheet;
+  Description: TsWorksheet;
+  i, j: integer;
+begin
+  Worksheet := Workbook.AddWorksheet(FVertField.Caption + ' - ' + FHorzField.Caption);
+  Description := Workbook.AddWorksheet('Описание');
+  with Worksheet do begin
+    DefaultColWidth := 10;
+    DefaultRowHeight := 10;
+    Options := Worksheet.Options + [soHasFrozenPanes];
+    LeftPaneWidth := 1;
+    TopPaneHeight := 1;
+
+    for i := 0 to FRowsCount - 1 do begin
+      for j := 0 to FColsCount - 1 do begin
+        if Assigned(FStrings[i, j]) then
+          WriteUTF8Text(i, j, FStrings[i, j].Text);
+        WriteVertAlignment(i, j, vaTop);
+        WriteColWidth(j, 25);
+        WriteWordwrap(i, j, true);
+      end;
+      WriteRowHeight(i, 25);
+    end;
+    for i := 0 to FRowsCount do begin
+      WriteBorders(i, 0, [cbEast]);
+      WriteColWidth(0, 15);
+      WriteVertAlignment(i, 0, vaCenter);
+    end;
+    for j := 0 to FColsCount do begin
+      WriteBorders(0, j, [cbSouth]);
+      WriteRowHeight(0, 2);
+      WriteVertAlignment(0, j, vaCenter);
+    end;
+  end;
+end;
+
+procedure TExportForm.XLAddDescription(DescrSheet: TsWorksheet);
+begin
+  with DescrSheet do begin
+    if btnApply.Enabled then begin
+      MergeCells(0, 0, 0, 3);
+      WriteUTF8Text(0, 0, 'Описание может не соответствовать содержимому таблицы');
+      WriteBorders(0, 0, [cbSouth, cbWest, cbEast, cbNorth]);
+      WriteRowHeight(0, 2);
+      WriteVertAlignment(0, 0, vaCenter);
+    end;
+
+    if (FCheckedCount^ > 0) and (cgParams.Checked[0]) then begin
+      Append('<li>' + 'Отображаемые поля:' + '</li>');
+      for i := 0 to FCheckList.Count - 1 do
+        if FCheckList.Checked[i] then
+          Append(FCheckList.Items.Strings[i] + ' <br>');
+    end;
+
+    if (Length(FFilters) > 0) and (cgParams.Checked[1]) then begin
+      Append('<br><li>' + 'Фильтры:' + ' </li>');
+      for i := 0 to High(FFilters) do begin
+        FieldCaption := '';
+        if Assigned(FFilters[i].ChosenField) then
+          FieldCaption := FFilters[i].ChosenField.Caption
+        else if Assigned(FFilters[i].ConstantEditor) then
+          FieldCaption := 'ИЛИ'
+        else continue;
+        Append(
+               FieldCaption + ' ' +
+               FFilters[i].Operation.Caption + ' ' +
+               string(FFilters[i].Value) + '<br>');
+      end;
+    end;
+
+    if cgParams.Checked[2] then
+      Append(
+             '<br><br>' +
+             FVertField.Caption + ' \ ' +
+             FHorzField.Caption);
+
+
+  end;
+end;
+
+{function TTimeTableForm.SaveSpreadsheet(FileName: string): string;
+var
+  MyFile: TsWorkbook;
+  TimeTable, MetaData: TsWorksheet;
+  BookName: string = 'Расписание';
+  i, j, k, l, Count: integer;
+  BufStr :string;
+  LittleCount, BigCount, MaxCount: integer;
+begin
+  MyFile := TsWorkbook.Create;
+  TimeTable := MyFile.AddWorksheet(BookName);
+  TimeTable.Options := TimeTable.Options + [soHasFrozenPanes];
+  TimeTable.LeftPaneWidth := 1;
+  TimeTable.TopPaneHeight := 1;
+  for i := 1 to high(Columns) do
+  begin
+    TimeTable.WriteUTF8Text(0, i, Columns[i]);
+  end;
+  BigCount := 0;
+  LittleCount := 0;
+  MaxCount := 0;
+  for i := 1 to high(Strings) do
+  begin
+    BigCount +=  MaxCount;
+    MaxCount := 0;
+    for j := 1 to high(Columns) do
+    begin
+      LittleCount := 0;
+      TimeTable.WriteBorders(i + BigCount, j, [cbEast, cbWest, cbNorth]);
+      for k := 0 to high(Cells[j][i].FRecords) do
+      begin
+        BufStr := '';
+        for l := 0 to Cells[j][i].Frecords[k].FData.Count - 1 do
+        begin
+          BufStr += Cells[j][i].FRecords[k].FData.Strings[l] + #10;
+        end;
+        BufStr += #10;
+        if Cells[j][i].Frecords[k].FData.Count > 0 then
+        begin
+          TimeTable.WriteBackgroundColor(i + BigCount + LittleCount, j, scYellow);
+        end;
+        TimeTable.WriteUTF8Text(i + BigCount + LittleCount, j, BufStr);
+        TimeTable.WriteWordwrap(i + BigCount + LittleCount, j, true);
+        TimeTable.WriteBorders(i + 1 + LittleCount + BigCount, j, [cbEast, cbWest]);
+        inc(LittleCount);
+        TimeTable.WriteVertAlignment(i + BigCount + LittleCount, j, vaCenter);
+      end;
+      TimeTable.WriteBorders(i + LittleCount + BigCount, j, [cbNorth]);
+      TimeTable.WriteColWidth(j, 25);
+      if LittleCount > MaxCount then
+      begin
+        MaxCount := LittleCount;
+      end;
+    end;
+    TimeTable.MergeCells(i + BigCount, 0, i + MaxCount + BigCount, 0);
+    TimeTable.WriteUTF8Text(i + BigCount, 0, Strings[i]);
+    TimeTable.WriteVertAlignment(i + BigCount, 0, vaCenter);
+  end;
+  MetaData := MyFile.AddWorksheet('Фильтры и поля');
+  i := 0;
+  MetaData.WriteUTF8Text(0, i, '№');
+  inc(i);
+  MetaData.WriteUTF8Text(0, i, 'Логическое выражение');
+  inc(i);
+  MetaData.WriteUTF8Text(0, i, 'Фильтр по');
+  inc(i);
+  MetaData.WriteUTF8Text(0, i, 'Оператор выбора');
+  inc(i);
+  MetaData.WriteUTF8Text(0, i, 'Значение');
+  inc(i);
+  for j := 0 to i do
+  begin
+    MetaData.WriteColWidth(j, 25);
+  end;
+  i := 0;
+  MetaData.WriteUTF8Text(1, i, IntToStr(i));
+  inc(i);
+  MetaData.WriteUTF8Text(1, i, 'Нет');
+  inc(i);
+  MetaData.WriteUTF8Text(1, i, ChildFirstFrame1.BaseParentFrameOnLv.FieldNameBox.Caption);
+  inc(i);
+  MetaData.WriteUTF8Text(1, i, ChildFirstFrame1.BaseParentFrameOnLv.OperationBox.Caption);
+  inc(i);
+  MetaData.WriteUTF8Text(1, i, ChildFirstFrame1.BaseParentFrameOnLv.STRValue.Text);
+  for j := 0 to ChildFirstFrame1.GetHighFilter do
+  begin
+    i := 0;
+    MetaData.WriteUTF8Text(j + 2, i, IntToStr(j + 1));
+    inc(i);
+    MetaData.WriteUTF8Text(j + 2, i, ChildFirstFrame1.Filter[j].AndOrBox.Caption);
+    inc(i);
+    MetaData.WriteUTF8Text(j + 2, i, ChildFirstFrame1.Filter[j].BaseParentFrameOnLV.FieldNameBox.Caption);
+    inc(i);
+    MetaData.WriteUTF8Text(j + 2, i, ChildFirstFrame1.Filter[j].BaseParentFrameOnLV.OperationBox.Caption);
+    inc(i);
+    MetaData.WriteUTF8Text(j + 2, i, ChildFirstFrame1.Filter[j].BaseParentFrameOnLV.STRValue.Text);
+  end;
+  MetaData.WriteUTF8Text(j + 4, 0, 'Поля');
+  l := 0;
+  for i := 0 to FieldsBox.Count - 1 do
+  begin
+    if FieldsBox.Checked[i] then
+    begin
+      inc(l);
+      MetaData.WriteUTF8Text(j + 5 + l, 0, FieldsBox.Items[i]);
+    end;
+  end;
+  MyFile.WriteToFile(FileName, sfExcel8, true);
+  //TimeTable.Free;
+  //MetaData.Free;
+  //MyFile.Free;
+end;}
 
 procedure TExportForm.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
@@ -119,7 +312,6 @@ begin
   FIsColEmpty := IsColEmpty;
   FIsRowEmpty := IsRowEmpty;
   FCheckedCount := @ACheckedCount;
-  Caption := 'Экспорт: ' + AVertField.Caption + ' \ ' + AHorzField.Caption;
   with cgParams do
     for i := 0 to Items.Count - 1 do
       Checked[i] := true;
