@@ -2,18 +2,18 @@ object ExportForm: TExportForm
   Left = 364
   Height = 214
   Top = 211
-  Width = 522
+  Width = 593
   BorderStyle = bsSingle
   Caption = 'Экспорт'
   ClientHeight = 214
-  ClientWidth = 522
+  ClientWidth = 593
   OnClose = FormClose
   LCLVersion = '1.2.6.0'
   object lbePath: TLabeledEdit
     Left = 48
     Height = 27
     Top = 8
-    Width = 424
+    Width = 504
     EditLabel.AnchorSideTop.Control = lbePath
     EditLabel.AnchorSideTop.Side = asrCenter
     EditLabel.AnchorSideRight.Control = lbePath
@@ -29,7 +29,7 @@ object ExportForm: TExportForm
     TabOrder = 0
   end
   object btnBrowse: TButton
-    Left = 480
+    Left = 557
     Height = 27
     Top = 8
     Width = 27
@@ -38,10 +38,10 @@ object ExportForm: TExportForm
     TabOrder = 1
   end
   object rgFormat: TRadioGroup
-    Left = 376
+    Left = 512
     Height = 64
-    Top = 64
-    Width = 104
+    Top = 72
+    Width = 72
     AutoFill = True
     Caption = 'Формат'
     ChildSizing.LeftRightSpacing = 6
@@ -52,7 +52,7 @@ object ExportForm: TExportForm
     ChildSizing.Layout = cclLeftToRightThenTopToBottom
     ChildSizing.ControlsPerLine = 1
     ClientHeight = 45
-    ClientWidth = 100
+    ClientWidth = 68
     ItemIndex = 0
     Items.Strings = (
       'html'
@@ -61,10 +61,10 @@ object ExportForm: TExportForm
     TabOrder = 2
   end
   object cgParams: TCheckGroup
-    Left = 48
+    Left = 16
     Height = 105
     Top = 48
-    Width = 281
+    Width = 491
     AutoFill = True
     Caption = 'Параметры'
     ChildSizing.LeftRightSpacing = 6
@@ -74,21 +74,24 @@ object ExportForm: TExportForm
     ChildSizing.ShrinkHorizontal = crsScaleChilds
     ChildSizing.ShrinkVertical = crsScaleChilds
     ChildSizing.Layout = cclLeftToRightThenTopToBottom
-    ChildSizing.ControlsPerLine = 1
+    ChildSizing.ControlsPerLine = 2
     ClientHeight = 86
-    ClientWidth = 277
+    ClientWidth = 487
+    Columns = 2
     Items.Strings = (
       'Список видимых полей'
       'Список фильтров'
-      'Столбцы \ Строки'
+      'Показать заголовки  столбцы \ строки'
+      'Без пустых строк'
+      'Без пустых столбцов'
     )
     TabOrder = 3
     Data = {
-      03000000020202
+      050000000202020202
     }
   end
   object btnOk: TBitBtn
-    Left = 296
+    Left = 344
     Height = 30
     Top = 168
     Width = 96
@@ -100,7 +103,7 @@ object ExportForm: TExportForm
     TabOrder = 4
   end
   object btnCancel: TBitBtn
-    Left = 135
+    Left = 176
     Height = 30
     Top = 168
     Width = 97

@@ -353,9 +353,6 @@ begin
 end;
 
 procedure TTimeTable.miSaveAsClick(Sender: TObject);
-//var
-  //Stream: TFileStream;
-  //StringList: TStringList;
 begin
   if not Assigned(FExportForm) then
     FExportForm := TExportForm.Create(
@@ -368,7 +365,9 @@ begin
                                       cbbVert.Items.Objects[cbbVert.ItemIndex] as TDBField,
                                       Filters,
                                       btnApply,
-                                      FCheckedCount);
+                                      FCheckedCount,
+                                      IsColEmpty,
+                                      IsRowEmpty);
   FExportForm.Show;
 end;
 

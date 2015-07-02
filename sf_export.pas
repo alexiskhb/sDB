@@ -9,6 +9,7 @@ uses
 
 type
   TDblStrinListDynArray =  array of array of TStringList;
+  TBoolDynArray = array of boolean;
 
 procedure ExportToSpreadsheet(ATable: TDBTable; AStrings: TDblStrinListDynArray;
   ColCount, RowCount, StringsCount: integer; Path: string; sfIndex: integer);

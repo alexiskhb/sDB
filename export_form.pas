@@ -34,14 +34,16 @@ type
     FVertField: TDBField;
     btnApply: TBitbtn;
     FCheckedCount: ^integer;
+    FIsColEmpty: TBoolDynArray;
+    FIsRowEmpty: TBoolDynArray;
   public
-    procedure SaveHTMLToStrings(StringList: TStringList);
-    procedure AppendDescription(StringList: TStringList);
-    procedure AppendCells(StringList: TStringList);
+    procedure HTMLFillStringList(StringList: TStringList);
+    procedure HTMLAppendDescription(StringList: TStringList);
+    procedure HTMLAppendCells(StringList: TStringList);
     constructor Create(AParent: TForm; AStrings: TDblStrinListDynArray;
       AColsCount, ARowsCount: integer; ACheckList: TCheckListBox;
       AHorzField, AVertField: TDBField; AFilters: TQueryFilterDynArray; AbtnApply: TBitbtn;
-      var ACheckedCount: integer);
+      var ACheckedCount: integer; IsColEmpty, IsRowEmpty: TBoolDynArray);
   end;
 
 var
@@ -72,7 +74,7 @@ begin
     0: begin
          StringList := TStringList.Create;
          Stream := TFileStream.Create(Utf8ToAnsi(lbePath.Text), fmCreate);
-         SaveHTMLToStrings(StringList);
+         HTMLFillStringList(StringList);
          StringList.SaveToStream(Stream);
          StringList.Free;
          Stream.Free;
@@ -101,7 +103,7 @@ end;
 constructor TExportForm.Create(AParent: TForm; AStrings: TDblStrinListDynArray;
   AColsCount, ARowsCount: integer; ACheckList: TCheckListBox;
   AHorzField, AVertField: TDBField; AFilters: TQueryFilterDynArray; AbtnApply: TBitbtn;
-  var ACheckedCount: integer);
+  var ACheckedCount: integer; IsColEmpty, IsRowEmpty: TBoolDynArray);
 var
   i: integer;
 begin
@@ -114,6 +116,8 @@ begin
   FVertField := AVertField;
   FStrings := AStrings;
   btnApply := AbtnApply;
+  FIsColEmpty := IsColEmpty;
+  FIsRowEmpty := IsRowEmpty;
   FCheckedCount := @ACheckedCount;
   Caption := 'Экспорт: ' + AVertField.Caption + ' \ ' + AHorzField.Caption;
   with cgParams do
@@ -121,7 +125,7 @@ begin
       Checked[i] := true;
 end;
 
-procedure TExportForm.AppendDescription(StringList: TStringList);
+procedure TExportForm.HTMLAppendDescription(StringList: TStringList);
 var
   i: integer;
   FieldCaption: string;
@@ -130,14 +134,14 @@ begin
     if btnApply.Enabled then
       Append('Описание может не соответствовать содержимому таблицы' + '<br><br>');
 
-    if FCheckedCount^ > 0 then begin
+    if (FCheckedCount^ > 0) and (cgParams.Checked[0]) then begin
       Append('<li>' + 'Отображаемые поля:' + '</li>');
       for i := 0 to FCheckList.Count - 1 do
         if FCheckList.Checked[i] then
           Append(FCheckList.Items.Strings[i] + ' <br>');
     end;
 
-    if Length(FFilters) > 0 then begin
+    if (Length(FFilters) > 0) and (cgParams.Checked[1]) then begin
       Append('<br><li>' + 'Фильтры:' + ' </li>');
       for i := 0 to High(FFilters) do begin
         FieldCaption := '';
@@ -153,22 +157,25 @@ begin
       end;
     end;
 
-    Append(
+    if cgParams.Checked[2] then
+      Append(
              '<br><br>' +
              FVertField.Caption + ' \ ' +
              FHorzField.Caption);
   end;
 end;
 
-procedure TExportForm.AppendCells(StringList: TStringList);
+procedure TExportForm.HTMLAppendCells(StringList: TStringList);
 var
   i, j, k: integer;
 begin
   with StringList do begin
     Append('<table>');
     for i := 0 to FRowsCount - 1 do begin
+      if cgParams.Checked[4] and FIsRowEmpty[i] then continue;
       Append('<tr>');
       for j := 0 to FColsCount - 1 do begin
+        if cgParams.Checked[3] and FIsRowEmpty[j] then continue;
         Append('<td>');
         if (i < Length(FStrings)) and (j < Length(FStrings[i])) and Assigned(FStrings[i, j]) then
           for k := 0 to FStrings[i, j].Count - 1 do
@@ -181,7 +188,7 @@ begin
   end;
 end;
 
-procedure TExportForm.SaveHTMLToStrings(StringList: TStringList);
+procedure TExportForm.HTMLFillStringList(StringList: TStringList);
 begin
   with StringList do begin
     Append('<html> <head> <meta charset="utf-8">');
@@ -191,8 +198,8 @@ begin
     Append('</style>');
     Append('</head>');
     Append('<body>');
-    AppendDescription(StringList);
-    AppendCells(StringList);
+    HTMLAppendDescription(StringList);
+    HTMLAppendCells(StringList);
     Append('</body> </html>');
   end;
 end;
