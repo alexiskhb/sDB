@@ -361,17 +361,19 @@ begin
   if not Assigned(FExportForm) then
     FExportForm := TExportForm.Create(
                                       Self,
-                                      sgTable.CellStrings,
-                                      sgTable.ColCount,
-                                      sgTable.RowCount,
                                       clbVisibleFields,
-                                      HorzField,
-                                      VertField,
-                                      Filters,
                                       btnApply,
-                                      FCheckedCount,
-                                      IsColEmpty,
-                                      IsRowEmpty);
+                                      FCheckedCount
+                                      );
+  FExportForm.RefreshData(
+                          sgTable.CellStrings,
+                          sgTable.ColCount,
+                          sgTable.RowCount,
+                          HorzField,
+                          VertField,
+                          Filters,
+                          IsColEmpty,
+                          IsRowEmpty);
   FExportForm.Caption := 'Экспорт: ' + VertField.Caption + ' \ ' + HorzField.Caption;
   FExportForm.Show;
 end;
@@ -697,6 +699,15 @@ begin
   end;
   miEmptyRowsClick(miEmptyRows);
   miEmptyColsClick(miEmptyCols);
+  FExportForm.RefreshData(
+                          sgTable.CellStrings,
+                          sgTable.ColCount,
+                          sgTable.RowCount,
+                          Horz,
+                          Vert,
+                          Filters,
+                          IsColEmpty,
+                          IsRowEmpty);
 end;
 
 procedure TTimeTable.FormDestroy(Sender: TObject);

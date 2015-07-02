@@ -13,6 +13,30 @@ type
   { TExportForm }
 
   TExportForm = class(TForm)
+  private
+    FColsCount: integer;
+    FRowsCount: integer;
+    FCheckList: TCheckListBox;
+    FFilters: TQueryFilterDynArray;
+    FHorzField: TDBField;
+    FVertField: TDBField;
+    btnApply: TBitbtn;
+    FCheckedCount: ^integer;
+    FIsColEmpty: TBoolDynArray;
+    FIsRowEmpty: TBoolDynArray;
+    FStrings: TDblStrinListDynArray;
+  public
+    procedure HTMLFillStringList(StringList: TStringList);
+    procedure HTMLAppendDescription(StringList: TStringList);
+    procedure HTMLAppendCells(StringList: TStringList);
+    procedure XLFillWorkbook(Workbook: TsWorkbook);
+    procedure XLAddDescription(DescrSheet: TsWorksheet);
+    procedure RefreshData(AStrings: TDblStrinListDynArray; AColsCount, ARowsCount: integer;
+      AHorzField, AVertField: TDBField; AFilters: TQueryFilterDynArray;
+      IsColEmpty, IsRowEmpty: TBoolDynArray);
+    constructor Create(AParent: TForm; ACheckList: TCheckListBox; AbtnApply: TBitbtn;
+      var ACheckedCount: integer);
+  published
     btnOk: TBitBtn;
     btnCancel: TBitBtn;
     btnBrowse: TButton;
@@ -24,28 +48,6 @@ type
     procedure btnCancelClick(Sender: TObject);
     procedure btnOkClick(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
-  private
-    FStrings: TDblStrinListDynArray;
-    FColsCount: integer;
-    FRowsCount: integer;
-    FCheckList: TCheckListBox;
-    FFilters: TQueryFilterDynArray;
-    FHorzField: TDBField;
-    FVertField: TDBField;
-    btnApply: TBitbtn;
-    FCheckedCount: ^integer;
-    FIsColEmpty: TBoolDynArray;
-    FIsRowEmpty: TBoolDynArray;
-  public
-    procedure HTMLFillStringList(StringList: TStringList);
-    procedure HTMLAppendDescription(StringList: TStringList);
-    procedure HTMLAppendCells(StringList: TStringList);
-    procedure XLFillWorkbook(Workbook: TsWorkbook);
-    procedure XLAddDescription(DescrSheet: TsWorksheet);
-    constructor Create(AParent: TForm; AStrings: TDblStrinListDynArray;
-      AColsCount, ARowsCount: integer; ACheckList: TCheckListBox;
-      AHorzField, AVertField: TDBField; AFilters: TQueryFilterDynArray; AbtnApply: TBitbtn;
-      var ACheckedCount: integer; IsColEmpty, IsRowEmpty: TBoolDynArray);
   end;
 
 var
@@ -122,13 +124,18 @@ begin
       WriteBorders(i, 0, [cbEast]);
       WriteColWidth(0, 15);
       WriteVertAlignment(i, 0, vaCenter);
+      if cgParams.Checked[4] and FIsRowEmpty[i] then
+        WriteRowHeight(i, 0);
     end;
     for j := 0 to FColsCount do begin
       WriteBorders(0, j, [cbSouth]);
       WriteRowHeight(0, 2);
       WriteVertAlignment(0, j, vaCenter);
+      if cgParams.Checked[3] and FIsColEmpty[j] then
+        WriteColWidth(j, 0);
     end;
   end;
+
   XLAddDescription(Description);
 end;
 
@@ -205,28 +212,32 @@ begin
   CloseAction := caHide;
 end;
 
-constructor TExportForm.Create(AParent: TForm; AStrings: TDblStrinListDynArray;
-  AColsCount, ARowsCount: integer; ACheckList: TCheckListBox;
-  AHorzField, AVertField: TDBField; AFilters: TQueryFilterDynArray; AbtnApply: TBitbtn;
-  var ACheckedCount: integer; IsColEmpty, IsRowEmpty: TBoolDynArray);
+constructor TExportForm.Create(AParent: TForm; ACheckList: TCheckListBox; AbtnApply: TBitbtn;
+      var ACheckedCount: integer);
 var
   i: integer;
 begin
   inherited Create(AParent);
-  FColsCount := AColsCount;
-  FRowsCount := ARowsCount;
   FCheckList := ACheckList;
-  FFilters := AFilters;
-  FHorzField := AHorzField;
-  FVertField := AVertField;
-  FStrings := AStrings;
   btnApply := AbtnApply;
-  FIsColEmpty := IsColEmpty;
-  FIsRowEmpty := IsRowEmpty;
   FCheckedCount := @ACheckedCount;
   with cgParams do
     for i := 0 to Items.Count - 1 do
       Checked[i] := true;
+end;
+
+procedure TExportForm.RefreshData(AStrings: TDblStrinListDynArray; AColsCount, ARowsCount: integer;
+      AHorzField, AVertField: TDBField; AFilters: TQueryFilterDynArray;
+      IsColEmpty, IsRowEmpty: TBoolDynArray);
+begin
+  FColsCount := AColsCount;
+  FRowsCount := ARowsCount;
+  FFilters := AFilters;
+  FHorzField := AHorzField;
+  FVertField := AVertField;
+  FIsColEmpty := IsColEmpty;
+  FIsRowEmpty := IsRowEmpty;
+  FStrings := AStrings;
 end;
 
 procedure TExportForm.HTMLAppendDescription(StringList: TStringList);
@@ -279,7 +290,7 @@ begin
       if cgParams.Checked[4] and FIsRowEmpty[i] then continue;
       Append('<tr>');
       for j := 0 to FColsCount - 1 do begin
-        if cgParams.Checked[3] and FIsRowEmpty[j] then continue;
+        if cgParams.Checked[3] and FIsColEmpty[j] then continue;
         Append('<td>');
         if (i < Length(FStrings)) and (j < Length(FStrings[i])) and Assigned(FStrings[i, j]) then
           for k := 0 to FStrings[i, j].Count - 1 do
@@ -297,7 +308,7 @@ begin
   with StringList do begin
     Append('<html> <head> <meta charset="utf-8">');
     Append('<style>');
-    Append('table { width: 1500px; height: 750px; border: 1px solid #000; border-collapse:collapse;}');
+    Append('table { border: 1px solid #000; border-collapse:collapse;}');
     Append('td { border: 1px solid #000; padding: 5px; vertical-align: top; font-size: 16px}');
     Append('</style>');
     Append('</head>');
