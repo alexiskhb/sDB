@@ -430,7 +430,7 @@ object TimeTable: TTimeTable
         OnClick = miShowAsListClick
       end
       object miSaveAs: TMenuItem
-        Caption = 'Сохранить как...'
+        Caption = 'Экспорт...'
         OnClick = miSaveAsClick
       end
     end

@@ -8,7 +8,7 @@ uses {$IFDEF UNIX} {$IFDEF UseCThreads}
   Forms, connection_transaction, DBMain, FormConnect, metadata, aboutsdb,
 	listview, record_cards, edit_database, query_filter,
 time_table, cell_contents, sf_export, 
-conflicts { you can add units after this };
+conflicts, export_form { you can add units after this };
 
 {$R *.res}
 

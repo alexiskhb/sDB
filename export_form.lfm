@@ -1,0 +1,118 @@
+object ExportForm: TExportForm
+  Left = 364
+  Height = 214
+  Top = 211
+  Width = 522
+  BorderStyle = bsSingle
+  Caption = 'Экспорт'
+  ClientHeight = 214
+  ClientWidth = 522
+  OnClose = FormClose
+  LCLVersion = '1.2.6.0'
+  object lbePath: TLabeledEdit
+    Left = 48
+    Height = 27
+    Top = 8
+    Width = 424
+    EditLabel.AnchorSideTop.Control = lbePath
+    EditLabel.AnchorSideTop.Side = asrCenter
+    EditLabel.AnchorSideRight.Control = lbePath
+    EditLabel.AnchorSideBottom.Control = lbePath
+    EditLabel.AnchorSideBottom.Side = asrBottom
+    EditLabel.Left = 13
+    EditLabel.Height = 17
+    EditLabel.Top = 13
+    EditLabel.Width = 32
+    EditLabel.Caption = 'Путь'
+    EditLabel.ParentColor = False
+    LabelPosition = lpLeft
+    TabOrder = 0
+  end
+  object btnBrowse: TButton
+    Left = 480
+    Height = 27
+    Top = 8
+    Width = 27
+    Caption = '...'
+    OnClick = btnBrowseClick
+    TabOrder = 1
+  end
+  object rgFormat: TRadioGroup
+    Left = 376
+    Height = 64
+    Top = 64
+    Width = 104
+    AutoFill = True
+    Caption = 'Формат'
+    ChildSizing.LeftRightSpacing = 6
+    ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+    ChildSizing.EnlargeVertical = crsHomogenousChildResize
+    ChildSizing.ShrinkHorizontal = crsScaleChilds
+    ChildSizing.ShrinkVertical = crsScaleChilds
+    ChildSizing.Layout = cclLeftToRightThenTopToBottom
+    ChildSizing.ControlsPerLine = 1
+    ClientHeight = 45
+    ClientWidth = 100
+    ItemIndex = 0
+    Items.Strings = (
+      'html'
+      'odt'
+    )
+    TabOrder = 2
+  end
+  object cgParams: TCheckGroup
+    Left = 48
+    Height = 105
+    Top = 48
+    Width = 281
+    AutoFill = True
+    Caption = 'Параметры'
+    ChildSizing.LeftRightSpacing = 6
+    ChildSizing.TopBottomSpacing = 6
+    ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+    ChildSizing.EnlargeVertical = crsHomogenousChildResize
+    ChildSizing.ShrinkHorizontal = crsScaleChilds
+    ChildSizing.ShrinkVertical = crsScaleChilds
+    ChildSizing.Layout = cclLeftToRightThenTopToBottom
+    ChildSizing.ControlsPerLine = 1
+    ClientHeight = 86
+    ClientWidth = 277
+    Items.Strings = (
+      'Список видимых полей'
+      'Список фильтров'
+      'Столбцы \ Строки'
+    )
+    TabOrder = 3
+    Data = {
+      03000000020202
+    }
+  end
+  object btnOk: TBitBtn
+    Left = 296
+    Height = 30
+    Top = 168
+    Width = 96
+    Default = True
+    DefaultCaption = True
+    Kind = bkOK
+    ModalResult = 1
+    OnClick = btnOkClick
+    TabOrder = 4
+  end
+  object btnCancel: TBitBtn
+    Left = 135
+    Height = 30
+    Top = 168
+    Width = 97
+    Cancel = True
+    DefaultCaption = True
+    Kind = bkCancel
+    ModalResult = 2
+    OnClick = btnCancelClick
+    TabOrder = 5
+  end
+  object SaveDialog: TSaveDialog
+    left = 24
+    top = 8
+  end
+end
