@@ -6,7 +6,8 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  StdCtrls, sf_export, CheckLst, metadata, query_filter, Buttons, fpspreadsheet;
+  StdCtrls, sf_export, CheckLst, metadata, query_filter, Buttons, Spin,
+  fpspreadsheet;
 
 type
 
@@ -37,6 +38,8 @@ type
     constructor Create(AParent: TForm; ACheckList: TCheckListBox; AbtnApply: TBitbtn;
       var ACheckedCount: integer);
   published
+    lbFontSize: TLabel;
+    seFontSize: TSpinEdit;
     btnOk: TBitBtn;
     btnCancel: TBitBtn;
     btnBrowse: TButton;
@@ -59,8 +62,11 @@ implementation
 
 procedure TExportForm.btnBrowseClick(Sender: TObject);
 begin
-  if SaveDialog.Execute then
+  SaveDialog.FilterIndex := rgFormat.ItemIndex + 1;
+  if SaveDialog.Execute then begin
     lbePath.Text := SaveDialog.FileName;
+    rgFormat.ItemIndex := SaveDialog.FilterIndex - 1;
+  end;
 end;
 
 procedure TExportForm.btnCancelClick(Sender: TObject);
@@ -117,6 +123,7 @@ begin
         WriteVertAlignment(i, j, vaTop);
         WriteColWidth(j, 25);
         WriteWordwrap(i, j, true);
+        Worksheet.WriteFontSize(i, j, seFontSize.Value);
       end;
       WriteRowHeight(i, 25);
     end;
@@ -124,6 +131,7 @@ begin
       WriteBorders(i, 0, [cbEast]);
       WriteColWidth(0, 15);
       WriteVertAlignment(i, 0, vaCenter);
+      WriteHorAlignment(i, 0, haCenter);
       if cgParams.Checked[4] and FIsRowEmpty[i] then
         WriteRowHeight(i, 0);
     end;
@@ -131,6 +139,7 @@ begin
       WriteBorders(0, j, [cbSouth]);
       WriteRowHeight(0, 2);
       WriteVertAlignment(0, j, vaCenter);
+      WriteHorAlignment(0, j, haCenter);
       if cgParams.Checked[3] and FIsColEmpty[j] then
         WriteColWidth(j, 0);
     end;
@@ -309,7 +318,8 @@ begin
     Append('<html> <head> <meta charset="utf-8">');
     Append('<style>');
     Append('table { border: 1px solid #000; border-collapse:collapse;}');
-    Append('td { border: 1px solid #000; padding: 5px; vertical-align: top; font-size: 16px}');
+    Append('td { border: 1px solid #000; padding: 5px; vertical-align: top; font-size: ' +
+           seFontSize.Text + 'px}');
     Append('</style>');
     Append('</head>');
     Append('<body>');

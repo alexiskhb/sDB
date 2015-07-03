@@ -699,15 +699,16 @@ begin
   end;
   miEmptyRowsClick(miEmptyRows);
   miEmptyColsClick(miEmptyCols);
-  FExportForm.RefreshData(
-                          sgTable.CellStrings,
-                          sgTable.ColCount,
-                          sgTable.RowCount,
-                          Horz,
-                          Vert,
-                          Filters,
-                          IsColEmpty,
-                          IsRowEmpty);
+  if Assigned(FExportForm) then
+    FExportForm.RefreshData(
+                            sgTable.CellStrings,
+                            sgTable.ColCount,
+                            sgTable.RowCount,
+                            Horz,
+                            Vert,
+                            Filters,
+                            IsColEmpty,
+                            IsRowEmpty);
 end;
 
 procedure TTimeTable.FormDestroy(Sender: TObject);

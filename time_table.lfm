@@ -1,7 +1,7 @@
 object TimeTable: TTimeTable
-  Left = 383
+  Left = 409
   Height = 554
-  Top = 161
+  Top = 187
   Width = 928
   Caption = 'timetable'
   ClientHeight = 554
@@ -431,6 +431,7 @@ object TimeTable: TTimeTable
       end
       object miSaveAs: TMenuItem
         Caption = 'Экспорт...'
+        ShortCut = 16467
         OnClick = miSaveAsClick
       end
     end
