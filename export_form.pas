@@ -127,6 +127,7 @@ begin
       end;
       WriteRowHeight(i, 25);
     end;
+
     for i := 0 to FRowsCount do begin
       WriteBorders(i, 0, [cbEast]);
       WriteColWidth(0, 15);
@@ -135,6 +136,7 @@ begin
       if cgParams.Checked[4] and FIsRowEmpty[i] then
         WriteRowHeight(i, 0);
     end;
+
     for j := 0 to FColsCount do begin
       WriteBorders(0, j, [cbSouth]);
       WriteRowHeight(0, 2);

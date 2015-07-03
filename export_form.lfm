@@ -1,11 +1,11 @@
 object ExportForm: TExportForm
   Left = 364
-  Height = 238
+  Height = 239
   Top = 211
   Width = 593
   BorderStyle = bsSingle
   Caption = 'Экспорт'
-  ClientHeight = 238
+  ClientHeight = 239
   ClientWidth = 593
   OnClose = FormClose
   LCLVersion = '1.2.6.0'
@@ -81,7 +81,7 @@ object ExportForm: TExportForm
     Items.Strings = (
       'Список видимых полей'
       'Список фильтров'
-      'Показать заголовки  столбцы \ строки'
+      'Заметка  столбцы \ строки'
       'Без пустых строк'
       'Без пустых столбцов'
     )
@@ -93,8 +93,9 @@ object ExportForm: TExportForm
   object btnOk: TBitBtn
     Left = 344
     Height = 30
-    Top = 192
+    Top = 194
     Width = 96
+    Anchors = [akLeft, akBottom]
     Default = True
     DefaultCaption = True
     Kind = bkOK
@@ -103,10 +104,11 @@ object ExportForm: TExportForm
     TabOrder = 4
   end
   object btnCancel: TBitBtn
-    Left = 176
+    Left = 168
     Height = 30
-    Top = 192
+    Top = 194
     Width = 97
+    Anchors = [akLeft, akBottom]
     Cancel = True
     DefaultCaption = True
     Kind = bkCancel

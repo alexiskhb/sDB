@@ -6,8 +6,8 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  StdCtrls, CheckLst, Grids, Buttons, Menus, ActnList, metadata,
-  sqldb, types, query_filter, cell_contents, record_cards, sf_export, conflicts,
+  StdCtrls, CheckLst, Grids, Buttons, Menus, ActnList, metadata, sqldb, db,
+  types, query_filter, cell_contents, record_cards, sf_export, conflicts,
   ComCtrls, export_form;
 
 type
@@ -56,6 +56,7 @@ type
     property OnFilterPopup: TNotifyEvent read FFilterPopup write FFilterPopup;
     constructor Create(ATable: TDBTable);
   published
+    DataSource: TDataSource;
     miSaveAs: TMenuItem;
     SaveDialog: TSaveDialog;
     btnApply: TBitBtn;
@@ -82,7 +83,6 @@ type
     CheckSplitter: TSplitter;
     sgTable: TMyStringGrid;
     SQLQuery: TSQLQuery;
-    StringGrid1: TStringGrid;
     PopupCaption: TMenuItem;
     pmCopyFilters: TPopupMenu;
     miWatch: TMenuItem;

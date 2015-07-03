@@ -1,7 +1,7 @@
 object TimeTable: TTimeTable
-  Left = 409
+  Left = 394
   Height = 554
-  Top = 187
+  Top = 149
   Width = 928
   Caption = 'timetable'
   ClientHeight = 554
@@ -204,20 +204,11 @@ object TimeTable: TTimeTable
     Align = alRight
     ResizeAnchor = akRight
   end
-  object StringGrid1: TStringGrid
-    Left = 152
-    Height = 100
-    Top = 112
-    Width = 200
-    TabOrder = 3
-    Visible = False
-  end
   object SQLQuery: TSQLQuery
     FieldDefs = <>
     Database = ConTran.DBConnection
     Transaction = ConTran.DBTransaction
     Params = <>
-    DataSource = ConTran.CommonDS
     left = 40
     top = 48
   end
@@ -482,5 +473,10 @@ object TimeTable: TTimeTable
       Enabled = False
       Visible = False
     end
+  end
+  object DataSource: TDataSource
+    DataSet = SQLQuery
+    left = 120
+    top = 48
   end
 end
